@@ -6,10 +6,11 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Inline Sync Plugin](exec-plans/active/2026-04-13-inline-sync-plugin.md) — started 2026-04-13
+<!-- none -->
 
 ## Completed Plans
 
+- [Inline Sync Plugin](exec-plans/completed/2026-04-13-inline-sync-plugin.md) — completed 2026-04-13
 - [RefinexEditor React 组件 + ProseMirror EditorView 集成](exec-plans/completed/2026-04-13-refinex-editor-prosemirror-view.md) — completed 2026-04-13
 - [Markdown ↔ ProseMirror round-trip conversion](exec-plans/completed/2026-04-13-markdown-prosemirror-roundtrip.md) — completed 2026-04-13
 
