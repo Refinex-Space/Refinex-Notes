@@ -10,6 +10,15 @@ export {
   trailingNodePlugin,
   refinexTrailingNodeKey,
 } from "./plugins/trailing-node";
+export {
+  CODE_BLOCK_LANGUAGE_OPTIONS,
+  CodeBlockView,
+  createCodeBlockContentTransaction,
+  createExitCodeBlockTransaction,
+  isCodeBlockSelectionOnLastLine,
+  normalizeCodeBlockLanguage,
+  resolveCodeBlockLanguageSupport,
+} from "./node-views/CodeBlockView";
 export type {
   InlineSyncParser,
   InlineSyncSerializer,

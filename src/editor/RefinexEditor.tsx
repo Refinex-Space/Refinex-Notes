@@ -18,6 +18,7 @@ import {
   stripTrailingParagraph,
   trailingNodePlugin,
 } from "./plugins/trailing-node";
+import { CodeBlockView } from "./node-views/CodeBlockView";
 import "./editor.css";
 
 export interface RefinexEditorProps {
@@ -71,6 +72,9 @@ export function RefinexEditor({
     const view = new EditorView(mount, {
       state,
       editable: () => !readOnlyRef.current,
+      nodeViews: {
+        code_block: (node, view, getPos) => new CodeBlockView(node, view, getPos),
+      },
       dispatchTransaction(transaction) {
         const result = view.state.applyTransaction(transaction);
         view.updateState(result.state);

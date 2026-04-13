@@ -126,6 +126,55 @@
   color: inherit;
 }
 
+.refinex-code-block-view {
+  margin: 0.75em 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background-color: #f8fafc;
+  overflow: hidden;
+}
+
+.refinex-code-block-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.refinex-code-block-language-select {
+  min-width: 9rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #334155;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.refinex-code-block-language-select:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.refinex-code-block-editor .cm-editor {
+  background-color: transparent;
+}
+
+.refinex-code-block-editor .cm-scroller {
+  overflow: auto;
+}
+
+.refinex-code-block-editor .cm-content,
+.refinex-code-block-editor .cm-gutterElement {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.refinex-code-block-editor .cm-focused {
+  outline: none;
+}
+
 /* ============================================================
    Horizontal rule
    ============================================================ */
@@ -293,6 +342,26 @@
 .dark .ProseMirror pre {
   background-color: #1e293b;
   border-color: #334155;
+}
+
+.dark .refinex-code-block-view {
+  border-color: #334155;
+  background-color: #0f172a;
+}
+
+.dark .refinex-code-block-toolbar {
+  border-bottom-color: #334155;
+  background-color: rgba(15, 23, 42, 0.92);
+}
+
+.dark .refinex-code-block-language-select {
+  border-color: #475569;
+  background-color: #1e293b;
+  color: #e2e8f0;
+}
+
+.dark .refinex-code-block-editor .cm-editor {
+  color: #e2e8f0;
 }
 
 .dark .ProseMirror hr {
