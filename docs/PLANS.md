@@ -10,6 +10,7 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Editor Shell Integration](exec-plans/completed/2026-04-13-editor-shell-integration.md) — completed 2026-04-13
 - [Input Rules and Keymap](exec-plans/completed/2026-04-13-input-rules-keymap.md) — completed 2026-04-13
 - [Inline Sync Plugin](exec-plans/completed/2026-04-13-inline-sync-plugin.md) — completed 2026-04-13
 - [RefinexEditor React 组件 + ProseMirror EditorView 集成](exec-plans/completed/2026-04-13-refinex-editor-prosemirror-view.md) — completed 2026-04-13
