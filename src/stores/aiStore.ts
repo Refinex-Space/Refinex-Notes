@@ -1,11 +1,17 @@
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
-interface AIStoreState {
-  activeProvider: string;
-  setActiveProvider: (activeProvider: string) => void;
-}
+import type { AIStore } from "../types/ai";
 
-export const useAIStore = create<AIStoreState>((set) => ({
-  activeProvider: "deepseek",
-  setActiveProvider: (activeProvider) => set({ activeProvider }),
-}));
+export const useAIStore = create<AIStore>()(
+  immer(() => ({
+    messages: [],
+    isStreaming: false,
+    activeProvider: "deepseek",
+    activeModel: "",
+    sendMessage: async () => {},
+    cancelStream: () => {},
+    clearHistory: () => {},
+    switchProvider: () => {},
+  })),
+);

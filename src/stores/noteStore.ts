@@ -1,11 +1,19 @@
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
-interface NoteStoreState {
-  currentPath: string | null;
-  setCurrentPath: (path: string | null) => void;
-}
+import type { NoteStore } from "../types/notes";
 
-export const useNoteStore = create<NoteStoreState>((set) => ({
-  currentPath: null,
-  setCurrentPath: (currentPath) => set({ currentPath }),
-}));
+export const useNoteStore = create<NoteStore>()(
+  immer(() => ({
+    files: [],
+    currentFile: null,
+    openFiles: [],
+    recentFiles: [],
+    openFile: async () => {},
+    closeFile: async () => {},
+    createFile: async () => {},
+    deleteFile: async () => {},
+    renameFile: async () => {},
+    refreshFileTree: async () => {},
+  })),
+);

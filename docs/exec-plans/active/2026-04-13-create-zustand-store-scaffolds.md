@@ -56,9 +56,9 @@ Deviations: None.
 **Files:** `src/stores/authStore.ts`, `noteStore.ts`, `editorStore.ts`, `gitStore.ts`, `aiStore.ts`, `settingsStore.ts`
 **Verification:** Each store exposes the requested initial state and typed placeholder action signatures through `create + immer`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Replaced all six store files with Zustand `create + immer` scaffolds that import their shared types from `src/types/`; each store now exposes the requested state shape and placeholder action signatures; `npm run build` passed after the store replacement.
+Deviations: None.
 
 ### Step 3: Verify, sync control plane if needed, and archive
 
@@ -74,7 +74,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `immer` installed; shared type files created; build stayed green | No conflicting active plans |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | All six stores now expose requested state and action signatures via `create + immer` | Business logic intentionally left unimplemented |
 | 3 | ⬜ |  |  |
 
 ## Decision Log

@@ -1,13 +1,15 @@
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
-export type AuthStatus = "unknown" | "authenticated" | "anonymous";
+import type { AuthStore } from "../types/auth";
 
-interface AuthStoreState {
-  status: AuthStatus;
-  setStatus: (status: AuthStatus) => void;
-}
-
-export const useAuthStore = create<AuthStoreState>((set) => ({
-  status: "unknown",
-  setStatus: (status) => set({ status }),
-}));
+export const useAuthStore = create<AuthStore>()(
+  immer(() => ({
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    login: async () => {},
+    logout: async () => {},
+    checkAuth: async () => {},
+  })),
+);

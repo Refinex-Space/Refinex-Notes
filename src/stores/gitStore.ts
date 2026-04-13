@@ -1,13 +1,17 @@
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
-export type GitSyncStatus = "idle" | "syncing" | "synced" | "conflicted";
+import type { GitStore } from "../types/git";
 
-interface GitStoreState {
-  status: GitSyncStatus;
-  setStatus: (status: GitSyncStatus) => void;
-}
-
-export const useGitStore = create<GitStoreState>((set) => ({
-  status: "idle",
-  setStatus: (status) => set({ status }),
-}));
+export const useGitStore = create<GitStore>()(
+  immer(() => ({
+    syncStatus: "not-initialized",
+    lastSyncTime: null,
+    changedFiles: [],
+    commit: async () => {},
+    push: async () => {},
+    pull: async () => {},
+    getHistory: async () => [],
+    initRepo: async () => {},
+  })),
+);

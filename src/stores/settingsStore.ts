@@ -1,11 +1,20 @@
 import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
 
-interface SettingsStoreState {
-  theme: "dark" | "light" | "system";
-  setTheme: (theme: SettingsStoreState["theme"]) => void;
-}
+import type { SettingsStore, SettingsStoreActions } from "../types/settings";
 
-export const useSettingsStore = create<SettingsStoreState>((set) => ({
-  theme: "dark",
-  setTheme: (theme) => set({ theme }),
-}));
+const updateSetting: SettingsStoreActions["updateSetting"] = () => {};
+
+export const useSettingsStore = create<SettingsStore>()(
+  immer(() => ({
+    theme: "dark",
+    fontSize: 16,
+    fontFamily: "Inter",
+    aiProviders: [],
+    autoSync: false,
+    syncInterval: 30,
+    updateSetting,
+    loadSettings: async () => {},
+    saveSettings: async () => {},
+  })),
+);
