@@ -31,6 +31,11 @@ import {
 } from "./rich-ui";
 import "./editor.css";
 
+export interface EditorCursorPosition {
+  line: number;
+  col: number;
+}
+
 export interface RefinexEditorProps {
   /** Markdown 内容（受控） */
   value: string;
@@ -40,6 +45,26 @@ export interface RefinexEditorProps {
   readOnly?: boolean;
   /** 容器 className */
   className?: string;
+  /** 光标变化时回调 */
+  onCursorChange?: (position: EditorCursorPosition) => void;
+  /** EditorView 生命周期回调 */
+  onEditorView?: (view: EditorView | null) => void;
+}
+
+export function getCursorPosition(state: EditorState): EditorCursorPosition {
+  const textBeforeSelection = state.doc.textBetween(
+    0,
+    state.selection.from,
+    "\n",
+    "\n",
+  );
+  const lines = textBeforeSelection.split("\n");
+  const currentLine = lines.at(-1) ?? "";
+
+  return {
+    line: lines.length,
+    col: currentLine.length + 1,
+  };
 }
 
 export function RefinexEditor({
@@ -47,11 +72,15 @@ export function RefinexEditor({
   onChange,
   readOnly = false,
   className,
+  onCursorChange,
+  onEditorView,
 }: RefinexEditorProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const readOnlyRef = useRef(readOnly);
+  const onCursorChangeRef = useRef(onCursorChange);
+  const onEditorViewRef = useRef(onEditorView);
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
   const slashMenuChangeRef = useRef(
     (_request: SlashMenuRequest | null) => {},
@@ -66,6 +95,8 @@ export function RefinexEditor({
   // Keep refs in sync with latest props without re-triggering effects
   onChangeRef.current = onChange;
   readOnlyRef.current = readOnly;
+  onCursorChangeRef.current = onCursorChange;
+  onEditorViewRef.current = onEditorView;
   openLinkPopoverRef.current = (view) => {
     const request = getLinkEditorRequest(view.state);
     if (!request) {
@@ -132,6 +163,7 @@ export function RefinexEditor({
         const result = view.state.applyTransaction(transaction);
         view.updateState(result.state);
         setOverlayVersion((current) => current + 1);
+        onCursorChangeRef.current?.(getCursorPosition(result.state));
 
         if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
           const markdown = serializeMarkdown(stripTrailingParagraph(result.state.doc));
@@ -142,8 +174,11 @@ export function RefinexEditor({
 
     viewRef.current = view;
     setEditorView(view);
+    onEditorViewRef.current?.(view);
+    onCursorChangeRef.current?.(getCursorPosition(view.state));
 
     return () => {
+      onEditorViewRef.current?.(null);
       view.destroy();
       viewRef.current = null;
       setEditorView(null);
@@ -187,6 +222,7 @@ export function RefinexEditor({
       plugins: view.state.plugins,
     });
     view.updateState(newState);
+    onCursorChangeRef.current?.(getCursorPosition(newState));
   }, [value]);
 
   return (

@@ -1,4 +1,5 @@
 export {
+  type EditorCursorPosition,
   RefinexEditor,
   type RefinexEditorProps,
 } from "../../editor/RefinexEditor";

@@ -1,528 +1,277 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  Bell,
-  Command as CommandIcon,
-  MessageSquareText,
-  MoonStar,
-  Paintbrush2,
-  PanelsTopLeft,
-  Sparkles,
-  SunMedium,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BrainCircuit, FileSearch, GitBranch, Sparkles, Wand2 } from "lucide-react";
+import { TextSelection } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 
+import { CommandPalette } from "./components/CommandPalette";
+import { TabBar } from "./components/editor/TabBar";
+import { AppLayout } from "./components/layout/AppLayout";
+import { StatusBar } from "./components/layout/StatusBar";
+import { FileTree } from "./components/sidebar/FileTree";
+import { OutlinePanel } from "./components/sidebar/OutlinePanel";
 import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from "./components/ui/command";
+  buildCommandPaletteItems,
+  countWords,
+  createNextNotePath,
+  findHeadingPosition,
+} from "./components/app-shell-utils";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "./components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./components/ui/popover";
-import {
-  Toast,
-  ToastAction,
-  ToastClose,
-  ToastDescription,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-} from "./components/ui/toast";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./components/ui/tooltip";
 import { RefinexEditor } from "./editor";
+import { useEditorStore } from "./stores/editorStore";
+import { useNoteStore } from "./stores/noteStore";
+import type { OutlineHeading } from "./types";
 
-type DemoToast = {
-  id: number;
-  title: string;
-  description: string;
-};
+function SidebarContent({
+  markdown,
+  onSelectHeading,
+}: {
+  markdown: string;
+  onSelectHeading: (heading: OutlineHeading) => void;
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <section className="border-b border-border/70 p-4">
+        <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg/70 p-4">
+          <FileSearch className="mt-0.5 h-4 w-4 text-accent" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-fg">Search</p>
+            <p className="text-sm leading-6 text-muted">
+              全局搜索会在下一阶段接入。当前先使用文件树 + 命令面板浏览工作区。
+            </p>
+          </div>
+        </div>
+      </section>
 
-const surfaceButtonClasses = [
-  "inline-flex items-center justify-center gap-2 rounded-full border border-border/70 px-4 py-2.5 text-sm font-medium",
-  "bg-bg/90 text-fg transition hover:border-accent/50 hover:bg-accent/10",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
-].join(" ");
+      <section className="min-h-0 flex-1 border-b border-border/70">
+        <div className="border-b border-border/70 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+            Files
+          </p>
+        </div>
+        <div className="min-h-0 overflow-auto">
+          <FileTree />
+        </div>
+      </section>
 
-const ghostButtonClasses = [
-  "inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-muted transition",
-  "hover:bg-accent/10 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
-].join(" ");
+      <section className="min-h-0 flex-1">
+        <div className="border-b border-border/70 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+            Outline
+          </p>
+        </div>
+        <div className="min-h-0 overflow-auto">
+          <OutlinePanel markdown={markdown} onSelectHeading={onSelectHeading} />
+        </div>
+      </section>
+    </div>
+  );
+}
 
-const testMarkdown = `# Refinex Editor
+function RightPanelContent() {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-4 p-4">
+      <section className="rounded-3xl border border-border/70 bg-bg/70 p-4">
+        <div className="flex items-center gap-2">
+          <BrainCircuit className="h-4 w-4 text-accent" />
+          <p className="text-sm font-semibold text-fg">AI Panel</p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-muted">
+          这里会接入写作建议、总结和智能续写。本阶段保留应用壳位置与信息层级。
+        </p>
+      </section>
 
-## 基本文本格式
+      <section className="rounded-3xl border border-border/70 bg-bg/70 p-4">
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4 text-accent" />
+          <p className="text-sm font-semibold text-fg">Git Panel</p>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-muted">
+          文件树里的 Git 颜色目前使用 mock 数据；真实 diff、history 和 sync 会在后续阶段落地。
+        </p>
+      </section>
 
-**加粗文本**、*斜体文本*、~~删除线~~ 和 \`行内代码\`。
+      <section className="rounded-3xl border border-border/70 bg-accent/6 p-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent" />
+          <p className="text-sm font-semibold text-fg">Shell Notes</p>
+        </div>
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
+          <li>1. 左右面板支持折叠与拖拽改宽</li>
+          <li>2. 标签栏、状态栏和命令面板已接入共享 store</li>
+          <li>3. 大纲点击会将编辑器滚动到对应标题</li>
+        </ul>
+      </section>
+    </div>
+  );
+}
 
-[访问 Refinex](https://github.com) — 支持链接渲染。
-
-## 代码块
-
-\`\`\`typescript
-const greeting = (name: string): string => {
-  return \`Hello, \${name}!\`;
-};
-\`\`\`
-
-## 引用块
-
-> 好的工具应当消失在工作流程中，让使用者专注于内容本身。
-
-## 列表
-
-- 无序列表项 A
-- 无序列表项 B
-  - 嵌套项 B1
-  - 嵌套项 B2
-
-1. 有序列表项 1
-2. 有序列表项 2
-
-## 任务列表
-
-- [x] 定义 ProseMirror Schema
-- [x] 实现 Markdown Parser / Serializer
-- [x] 创建 RefinexEditor 组件
-- [ ] 集成 AI 辅助写作
-
-## 表格
-
-| 功能 | 状态 | 优先级 |
-|------|:----:|-------:|
-| 基础编辑 | ✅ | 高 |
-| 实时协作 | 🔧 | 中 |
-| AI 续写 | ⬜ | 高 |
-
----
-
-段落之间使用空行分隔。换行符  
-使用行末双空格实现硬换行。
-`;
+function EmptyEditorState() {
+  return (
+    <div className="flex h-full items-center justify-center bg-bg/40">
+      <div className="max-w-md rounded-3xl border border-border/70 bg-bg/80 p-6 text-center">
+        <Wand2 className="mx-auto h-6 w-6 text-accent" />
+        <h2 className="mt-4 text-lg font-semibold text-fg">没有打开的笔记</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          从左侧文件树打开一篇 Markdown，或通过 Cmd/Ctrl + K 新建一篇快速笔记。
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [commandOpen, setCommandOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [toasts, setToasts] = useState<DemoToast[]>([]);
-  const [editorMarkdown, setEditorMarkdown] = useState(testMarkdown);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const documents = useNoteStore((state) => state.documents);
+  const currentFile = useNoteStore((state) => state.currentFile);
+  const openFile = useNoteStore((state) => state.openFile);
+  const createFile = useNoteStore((state) => state.createFile);
+  const updateFileContent = useNoteStore((state) => state.updateFileContent);
+
+  const activeTab = useEditorStore((state) => state.activeTab);
+  const unsavedChanges = useEditorStore((state) => state.unsavedChanges);
+  const cursorPosition = useEditorStore((state) => state.cursorPosition);
+  const setActiveTab = useEditorStore((state) => state.setActiveTab);
+  const markDirty = useEditorStore((state) => state.markDirty);
+  const markClean = useEditorStore((state) => state.markClean);
+  const setCursorPosition = useEditorStore((state) => state.setCursorPosition);
+
+  const editorViewRef = useRef<EditorView | null>(null);
+
+  const currentDocument = currentFile ? documents[currentFile] ?? null : null;
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("[data-refinex-editor-shell]")) {
-        return;
-      }
+    setActiveTab(currentFile);
+  }, [currentFile, setActiveTab]);
 
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setCommandOpen((open) => !open);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setCommandOpen]);
-
-  const cards = useMemo(
-    () => [
-      {
-        title: "Tailwind 主题变量",
-        description:
-          "颜色来自 CSS 变量，切换 `.dark` 类即可同步整个界面的背景、文字、边框与强调色。",
-        icon: Paintbrush2,
-      },
-      {
-        title: "Radix 交互原语",
-        description:
-          "Dialog、Popover、Tooltip、Toast 全部使用 headless primitives + Tailwind data-state 动画。",
-        icon: PanelsTopLeft,
-      },
-      {
-        title: "Cmd+K 命令面板",
-        description:
-          "通过 cmdk 构建 Command Palette，并使用 Lucide 图标统一视觉语言。",
-        icon: CommandIcon,
-      },
-    ],
-    [],
+  const commandPaletteFiles = useMemo(
+    () => buildCommandPaletteItems(documents),
+    [documents],
   );
+  const wordCount = useMemo(
+    () => countWords(currentDocument?.content ?? ""),
+    [currentDocument?.content],
+  );
+  const syncTone = currentFile && unsavedChanges.has(currentFile) ? "pending" : "synced";
+  const syncLabel =
+    syncTone === "pending" ? "本地改动待同步（mock）" : "Git 状态已同步（mock）";
 
-  const enqueueToast = (title: string, description: string) => {
-    setToasts((current) => [
-      ...current,
-      { id: Date.now() + current.length, title, description },
-    ]);
+  const handleSelectHeading = (heading: OutlineHeading) => {
+    const view = editorViewRef.current;
+    if (!view) {
+      return;
+    }
+
+    const position = findHeadingPosition(view.state.doc, heading);
+    if (position === null) {
+      return;
+    }
+
+    const target = Math.min(position + 1, view.state.doc.content.size);
+    const selection = TextSelection.near(view.state.doc.resolve(target));
+    view.dispatch(view.state.tr.setSelection(selection).scrollIntoView());
+    view.focus();
   };
 
-  const commandItems = [
-    {
-      value: "open-dialog",
-      label: "打开 Dialog 示例",
-      shortcut: "↵",
-      icon: PanelsTopLeft,
-      onSelect: () => setDialogOpen(true),
-    },
-    {
-      value: "show-toast",
-      label: "触发 Toast 通知",
-      shortcut: "⌥T",
-      icon: Bell,
-      onSelect: () =>
-        enqueueToast(
-          "Toast 已发送",
-          "这条通知用于验证 Radix Toast 的动画与交互。",
-        ),
-    },
-    {
-      value: "toggle-theme",
-      label: theme === "dark" ? "切换到 Light 模式" : "切换到 Dark 模式",
-      shortcut: "⌘D",
-      icon: theme === "dark" ? SunMedium : MoonStar,
-      onSelect: () =>
-        setTheme((current) => (current === "dark" ? "light" : "dark")),
-    },
-  ];
+  const handleCreateQuickNote = () => {
+    const nextPath = createNextNotePath(Object.keys(documents));
+    void createFile(nextPath);
+  };
 
   return (
-    <ToastProvider swipeDirection="right">
-      <TooltipProvider>
-        <main className="min-h-screen bg-bg px-6 py-8 text-fg md:px-10">
-          <div className="mx-auto flex max-w-6xl flex-col gap-8">
-            <section className="overflow-hidden rounded-[2rem] border border-border/70 bg-bg/95 shadow-panel">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/70 px-6 py-5">
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.38em] text-accent">
-                    Phase 0.2 · UI Infrastructure
-                  </p>
-                  <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                    Tailwind + Radix + cmdk 验证页
-                  </h1>
-                </div>
+    <>
+      <AppLayout
+        title="Refinex Notes Workspace"
+        sidebar={
+          <SidebarContent
+            markdown={currentDocument?.content ?? ""}
+            onSelectHeading={handleSelectHeading}
+          />
+        }
+        tabBar={<TabBar />}
+        editor={
+          currentDocument ? (
+            <div className="h-full overflow-auto bg-bg">
+              <RefinexEditor
+                value={currentDocument.content}
+                className="min-h-full px-6 py-5"
+                onChange={(markdown) => {
+                  updateFileContent(currentDocument.path, markdown);
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className={ghostButtonClasses}
-                        onClick={() =>
-                          setTheme((current) =>
-                            current === "dark" ? "light" : "dark",
-                          )
-                        }
-                      >
-                        {theme === "dark" ? (
-                          <SunMedium className="h-4 w-4" />
-                        ) : (
-                          <MoonStar className="h-4 w-4" />
-                        )}
-                        {theme === "dark" ? "Light" : "Dark"}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      通过 html 元素上的 <code>.dark</code> 类切换主题
-                    </TooltipContent>
-                  </Tooltip>
+                  if (markdown === currentDocument.savedContent) {
+                    markClean(currentDocument.path);
+                    return;
+                  }
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className={surfaceButtonClasses}
-                        onClick={() => setCommandOpen(true)}
-                      >
-                        <CommandIcon className="h-4 w-4" />
-                        打开命令面板
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>支持 Cmd/Ctrl + K</TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
+                  markDirty(currentDocument.path);
+                }}
+                onCursorChange={setCursorPosition}
+                onEditorView={(view) => {
+                  editorViewRef.current = view;
+                }}
+              />
+            </div>
+          ) : (
+            <EmptyEditorState />
+          )
+        }
+        rightPanel={<RightPanelContent />}
+        statusBar={
+          <StatusBar
+            syncLabel={syncLabel}
+            syncTone={syncTone}
+            cursor={cursorPosition}
+            wordCount={wordCount}
+            language={currentDocument?.language ?? "Markdown"}
+          />
+        }
+        sidebarTitle="Navigator"
+        rightPanelTitle="AI / Git"
+      />
 
-              <div className="grid gap-8 px-6 py-8 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="space-y-6">
-                  <p className="max-w-3xl text-base leading-7 text-muted">
-                    这个页面用于验收 Phase 0.2：Tailwind 样式变量、Radix
-                    交互原语、Lucide 图标与 cmdk 命令面板都在这里直接可见可点。
-                  </p>
+      <CommandPalette
+        files={commandPaletteFiles}
+        theme={theme}
+        onCreateFile={handleCreateQuickNote}
+        onOpenFile={(path) => {
+          void openFile(path);
+        }}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onToggleTheme={() =>
+          setTheme((current) => (current === "dark" ? "light" : "dark"))
+        }
+      />
 
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {cards.map((card) => {
-                      const Icon = card.icon;
-
-                      return (
-                        <article
-                          key={card.title}
-                          className="rounded-3xl border border-border/70 bg-bg/80 p-5"
-                        >
-                          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/12 text-accent">
-                            <Icon className="h-5 w-5" />
-                          </span>
-                          <h2 className="mt-4 text-lg font-semibold">
-                            {card.title}
-                          </h2>
-                          <p className="mt-3 text-sm leading-6 text-muted">
-                            {card.description}
-                          </p>
-                        </article>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                      <DialogTrigger asChild>
-                        <button type="button" className={surfaceButtonClasses}>
-                          <PanelsTopLeft className="h-4 w-4" />
-                          打开 Dialog
-                        </button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Dialog 封装已接通</DialogTitle>
-                          <DialogDescription>
-                            这里验证 Radix Dialog 的 overlay、portal、Tailwind
-                            动画和 dark mode 表现。
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="rounded-3xl border border-border/70 bg-accent/6 p-4 text-sm leading-6 text-muted">
-                          当前主题：<strong className="text-fg">{theme}</strong>
-                          。
-                          你可以先切换主题，再重新打开这个弹窗确认令牌变量是否同步生效。
-                        </div>
-                        <DialogFooter>
-                          <button
-                            type="button"
-                            className={surfaceButtonClasses}
-                            onClick={() =>
-                              enqueueToast(
-                                "Dialog 动作已执行",
-                                "这个按钮同时验证了 Dialog 与 Toast 的组合使用。",
-                              )
-                            }
-                          >
-                            <Sparkles className="h-4 w-4" />
-                            触发联动 Toast
-                          </button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button type="button" className={surfaceButtonClasses}>
-                          <Paintbrush2 className="h-4 w-4" />
-                          查看 Popover
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent align="start">
-                        <div className="space-y-3">
-                          <h3 className="text-sm font-semibold">
-                            Design Tokens
-                          </h3>
-                          <p className="text-sm leading-6 text-muted">
-                            当前 Popover 使用同一组 CSS
-                            变量，因此也会跟随主题切换。
-                          </p>
-                          <div className="grid grid-cols-2 gap-3">
-                            {[
-                              ["bg-bg", "bg-bg"],
-                              ["bg-fg", "bg-fg"],
-                              ["bg-muted", "bg-muted"],
-                              ["bg-accent", "bg-accent"],
-                            ].map(([label, tone]) => (
-                              <div
-                                key={label}
-                                className="rounded-2xl border border-border/70 p-3"
-                              >
-                                <div
-                                  className={`h-10 rounded-xl border border-border/70 ${tone}`}
-                                />
-                                <p className="mt-2 text-xs text-muted">
-                                  {label}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-
-                    <button
-                      type="button"
-                      className={surfaceButtonClasses}
-                      onClick={() =>
-                        enqueueToast(
-                          "通知已送达",
-                          "Toast + Viewport + swipe 动画当前工作正常。",
-                        )
-                      }
-                    >
-                      <Bell className="h-4 w-4" />
-                      触发 Toast
-                    </button>
-                  </div>
-                </div>
-
-                <aside className="rounded-[2rem] border border-border/70 bg-bg/80 p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-fg">验收清单</p>
-                      <p className="mt-2 text-sm leading-6 text-muted">
-                        当前页面的每个模块都对应本次任务的一条验收标准。
-                      </p>
-                    </div>
-                    <MessageSquareText className="mt-1 h-5 w-5 text-accent" />
-                  </div>
-
-                  <ul className="mt-6 space-y-3 text-sm text-muted">
-                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
-                      1. Tailwind token + dark class
-                    </li>
-                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
-                      2. Dialog / Popover / Tooltip / Toast 封装
-                    </li>
-                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
-                      3. Cmd+K 命令面板
-                    </li>
-                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
-                      4. 零 TypeScript 类型错误
-                    </li>
-                  </ul>
-                </aside>
-              </div>
-            </section>
-
-            {/* ── RefinexEditor 预览 ─────────────────────────────── */}
-            <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-fg">
-                ProseMirror 编辑器集成
-              </h2>
-              <p className="text-sm text-muted">
-                基于 ProseMirror 的所见即所得编辑器，支持 GFM Markdown
-                双向转换。在下方编辑，右侧实时查看 Markdown 源码。
-              </p>
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="overflow-hidden rounded-2xl border border-border/70 bg-bg/60">
-                  <div className="border-b border-border/70 px-4 py-2 text-xs font-medium text-muted">
-                    编辑区
-                  </div>
-                  <RefinexEditor
-                    value={editorMarkdown}
-                    onChange={setEditorMarkdown}
-                    className="min-h-[420px] p-4"
-                  />
-                </div>
-                <div className="overflow-hidden rounded-2xl border border-border/70 bg-bg/60">
-                  <div className="border-b border-border/70 px-4 py-2 text-xs font-medium text-muted">
-                    Markdown 源码
-                  </div>
-                  <pre
-                    className="overflow-auto p-4 text-xs text-muted"
-                    style={{ minHeight: 420 }}
-                  >
-                    {editorMarkdown}
-                  </pre>
-                </div>
-              </div>
-            </section>
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>应用设置（占位）</DialogTitle>
+            <DialogDescription>
+              Phase 4.1 先把设置入口接到命令面板；完整设置面板会在后续阶段替换这里。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-3xl border border-border/70 bg-bg/80 p-4 text-sm leading-6 text-muted">
+            当前主题：<strong className="text-fg">{theme}</strong>
+            ，当前激活标签：
+            <strong className="text-fg">
+              {activeTab ? ` ${documents[activeTab]?.name ?? activeTab}` : " 无"}
+            </strong>
+            。
           </div>
-        </main>
-
-        <CommandDialog
-          open={commandOpen}
-          onOpenChange={setCommandOpen}
-          title="Phase 0.2 Command Palette"
-          description="使用命令快速验证当前 UI 基础设施。"
-        >
-          <CommandInput placeholder="搜索命令或组件..." />
-          <CommandList>
-            <CommandEmpty>没有匹配的命令。</CommandEmpty>
-            <CommandGroup heading="验证动作">
-              {commandItems.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <CommandItem
-                    key={item.value}
-                    value={item.value}
-                    onSelect={() => {
-                      item.onSelect();
-                      setCommandOpen(false);
-                    }}
-                  >
-                    <Icon className="h-4 w-4 text-accent" />
-                    <span>{item.label}</span>
-                    <CommandShortcut>{item.shortcut}</CommandShortcut>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="提示">
-              <CommandItem disabled>
-                <Sparkles className="h-4 w-4 text-muted" />
-                <span>这是一个仅用于 Phase 0.2 验证的演示面板</span>
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </CommandDialog>
-
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            defaultOpen
-            onOpenChange={(open) => {
-              if (!open) {
-                setToasts((current) =>
-                  current.filter((item) => item.id !== toast.id),
-                );
-              }
-            }}
-          >
-            <div className="space-y-1">
-              <ToastTitle>{toast.title}</ToastTitle>
-              <ToastDescription>{toast.description}</ToastDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <ToastAction
-                altText="再次打开命令面板"
-                onClick={() => setCommandOpen(true)}
-              >
-                打开 Cmd+K
-              </ToastAction>
-              <ToastClose />
-            </div>
-          </Toast>
-        ))}
-        <ToastViewport />
-      </TooltipProvider>
-    </ToastProvider>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
