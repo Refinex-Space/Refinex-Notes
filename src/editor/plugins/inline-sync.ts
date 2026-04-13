@@ -1,8 +1,11 @@
-import type { Node as ProseMirrorNode } from "prosemirror-model";
-import { Plugin, PluginKey, type Transaction } from "prosemirror-state";
+import { Fragment, type Node as ProseMirrorNode, Slice } from "prosemirror-model";
+import {
+  Plugin,
+  PluginKey,
+  TextSelection,
+  type Transaction,
+} from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
-
-const INLINE_SYNC_META = "refinex-inline-sync";
 
 export const refinexInlineSyncKey = new PluginKey("refinexInlineSyncKey");
 
@@ -22,6 +25,11 @@ interface ChangedRange {
 interface AffectedTextblock {
   pos: number;
   node: ProseMirrorNode;
+}
+
+interface RewriteCandidate {
+  fragment: Fragment;
+  selection: number | null;
 }
 
 function collectChangedRanges(transactions: readonly Transaction[]): ChangedRange[] {
@@ -90,9 +98,106 @@ function collectAffectedTextblocks(
     .sort((left, right) => right.pos - left.pos);
 }
 
+function isEmptyTextblock(node: ProseMirrorNode): boolean {
+  return node.isTextblock && node.childCount === 0 && node.textContent.length === 0;
+}
+
+function isEligibleTextblock(node: ProseMirrorNode): boolean {
+  if (node.type.name !== "paragraph" || node.childCount === 0) {
+    return false;
+  }
+
+  let plain = true;
+  node.forEach((child) => {
+    if (!child.isText || child.marks.length > 0) {
+      plain = false;
+    }
+  });
+  return plain;
+}
+
+function getSelectionOffset(node: ProseMirrorNode, pos: number, head: number): number | null {
+  const start = pos + 1;
+  const end = pos + node.nodeSize - 1;
+
+  if (head < start || head > end) {
+    return null;
+  }
+
+  return Math.min(Math.max(head - start, 0), node.content.size);
+}
+
+function mapSelectionFromPrefix(
+  parser: InlineSyncParser,
+  markdown: string,
+  selectionOffset: number,
+  rewrittenDoc: ProseMirrorNode,
+): number | null {
+  const prefix = markdown.slice(0, Math.max(0, Math.min(selectionOffset, markdown.length)));
+  const targetTextOffset = parser.parse(prefix).textContent.length;
+
+  let remaining = targetTextOffset;
+  let firstTextPosition: number | null = null;
+  let lastTextEnd: number | null = null;
+  let emptyTextblockStart: number | null = null;
+  let resolved: number | null = null;
+
+  rewrittenDoc.descendants((child, pos) => {
+    if (child.isTextblock && child.content.size === 0 && emptyTextblockStart === null) {
+      emptyTextblockStart = pos + 1;
+    }
+
+    if (!child.isText) {
+      return true;
+    }
+
+    firstTextPosition ??= pos;
+    const text = child.text ?? "";
+    if (remaining <= text.length) {
+      resolved = pos + remaining;
+      return false;
+    }
+
+    remaining -= text.length;
+    lastTextEnd = pos + text.length;
+    return true;
+  });
+
+  if (resolved !== null) {
+    return resolved;
+  }
+
+  if (targetTextOffset === 0) {
+    return firstTextPosition ?? emptyTextblockStart;
+  }
+
+  return lastTextEnd ?? emptyTextblockStart;
+}
+
+function buildRewriteCandidate(
+  node: ProseMirrorNode,
+  parser: InlineSyncParser,
+  selectionOffset: number | null,
+): RewriteCandidate | null {
+  const markdown = node.textContent;
+  const parsedDoc = parser.parse(markdown);
+  const fragment = parsedDoc.content;
+  if (fragment.eq(Fragment.from(node))) {
+    return null;
+  }
+
+  return {
+    fragment,
+    selection:
+      selectionOffset === null
+        ? null
+        : mapSelectionFromPrefix(parser, markdown, selectionOffset, parsedDoc),
+  };
+}
+
 export function inlineSyncPlugin(
-  _parser: InlineSyncParser,
-  _serializer: InlineSyncSerializer,
+  parser: InlineSyncParser,
+  serializer: InlineSyncSerializer,
 ) {
   return new Plugin({
     key: refinexInlineSyncKey,
@@ -101,7 +206,7 @@ export function inlineSyncPlugin(
         return null;
       }
 
-      if (transactions.some((transaction) => transaction.getMeta(INLINE_SYNC_META))) {
+      if (transactions.some((transaction) => transaction.getMeta(refinexInlineSyncKey))) {
         return null;
       }
 
@@ -115,7 +220,61 @@ export function inlineSyncPlugin(
         return null;
       }
 
-      return null;
+      let transaction: Transaction | null = null;
+
+      for (const block of affectedBlocks) {
+        if (isEmptyTextblock(block.node) || !isEligibleTextblock(block.node)) {
+          continue;
+        }
+
+        const selectionOffset = getSelectionOffset(
+          block.node,
+          block.pos,
+          newState.selection.head,
+        );
+        const rewrite = buildRewriteCandidate(
+          block.node,
+          parser,
+          selectionOffset,
+        );
+
+        if (!rewrite) {
+          continue;
+        }
+
+        transaction ??= newState.tr;
+
+        const from = transaction.mapping.map(block.pos, 1);
+        const to = transaction.mapping.map(block.pos + block.node.nodeSize, -1);
+        const $from = transaction.doc.resolve(from);
+        const $to = transaction.doc.resolve(to);
+
+        if (
+          !$from.sameParent($to) ||
+          !$from.parent.canReplace($from.index(), $to.index(), rewrite.fragment)
+        ) {
+          continue;
+        }
+
+        transaction.replaceRange(from, to, new Slice(rewrite.fragment, 0, 0));
+
+        if (rewrite.selection !== null) {
+          const selectionPosition = Math.max(
+            0,
+            Math.min(from + rewrite.selection, transaction.doc.content.size),
+          );
+          transaction.setSelection(
+            TextSelection.near(transaction.doc.resolve(selectionPosition)),
+          );
+        }
+      }
+
+      if (!transaction || !transaction.docChanged) {
+        return null;
+      }
+
+      transaction.setMeta(refinexInlineSyncKey, true);
+      return transaction;
     },
   });
 }

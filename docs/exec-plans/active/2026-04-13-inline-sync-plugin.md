@@ -61,9 +61,9 @@ Deviations:
 **Files:** `src/editor/plugins/inline-sync.ts`, `src/editor/__tests__/inline-sync.test.ts`
 **Verification:** Targeted inline-sync tests prove rewritten blocks and caret placement for syntax closure cases
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Added paragraph-scoped inline reparse logic in `src/editor/plugins/inline-sync.ts` and 6 focused syntax-closure tests in `src/editor/__tests__/inline-sync.test.ts`. `npm test -- src/editor/__tests__/inline-sync.test.ts` passes (6/6).
+Deviations: Replaced the original zero-width-placeholder reparse path with prefix reparse + text-content offset mapping for caret restoration, because `markdown-it` treats `\u200B` after emphasis delimiters as meaningful content and prevents `**bold**` / `*italic*` / `~~strike~~` from closing correctly. Also use raw paragraph `textContent` as the markdown source for eligible blocks because `MarkdownSerializer` escapes literal Markdown delimiters in plain text.
 
 ### Step 3: Add automated coverage for no-op, deletion, and undo behavior
 
@@ -88,7 +88,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `npm test` 20/20 pass; `npm run build` pass | Added helper-first scaffold before placeholder rewrite |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | `npm test -- src/editor/__tests__/inline-sync.test.ts` → 6/6 pass | Paragraph-scoped rewrite path chosen for stable Phase 2.1 closure rendering |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
 
@@ -97,6 +97,8 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | Add positive inline-sync tests in Step 2 | Step 2 needed concrete evidence for reparse and caret preservation before Step 3 expands edge-case coverage | Delay all tests to Step 3; rely on build-only evidence in Step 2 | Early behavioral tests reduce risk in the placeholder/remapping logic, which is the highest-risk part of the feature |
+| Use raw paragraph text as the markdown source | `MarkdownSerializer` escapes literal Markdown delimiters in plain text, so plain paragraph reparse never sees `**`, `#`, or link syntax as Markdown | Continue using serializer output; add custom serializer escape bypass | Reading raw paragraph text preserves the exact user-typed syntax for the Phase 2.1 closure cases |
+| Map caret via prefix reparse instead of `\u200B` parsing | `markdown-it` fails to close emphasis-like syntax when `\u200B` is injected after the closing delimiter | Keep strict placeholder parsing; invent a custom sentinel syntax | Prefix reparse preserves closure detection while still deriving a deterministic text-offset target in the rewritten document |
 
 ## Completion Summary
 
