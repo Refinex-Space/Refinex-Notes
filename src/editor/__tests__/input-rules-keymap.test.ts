@@ -1,5 +1,6 @@
 import { history } from "prosemirror-history";
-import { EditorState, TextSelection } from "prosemirror-state";
+import { EditorState, TextSelection, type Transaction } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { parseMarkdown } from "../parser";
@@ -26,15 +27,23 @@ function applyTextInput(markdown: string, text: string, from = 1, to = from) {
   let nextState = state;
 
   const view = {
-    state,
+    state: nextState,
     composing: false,
-    dispatch(transaction) {
+    dispatch(transaction: Transaction) {
       nextState = nextState.applyTransaction(transaction).state;
-      this.state = nextState;
+      view.state = nextState;
     },
   } as unknown as EditorView;
 
-  const handled = plugin.props.handleTextInput?.(view, from, to, text) ?? false;
+  const handled =
+    plugin.props.handleTextInput?.call(
+      plugin,
+      view,
+      from,
+      to,
+      text,
+      () => nextState.tr.insertText(text, from, to),
+    ) ?? false;
   return { handled, state: nextState };
 }
 
@@ -75,7 +84,10 @@ function applyBinding(
   return { handled, state: nextState };
 }
 
-function findTextRange(doc: EditorState["doc"], search: string) {
+function findTextRange(
+  doc: EditorState["doc"],
+  search: string,
+): { from: number; to: number } {
   let found: { from: number; to: number } | null = null;
   doc.descendants((node, pos) => {
     if (!node.isText) {
