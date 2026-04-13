@@ -6,7 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-_No active execution plans._
+- [Create Zustand store scaffolds](exec-plans/active/2026-04-13-create-zustand-store-scaffolds.md) — started 2026-04-13
 
 ## Completed Plans
 
