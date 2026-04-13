@@ -48,9 +48,9 @@ Determine whether `Refinex-Notes Complete-Plans.md` Phase 0.1 ("项目脚手架�
 **Files:** `Refinex-Notes Complete-Plans.md`, `package.json`, `tsconfig.json`, `src/main.tsx`, `src/App.tsx`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`, `src-tauri/src/lib.rs`
 **Verification:** Each static requirement is mapped to a concrete file/value pair
 
-Status: 🔄 In progress
-Evidence: Preflight passed; Phase 0.1 section and core config/runtime files have been read.
-Deviations:
+Status: ✅ Done
+Evidence: `package.json` confirms React `18.3.1`, React DOM `18.3.1`, Vite scripts, and Tauri CLI `2.10.1`; `tsconfig.json` sets `strict: true`; `src-tauri/Cargo.toml` pins `tauri = 2.10.2`; `src-tauri/tauri.conf.json` sets `productName=Refinex-Notes`, `identifier=dev.refinex.notes`, `title=Refinex-Notes`, `width=1280`, `height=800`; `src-tauri/src/lib.rs` contains a compilable `tauri::Builder::default().run(tauri::generate_context!())` entry.
+Deviations: The historical command `npm create tauri-app@latest ...` cannot be proven after the fact; this audit therefore judges the resulting repository state as an equivalent outcome rather than asserting the exact bootstrap command was executed.
 
 ### Step 2: Verify desktop startup behavior
 
@@ -74,7 +74,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | Preflight green; baseline `cargo test` and `npm run build` passed; core phase0.1 files read | Default scope assumption: Phase 0.1 only |
+| 1 | ✅ | Static config and builder requirements matched in `package.json`, `tsconfig.json`, `Cargo.toml`, `tauri.conf.json`, and `lib.rs` | Default scope assumption: Phase 0.1 only |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 
