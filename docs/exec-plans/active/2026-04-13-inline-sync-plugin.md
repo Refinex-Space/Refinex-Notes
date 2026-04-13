@@ -52,8 +52,8 @@ Implement the editor-core inline-sync plugin so Markdown syntax typed inside aff
 **Files:** `src/editor/plugins/inline-sync.ts`
 **Verification:** Vitest compiles the new module and build remains green
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: Added `src/editor/plugins/inline-sync.ts` with `refinexInlineSyncKey`, parser/serializer interfaces, append-transaction loop guard, transaction mapping range collection, and affected textblock discovery. `npm test` passes (20/20). `npm run build` passes.
 Deviations:
 
 ### Step 2: Implement placeholder-based reparse and selection preservation
@@ -87,7 +87,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  |  |
+| 1 | ✅ | `npm test` 20/20 pass; `npm run build` pass | Added helper-first scaffold before placeholder rewrite |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
