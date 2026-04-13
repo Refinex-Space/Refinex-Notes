@@ -6,7 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-_No active execution plans._
+- [Integrate phase0 UI infrastructure](exec-plans/active/2026-04-13-integrate-phase0-ui-infrastructure.md) — started 2026-04-13
 
 ## Completed Plans
 
