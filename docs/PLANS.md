@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Editor Rich UI Surfaces](exec-plans/active/2026-04-13-editor-rich-ui-surfaces.md) — started 2026-04-13
+
 ## Completed Plans
 
 - [CodeMirror Code Block View](exec-plans/completed/2026-04-13-codemirror-code-block-view.md) — completed 2026-04-13
