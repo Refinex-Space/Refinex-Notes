@@ -1,9 +1,10 @@
-import { history } from "prosemirror-history";
+import { history, undo } from "prosemirror-history";
 import { EditorState } from "prosemirror-state";
 import { describe, expect, it } from "vitest";
 
 import { refinexParser, parseMarkdown } from "../parser";
 import { inlineSyncPlugin } from "../plugins/inline-sync";
+import { refinexSchema } from "../schema";
 import { refinexSerializer } from "../serializer";
 
 function createState(markdown = ""): EditorState {
@@ -81,5 +82,77 @@ describe("inlineSyncPlugin", () => {
 
     expectMarkedParagraph(result.state, "strikethrough", "strike");
     expect(result.state.selection.from).toBe(7);
+  });
+
+  it("does nothing when a transaction does not change the document", () => {
+    const state = createState("plain");
+    const result = state.applyTransaction(state.tr.setMeta("test-meta", true));
+
+    expect(result.transactions).toHaveLength(1);
+    expect(result.state.doc.eq(state.doc)).toBe(true);
+    expect(result.state.selection.from).toBe(state.selection.from);
+  });
+
+  it("skips code blocks entirely", () => {
+    const doc = refinexSchema.node("doc", null, [
+      refinexSchema.node(
+        "code_block",
+        { language: "" },
+        refinexSchema.text("**bold"),
+      ),
+    ]);
+    const state = EditorState.create({
+      doc,
+      plugins: [history(), inlineSyncPlugin(refinexParser, refinexSerializer)],
+    });
+
+    const result = applyInsert(
+      state,
+      "**",
+      state.doc.firstChild!.nodeSize - 1,
+      state.doc.firstChild!.nodeSize - 1,
+    );
+
+    expect(result.transactions).toHaveLength(1);
+    expect(result.state.doc.firstChild?.type.name).toBe("code_block");
+    expect(result.state.doc.firstChild?.textContent).toBe("**bold**");
+  });
+
+  it("skips already formatted paragraphs so follow-up typing does not reparse again", () => {
+    const formatted = applyInsert(createState(), "**bold**").state;
+    const result = applyInsert(
+      formatted,
+      "!",
+      formatted.selection.from,
+      formatted.selection.from,
+    );
+
+    expect(result.transactions).toHaveLength(1);
+    expect(result.state.doc.firstChild?.textContent).toBe("bold!");
+  });
+
+  it("handles cross-paragraph deletion that joins markdown syntax into a valid mark", () => {
+    const state = createState("**bo\n\nld**");
+    const firstBlock = state.doc.firstChild!;
+    const boundary = firstBlock.nodeSize;
+    const result = state.applyTransaction(state.tr.delete(boundary - 1, boundary + 1));
+
+    expect(result.transactions).toHaveLength(2);
+    expectMarkedParagraph(result.state, "strong", "bold");
+    expect(result.state.selection.from).toBeGreaterThanOrEqual(1);
+    expect(result.state.selection.from).toBeLessThanOrEqual(5);
+  });
+
+  it("lets undo revert the inline-sync rewrite together with the typed markdown", () => {
+    let state = applyInsert(createState(), "**bold**").state;
+
+    const didUndo = undo(state, (transaction) => {
+      state = state.applyTransaction(transaction).state;
+    });
+
+    expect(didUndo).toBe(true);
+    expect(state.doc.firstChild?.type.name).toBe("paragraph");
+    expect(state.doc.firstChild?.textContent).toBe("");
+    expect(state.selection.from).toBe(1);
   });
 });
