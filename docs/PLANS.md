@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Markdown ↔ ProseMirror round-trip conversion](exec-plans/active/2026-04-13-markdown-prosemirror-roundtrip.md) — started 2026-04-13
+
 ## Completed Plans
 
 - [Define ProseMirror schema](exec-plans/completed/2026-04-13-define-prosemirror-schema.md) — completed 2026-04-13
