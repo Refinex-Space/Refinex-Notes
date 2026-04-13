@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [App Shell File Tree Tabs](exec-plans/active/2026-04-13-app-shell-file-tree-tabs.md) — started 2026-04-13
 
 ## Completed Plans
 
+- [App Shell File Tree Tabs](exec-plans/completed/2026-04-13-app-shell-file-tree-tabs.md) — completed 2026-04-13
 - [Editor Rich UI Surfaces](exec-plans/completed/2026-04-13-editor-rich-ui-surfaces.md) — completed 2026-04-13
 - [CodeMirror Code Block View](exec-plans/completed/2026-04-13-codemirror-code-block-view.md) — completed 2026-04-13
 - [Editor Shell Integration](exec-plans/completed/2026-04-13-editor-shell-integration.md) — completed 2026-04-13
