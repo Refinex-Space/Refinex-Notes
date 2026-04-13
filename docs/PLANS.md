@@ -6,10 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Define ProseMirror schema](exec-plans/active/2026-04-13-define-prosemirror-schema.md) — started 2026-04-13
-
 ## Completed Plans
 
+- [Define ProseMirror schema](exec-plans/completed/2026-04-13-define-prosemirror-schema.md) — completed 2026-04-13
 - [Create Zustand store scaffolds](exec-plans/completed/2026-04-13-create-zustand-store-scaffolds.md) — completed 2026-04-13
 - [Integrate phase0 UI infrastructure](exec-plans/completed/2026-04-13-integrate-phase0-ui-infrastructure.md) — completed 2026-04-13
 - [Audit phase0 scaffold](exec-plans/completed/2026-04-13-audit-phase0-scaffold.md) — completed 2026-04-13
