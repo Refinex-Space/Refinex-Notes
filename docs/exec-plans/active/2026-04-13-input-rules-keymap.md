@@ -72,9 +72,9 @@ Deviations: The horizontal-rule rule inserts a trailing empty paragraph after th
 **Files:** `src/editor/plugins/keymap.ts`, `src/editor/__tests__/input-rules-keymap.test.ts`
 **Verification:** Focused Vitest cases prove formatting shortcuts, list indent/outdent, split, and exit behavior
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Implemented `src/editor/plugins/keymap.ts` with mark toggles, link prompt command, heading shortcuts, list indentation/splitting/exit commands, and undo/redo/select-all bindings. Expanded `src/editor/__tests__/input-rules-keymap.test.ts` to 14 cases, and `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` passes (14/14).
+Deviations: Exported `createRefinexKeyBindings()` alongside `refinexKeymap()` so tests can exercise the exact binding map deterministically without depending on fragile mocked `KeyboardEvent` behavior.
 
 ### Step 4: Integrate the plugins into RefinexEditor and run full verification
 
@@ -91,7 +91,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test` pass; `npm test` 31/31 pass; `npm run build` pass | Added `prosemirror-schema-list` for list commands before implementing key bindings |
 | 2 | ✅ | `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` → 7/7 pass | Added custom transaction rules for task list and horizontal rule |
-| 3 | ⬜ |  |  |
+| 3 | ✅ | `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` → 14/14 pass | Added direct binding-map coverage for mark, list, and history shortcuts |
 | 4 | ⬜ |  |  |
 
 ## Decision Log
@@ -100,6 +100,7 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | Add `prosemirror-schema-list` explicitly | List indentation/splitting commands are required for the requested keymap, but the package was not declared directly in the repo | Reimplement list commands manually; depend on a transitive package | The official package provides the requested commands with less risk and clearer ownership in `package.json` |
 | Insert a trailing paragraph after the horizontal-rule input rule | Replacing an empty paragraph with only `horizontal_rule` leaves no obvious text cursor landing point for continued editing | Replace with only `horizontal_rule`; defer cursor recovery to a future trailing-node plugin | Keeping an empty paragraph after the rule preserves immediate typing flow without waiting for Phase 2.3 |
+| Export `createRefinexKeyBindings()` in addition to `refinexKeymap()` | Keymap behavior needed stable command-level tests that still assert the intended key strings | Test only through mocked `handleKeyDown`; avoid any extra export | A thin exported binding map keeps runtime behavior unchanged while making the shortcut contract explicit and testable |
 
 ## Completion Summary
 
