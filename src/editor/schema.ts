@@ -126,7 +126,7 @@ const orderedListSpec: NodeSpec = {
 };
 
 const bulletListSpec: NodeSpec = {
-  content: "list_item+",
+  content: "(list_item | task_list_item)+",
   group: "block",
   parseDOM: [{ tag: "ul" }],
   toDOM() {
@@ -173,7 +173,8 @@ const imageSpec: NodeSpec = {
     alt: { default: null },
     title: { default: null },
   },
-  group: "block",
+  inline: true,
+  group: "inline",
   atom: true,
   draggable: true,
   parseDOM: [
@@ -209,7 +210,10 @@ const strongSpec: MarkSpec = {
       getAttrs: (node) =>
         (node as HTMLElement).style.fontWeight !== "normal" ? null : false,
     },
-    { style: "font-weight=400", clearMark: (mark) => mark.type.name === "strong" },
+    {
+      style: "font-weight=400",
+      clearMark: (mark) => mark.type.name === "strong",
+    },
     {
       style: "font-weight",
       getAttrs: (value) =>
@@ -226,7 +230,10 @@ const emSpec: MarkSpec = {
     { tag: "i" },
     { tag: "em" },
     { style: "font-style=italic" },
-    { style: "font-style=normal", clearMark: (mark) => mark.type.name === "em" },
+    {
+      style: "font-style=normal",
+      clearMark: (mark) => mark.type.name === "em",
+    },
   ],
   toDOM() {
     return ["em", 0];

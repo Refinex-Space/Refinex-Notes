@@ -1,5 +1,8 @@
 import type { Node as ProseMirrorNode } from "prosemirror-model";
-import { MarkdownSerializer, type MarkdownSerializerState } from "prosemirror-markdown";
+import {
+  MarkdownSerializer,
+  type MarkdownSerializerState,
+} from "prosemirror-markdown";
 import { refinexSchema } from "./schema";
 
 // ---------------------------------------------------------------------------
@@ -8,7 +11,12 @@ import { refinexSchema } from "./schema";
 
 const nodeSerializers: Record<
   string,
-  (state: MarkdownSerializerState, node: ProseMirrorNode, parent: ProseMirrorNode, index: number) => void
+  (
+    state: MarkdownSerializerState,
+    node: ProseMirrorNode,
+    parent: ProseMirrorNode,
+    index: number,
+  ) => void
 > = {
   paragraph(state, node) {
     state.renderInline(node);
@@ -72,19 +80,20 @@ const nodeSerializers: Record<
   },
 
   image(state, node) {
-    const alt = state.esc(
-      (node.attrs.alt as string) ?? "",
-    );
-    const src = node.attrs.src as string;
+    const alt = state.esc((node.attrs.alt as string) ?? "");
+    const src = (node.attrs.src as string).replace(/[()]/g, "\\$&");
     const title = node.attrs.title as string | null;
     state.write(
-      `![${alt}](${src}${title ? ` "${title}"` : ""})`,
+      `![${alt}](${src}${title ? ` "${title.replace(/"/g, '\\"')}"` : ""})`,
     );
-    state.closeBlock(node);
   },
 
   hard_break(state) {
     state.write("\\\n");
+  },
+
+  text(state, node) {
+    state.text(node.text || "");
   },
 
   // GFM table serialization
@@ -173,17 +182,30 @@ const markSerializers = {
     expelEnclosingWhitespace: true,
   } as const,
   code: {
-    open(_state: MarkdownSerializerState, _mark: unknown, parent: ProseMirrorNode, index: number) {
+    open(
+      _state: MarkdownSerializerState,
+      _mark: unknown,
+      parent: ProseMirrorNode,
+      index: number,
+    ) {
       return backticksFor(parent.child(index), -1);
     },
-    close(_state: MarkdownSerializerState, _mark: unknown, parent: ProseMirrorNode, index: number) {
+    close(
+      _state: MarkdownSerializerState,
+      _mark: unknown,
+      parent: ProseMirrorNode,
+      index: number,
+    ) {
       return backticksFor(parent.child(index), 1);
     },
     escape: false,
   } as const,
   link: {
     open: "[",
-    close(_state: MarkdownSerializerState, mark: { attrs: Record<string, unknown> }) {
+    close(
+      _state: MarkdownSerializerState,
+      mark: { attrs: Record<string, unknown> },
+    ) {
       const href = mark.attrs.href as string;
       const title = mark.attrs.title as string | null | undefined;
       return `](${href}${title ? ` "${title}"` : ""})`;
