@@ -58,8 +58,8 @@ Deviations:
 
 ### Step 2: Implement placeholder-based reparse and selection preservation
 
-**Files:** `src/editor/plugins/inline-sync.ts`
-**Verification:** Inline-sync tests prove rewritten blocks and caret placement for syntax closure cases
+**Files:** `src/editor/plugins/inline-sync.ts`, `src/editor/__tests__/inline-sync.test.ts`
+**Verification:** Targeted inline-sync tests prove rewritten blocks and caret placement for syntax closure cases
 
 Status: ⬜ Not started
 Evidence:
@@ -96,6 +96,7 @@ Deviations:
 
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
+| Add positive inline-sync tests in Step 2 | Step 2 needed concrete evidence for reparse and caret preservation before Step 3 expands edge-case coverage | Delay all tests to Step 3; rely on build-only evidence in Step 2 | Early behavioral tests reduce risk in the placeholder/remapping logic, which is the highest-risk part of the feature |
 
 ## Completion Summary
 
