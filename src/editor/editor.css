@@ -1,0 +1,318 @@
+/* ============================================================
+   ProseMirror editor container
+   ============================================================ */
+
+.ProseMirror {
+  outline: none;
+  min-height: 100%;
+  padding: 1.25rem 1.5rem;
+  line-height: 1.75;
+  color: inherit;
+  word-break: break-word;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+
+/* ============================================================
+   Headings
+   ============================================================ */
+
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.1em;
+  margin-bottom: 0.4em;
+}
+
+.ProseMirror h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1em;
+  margin-bottom: 0.35em;
+}
+
+.ProseMirror h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 0.9em;
+  margin-bottom: 0.3em;
+}
+
+.ProseMirror h5 {
+  font-size: 0.95em;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: 0.8em;
+  margin-bottom: 0.25em;
+}
+
+.ProseMirror h6 {
+  font-size: 0.875em;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 0.75em;
+  margin-bottom: 0.2em;
+  color: #718096;
+}
+
+/* ============================================================
+   Paragraph
+   ============================================================ */
+
+.ProseMirror p {
+  margin: 0;
+}
+
+/* ============================================================
+   Blockquote
+   ============================================================ */
+
+.ProseMirror blockquote {
+  border-left: 4px solid #cbd5e0;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 1em;
+  color: #718096;
+  font-style: italic;
+}
+
+/* ============================================================
+   Code
+   ============================================================ */
+
+.ProseMirror code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+}
+
+.ProseMirror pre {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1em 1.25em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.ProseMirror pre > code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.85em;
+  line-height: 1.6;
+  color: inherit;
+}
+
+/* ============================================================
+   Horizontal rule
+   ============================================================ */
+
+.ProseMirror hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 1.5em 0;
+}
+
+/* ============================================================
+   Images
+   ============================================================ */
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   Links
+   ============================================================ */
+
+.ProseMirror a {
+  color: #3182ce;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ProseMirror a:hover {
+  color: #2c5282;
+}
+
+/* ============================================================
+   Lists
+   ============================================================ */
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.75em;
+  margin: 0.5em 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.25em 0;
+}
+
+.ProseMirror li > p {
+  margin: 0;
+}
+
+.ProseMirror li > ul,
+.ProseMirror li > ol {
+  margin: 0.25em 0;
+}
+
+/* Task list items */
+.ProseMirror li[data-task-item] {
+  list-style: none;
+  margin-left: -1.25em;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.ProseMirror li[data-task-item]::before {
+  content: none;
+}
+
+/* ============================================================
+   Tables
+   ============================================================ */
+
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.75em 0;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background-color: #f7fafc;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Gapcursor
+   ============================================================ */
+
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror-gapcursor::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid black;
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+/* ============================================================
+   Selection
+   ============================================================ */
+
+.ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid #3182ce;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Dark mode
+   ============================================================ */
+
+.dark .ProseMirror {
+  color: #e2e8f0;
+}
+
+.dark .ProseMirror h6 {
+  color: #94a3b8;
+}
+
+.dark .ProseMirror blockquote {
+  border-left-color: #475569;
+  color: #94a3b8;
+}
+
+.dark .ProseMirror code {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .ProseMirror pre {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark .ProseMirror hr {
+  border-top-color: #334155;
+}
+
+.dark .ProseMirror a {
+  color: #63b3ed;
+}
+
+.dark .ProseMirror a:hover {
+  color: #90cdf4;
+}
+
+.dark .ProseMirror th {
+  background-color: #1e293b;
+}
+
+.dark .ProseMirror table,
+.dark .ProseMirror th,
+.dark .ProseMirror td {
+  border-color: #334155;
+}
+
+.dark .ProseMirror-gapcursor::after {
+  border-top-color: #e2e8f0;
+}
+
+.dark .ProseMirror .ProseMirror-selectednode {
+  outline-color: #63b3ed;
+}
