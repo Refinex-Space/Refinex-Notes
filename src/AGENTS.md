@@ -14,15 +14,15 @@ This module does NOT own: native file I/O, Git operations, OAuth flows, search i
 - `src/components/ui/` contains low-level Radix/cmdk wrappers styled with Tailwind; domain UI lives in sibling directories such as `auth`, `editor`, `git`, `settings`, and `sidebar`.
 - `src/editor/` owns editor-core document semantics such as ProseMirror schema definitions; `src/components/editor/` should remain the React/UI layer over that core.
 - Global client state is centralized in `src/stores/`, with shared state models defined in `src/types/` and surfaced through thin hooks like `src/hooks/useAuth.ts`.
-- Store implementations use Zustand `create + immer`; early-phase action bodies may remain placeholders until later service wiring work lands.
+- Store implementations use Zustand; use plain `create` when the state includes `Set`-based shell metadata, and keep `immer` only where it adds value without extra global setup.
 - `src/services/*.ts` are the intended integration seam for Tauri commands and currently contain explicit unimplemented stubs.
-- `src/App.tsx` currently serves as a Phase 0.2 interactive verification page, so new work should preserve the layering even when replacing this temporary demo surface.
+- `src/App.tsx` now composes the Phase 4.1 workspace shell: `AppLayout`, `FileTree`, `TabBar`, `OutlinePanel`, `StatusBar`, `CommandPalette`, and the existing `RefinexEditor` bridge around mock workspace state.
 
 ## Testing
 
-- Test location: Not configured yet for the frontend
-- Run tests: No frontend `test` script is defined in `package.json`
-- Test style: Build verification currently relies on `npm run build`; add frontend tests alongside features when a test harness is introduced
+- Test location: colocated Vitest suites under `src/**/__tests__/`
+- Run tests: `npm test`
+- Test style: add focused unit tests for stores, pure shell helpers, and editor helper logic; keep `npm run build` green after UI integration changes
 
 ## Dependencies
 

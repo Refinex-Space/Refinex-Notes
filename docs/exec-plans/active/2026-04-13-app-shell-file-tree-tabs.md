@@ -36,12 +36,12 @@ Replace the temporary Phase 0.2 demo surface with the first real Refinex-Notes w
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `AppLayout` renders a three-column shell with draggable/collapsible side panels, a draggable title region, a central editor area, and a persistent status bar.
-- [ ] AC-2: `FileTree` renders collapsible mock folders/files with context menu actions, current-file highlighting, git-status color markers, and clicking a Markdown file opens it through `noteStore.openFile()`.
-- [ ] AC-3: `TabBar` reflects `noteStore.openFiles`, supports switching/closing tabs, shows unsaved markers, and keeps the editor content in sync with the active file.
-- [ ] AC-4: `OutlinePanel` derives heading structure from the active document, shows correct depth indentation, and triggers editor navigation when a heading is clicked.
-- [ ] AC-5: `StatusBar` and `CommandPalette` show working shell state: sync status text/icon, cursor line/column, word count, language, and Cmd/Ctrl+K file/command search over mock workspace entries.
-- [ ] AC-6: `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` pass after integration, and the Harness docs reflect the new runtime shell.
+- [x] AC-1: `AppLayout` renders a three-column shell with draggable/collapsible side panels, a draggable title region, a central editor area, and a persistent status bar.
+- [x] AC-2: `FileTree` renders collapsible mock folders/files with context menu actions, current-file highlighting, git-status color markers, and clicking a Markdown file opens it through `noteStore.openFile()`.
+- [x] AC-3: `TabBar` reflects `noteStore.openFiles`, supports switching/closing tabs, shows unsaved markers, and keeps the editor content in sync with the active file.
+- [x] AC-4: `OutlinePanel` derives heading structure from the active document, shows correct depth indentation, and triggers editor navigation when a heading is clicked.
+- [x] AC-5: `StatusBar` and `CommandPalette` show working shell state: sync status text/icon, cursor line/column, word count, language, and Cmd/Ctrl+K file/command search over mock workspace entries.
+- [x] AC-6: `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` pass after integration, and the Harness docs reflect the new runtime shell.
 
 ## Risk Notes
 
@@ -98,17 +98,23 @@ Deviations:
 **Files:** `src/components/editor/TabBar.tsx`, `src/components/CommandPalette.tsx`, `src/App.tsx`, `src/editor/RefinexEditor.tsx`, supporting tests
 **Verification:** Browser-visible shell wiring compiles and focused tests cover tab switching, command palette filtering, and editor-driven status updates
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- Added `src/components/editor/TabBar.tsx`, `src/components/CommandPalette.tsx`, and `src/components/app-shell-utils.ts` to wire open-file tabs, global Cmd/Ctrl+K search, quick-note creation, and shell helper logic around the mock workspace.
+- Replaced the Phase 0.2 demo in `src/App.tsx` with the real Phase 4.1 shell composition and extended `src/editor/RefinexEditor.tsx` with cursor/editor-view bridge callbacks for status-bar telemetry and outline navigation.
+- Added focused helper coverage in `src/components/__tests__/app-shell-utils.test.ts` and `src/editor/__tests__/RefinexEditor-utils.test.ts`; `npm test` now passes with 74 tests and a local Vite smoke check confirmed file-tree open, tab switch/close, outline refresh, status-bar updates, and the global command palette.
 Deviations:
+- Step 4 introduced `src/components/app-shell-utils.ts` so command-palette items, quick-note path generation, word counts, and outline-to-editor lookups stay pure and testable outside React.
 
 ### Step 5: Verify runtime shell and update control plane
 
 **Files:** `docs/ARCHITECTURE.md`, `src/AGENTS.md`, `docs/PLANS.md`, `docs/exec-plans/active/2026-04-13-app-shell-file-tree-tabs.md`
 **Verification:** `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` all pass, and control-plane docs no longer describe `src/App.tsx` as only a Phase 0.2 verification page
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- Updated `docs/ARCHITECTURE.md` and `src/AGENTS.md` so the control plane now describes the Phase 4.1 workspace shell, the real frontend test command, and the mock-store/runtime boundaries accurately.
+- Verification results: `npm test` passes with 74 tests, `npm run build` passes, and `cargo test --manifest-path src-tauri/Cargo.toml` passes after the shell integration landed.
 Deviations:
 
 ## Progress Log
@@ -118,8 +124,8 @@ Deviations:
 | 1 | ✅ | `npm test` passes with 65 tests including new workspace store coverage | `editorStore` moved off immer so `Set`-based dirty tracking does not require global `enableMapSet()` |
 | 2 | ✅ | `npm test` passes with 65 tests and `npm run build` passes after real Radix shell wrappers/layout landed | Added a new shared accordion wrapper because no repo-local abstraction existed yet |
 | 3 | ✅ | `npm test` passes with 69 tests and `npm run build` passed after sidebar helpers/components landed | Added a dedicated sidebar helper module to keep file-tree and outline logic testable |
-| 4 | ⬜ |  |  |
-| 5 | ⬜ |  |  |
+| 4 | ✅ | `npm test` passes with 74 tests, `npm run build` passes, and a local Vite smoke check covered file open/switch/close plus Cmd/Ctrl+K command palette wiring | Added a small pure-helper module for command-palette items, word counts, and outline navigation lookups |
+| 5 | ✅ | `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` all pass after updating `docs/ARCHITECTURE.md` and `src/AGENTS.md` | Control-plane docs now describe the real shell instead of the retired Phase 0.2 verification page |
 
 ## Decision Log
 
@@ -129,11 +135,14 @@ Deviations:
 | Move `editorStore` off `zustand/immer` | Dirty-state tracking uses `Set`, and immer requires global `enableMapSet()` to proxy it safely | Enabling MapSet globally, or changing dirty tracking to arrays | Plain Zustand updates avoid a global side effect and keep `Set` semantics intact for the shell |
 | Add a repo-local accordion wrapper before implementing FileTree | The shell constraint requires domain components to reuse `src/components/ui/` primitives, but only a placeholder-free accordion dependency existed | Importing raw `@radix-ui/react-accordion` only inside `FileTree` | Creating the shared wrapper once keeps sidebar components consistent with the existing dialog/popover/command wrapper pattern |
 | Extract sidebar path and outline logic into a pure helper module | FileTree and OutlinePanel need path derivation, default context-menu targets, and markdown heading parsing that should be easy to test | Keeping all logic inline in React components | A pure helper layer keeps this step verifiable without adding a browser test harness before the full shell is wired into `App.tsx` |
+| Bridge editor state upward with callbacks instead of moving shell concerns into `src/editor/` state | The shell needs cursor telemetry and an `EditorView` handle for status-bar updates and outline navigation | Owning cursor/tab coordination inside a separate global editor service | Thin callbacks preserve the `src/editor/` vs `src/components/` layering while still exposing the minimum shell hooks needed for Phase 4.1 |
+| Reserve global Cmd/Ctrl+K for the shell only outside the editor surface | Phase 3 already uses Mod-K inside the editor for link editing, while Phase 4.1 adds a global command palette | Rebinding editor link editing, or letting both shortcuts compete | Ignoring keyboard events that originate from `[data-refinex-editor-shell]` keeps both shortcuts available without event conflicts |
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-13
 Duration: 5 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
 Summary:
+Replaced the temporary Phase 0.2 demo page with the first real Refinex-Notes workspace shell. The frontend now has store-backed mock workspace documents, a file tree, tab bar, outline panel, status bar, global command palette, and a thin editor bridge that keeps cursor telemetry and heading navigation synced without breaking the `src/editor/` vs `src/components/` layering. Control-plane docs were updated to describe the new runtime shape and verification commands.

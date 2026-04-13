@@ -2,7 +2,7 @@
 
 # Architecture
 
-Refinex-Notes is organized as a Tauri desktop application with a React frontend in `src/` and a Rust native module in `src-tauri/`. The repository is currently in an early implementation phase: `src/App.tsx` renders a Phase 0.2 interactive UI verification page, many service and command files are placeholders, and the richer product architecture lives in team-authored design documents under `docs/design-docs/`.
+Refinex-Notes is organized as a Tauri desktop application with a React frontend in `src/` and a Rust native module in `src-tauri/`. The repository is currently in an early implementation phase: `src/App.tsx` now renders the first real workspace shell around mock note state, many service and command files are still placeholders, and the richer product architecture lives in team-authored design documents under `docs/design-docs/`.
 
 That distinction matters for agents. The source tree describes the current executable system; the design docs describe the intended future system. When making changes, treat code paths in this file as implemented boundaries and treat `docs/design-docs/*.md` as architectural references and decision records.
 
@@ -49,10 +49,10 @@ src/main.tsx
 
 ### Current Runtime Shape
 
-- `src/App.tsx` currently renders a Phase 0.2 interactive UI verification page rather than the full notes workspace.
+- `src/App.tsx` now renders the Phase 4.1 application shell: draggable/collapsible side panels, `FileTree`, `TabBar`, `OutlinePanel`, `StatusBar`, `CommandPalette`, and a central `RefinexEditor` driven by mock workspace state from `src/stores/`.
 - `src/editor/schema.ts` now owns the canonical ProseMirror document schema; `src/components/editor/schema.ts` is only a compatibility re-export so editor semantics stay centralized.
-- `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, and Command instead of placeholder pass-through components.
-- `src/stores/` now provides Phase 0.3 Zustand scaffolds backed by shared model definitions in `src/types/`; action bodies remain placeholders until later phases connect them to services.
+- `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, Command, Tabs, Collapsible, Context Menu, and Accordion instead of placeholder pass-through components.
+- `src/stores/` now provides mock workspace state for documents, folders, open tabs, dirty markers, and cursor status, giving the shell a frontend-only source of truth until later phases connect real services.
 - `src/services/*.ts` and several UI surfaces intentionally throw `尚未实现`, preserving future integration seams without shipping the behavior yet.
 - `src-tauri/src/*.rs` is already partitioned by domain, but many modules are placeholders and not yet wired into `tauri::Builder`.
 - `docs/design-docs/Refinex-Notes 完整技术架构文档.md` and `docs/design-docs/Refinex-Notes 自研编辑器可行性深度调研报告.md` capture the intended editor, AI, Git, auth, and search architecture for subsequent implementation phases.
