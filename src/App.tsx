@@ -49,6 +49,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./components/ui/tooltip";
+import { RefinexEditor } from "./editor";
 
 type DemoToast = {
   id: number;
@@ -67,11 +68,63 @@ const ghostButtonClasses = [
   "hover:bg-accent/10 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
 ].join(" ");
 
+const testMarkdown = `# Refinex Editor
+
+## 基本文本格式
+
+**加粗文本**、*斜体文本*、~~删除线~~ 和 \`行内代码\`。
+
+[访问 Refinex](https://github.com) — 支持链接渲染。
+
+## 代码块
+
+\`\`\`typescript
+const greeting = (name: string): string => {
+  return \`Hello, \${name}!\`;
+};
+\`\`\`
+
+## 引用块
+
+> 好的工具应当消失在工作流程中，让使用者专注于内容本身。
+
+## 列表
+
+- 无序列表项 A
+- 无序列表项 B
+  - 嵌套项 B1
+  - 嵌套项 B2
+
+1. 有序列表项 1
+2. 有序列表项 2
+
+## 任务列表
+
+- [x] 定义 ProseMirror Schema
+- [x] 实现 Markdown Parser / Serializer
+- [x] 创建 RefinexEditor 组件
+- [ ] 集成 AI 辅助写作
+
+## 表格
+
+| 功能 | 状态 | 优先级 |
+|------|:----:|-------:|
+| 基础编辑 | ✅ | 高 |
+| 实时协作 | 🔧 | 中 |
+| AI 续写 | ⬜ | 高 |
+
+---
+
+段落之间使用空行分隔。换行符  
+使用行末双空格实现硬换行。
+`;
+
 function App() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [commandOpen, setCommandOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [toasts, setToasts] = useState<DemoToast[]>([]);
+  const [editorMarkdown, setEditorMarkdown] = useState(testMarkdown);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -346,6 +399,37 @@ function App() {
                     </li>
                   </ul>
                 </aside>
+              </div>
+            </section>
+
+            {/* ── RefinexEditor 预览 ─────────────────────────────── */}
+            <section className="space-y-4">
+              <h2 className="text-lg font-semibold text-fg">
+                ProseMirror 编辑器集成
+              </h2>
+              <p className="text-sm text-muted">
+                基于 ProseMirror 的所见即所得编辑器，支持 GFM Markdown
+                双向转换。在下方编辑，右侧实时查看 Markdown 源码。
+              </p>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="overflow-hidden rounded-2xl border border-border/70 bg-bg/60">
+                  <div className="border-b border-border/70 px-4 py-2 text-xs font-medium text-muted">
+                    编辑区
+                  </div>
+                  <RefinexEditor
+                    value={editorMarkdown}
+                    onChange={setEditorMarkdown}
+                    className="min-h-[420px] p-4"
+                  />
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-border/70 bg-bg/60">
+                  <div className="border-b border-border/70 px-4 py-2 text-xs font-medium text-muted">
+                    Markdown 源码
+                  </div>
+                  <pre className="overflow-auto p-4 text-xs text-muted" style={{ minHeight: 420 }}>
+                    {editorMarkdown}
+                  </pre>
+                </div>
               </div>
             </section>
           </div>
