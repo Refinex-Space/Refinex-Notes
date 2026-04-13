@@ -6,7 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-<!-- none -->
+- [CodeMirror Code Block View](exec-plans/active/2026-04-13-codemirror-code-block-view.md) — started 2026-04-13
 
 ## Completed Plans
 
