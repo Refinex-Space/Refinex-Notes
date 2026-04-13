@@ -6,8 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Audit phase0 scaffold](exec-plans/active/2026-04-13-audit-phase0-scaffold.md) — started 2026-04-13
+_No active execution plans._
 
 ## Completed Plans
 
-_No completed plans yet._
+- [Audit phase0 scaffold](exec-plans/completed/2026-04-13-audit-phase0-scaffold.md) — completed 2026-04-13
