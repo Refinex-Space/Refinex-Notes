@@ -11,7 +11,13 @@ import { refinexInputRules } from "./plugins/input-rules";
 import { refinexParser, parseMarkdown } from "./parser";
 import { inlineSyncPlugin } from "./plugins/inline-sync";
 import { refinexKeymap } from "./plugins/keymap";
+import { placeholderPlugin } from "./plugins/placeholder";
 import { refinexSerializer, serializeMarkdown } from "./serializer";
+import {
+  ensureTrailingParagraph,
+  stripTrailingParagraph,
+  trailingNodePlugin,
+} from "./plugins/trailing-node";
 import "./editor.css";
 
 export interface RefinexEditorProps {
@@ -45,7 +51,7 @@ export function RefinexEditor({
     const mount = mountRef.current;
     if (!mount) return;
 
-    const doc = parseMarkdown(value);
+    const doc = ensureTrailingParagraph(parseMarkdown(value));
 
     const state = EditorState.create({
       doc,
@@ -54,6 +60,8 @@ export function RefinexEditor({
         keymap(baseKeymap),
         refinexInputRules(),
         inlineSyncPlugin(refinexParser, refinexSerializer),
+        trailingNodePlugin(),
+        placeholderPlugin(),
         history(),
         dropCursor(),
         gapCursor(),
@@ -68,7 +76,7 @@ export function RefinexEditor({
         view.updateState(result.state);
 
         if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
-          const markdown = serializeMarkdown(result.state.doc);
+          const markdown = serializeMarkdown(stripTrailingParagraph(result.state.doc));
           onChangeRef.current(markdown);
         }
       },
@@ -98,10 +106,10 @@ export function RefinexEditor({
     const view = viewRef.current;
     if (!view) return;
 
-    const current = serializeMarkdown(view.state.doc);
+    const current = serializeMarkdown(stripTrailingParagraph(view.state.doc));
     if (current === value) return;
 
-    const doc = parseMarkdown(value);
+    const doc = ensureTrailingParagraph(parseMarkdown(value));
     const newState = EditorState.create({
       doc,
       plugins: view.state.plugins,
