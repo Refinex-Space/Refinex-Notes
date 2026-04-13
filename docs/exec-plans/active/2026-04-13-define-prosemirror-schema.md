@@ -58,9 +58,9 @@ Deviations: The canonical file is still a minimal placeholder at this step so th
 **Files:** `src/editor/schema.ts`
 **Verification:** The schema module exports the required nodes and marks and passes TypeScript compilation
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Implemented `src/editor/schema.ts` with the required node and mark specs, using `prosemirror-markdown`'s `schema` as the reference surface and extending its `spec.nodes/spec.marks`; `npm run build` passed after the schema module was filled in.
+Deviations: None.
 
 ### Step 3: Verify, sync control plane if needed, and archive
 
@@ -76,7 +76,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | ProseMirror/markdown dependencies installed, canonical path created, and build stayed green | No conflicting active plans |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | `refinexSchema` implemented and TypeScript compilation stayed green | Old component-level schema path remains a re-export |
 | 3 | ⬜ |  |  |
 
 ## Decision Log
