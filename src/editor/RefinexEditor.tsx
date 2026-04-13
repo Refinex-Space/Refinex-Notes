@@ -7,8 +7,9 @@ import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
 
-import { parseMarkdown } from "./parser";
-import { serializeMarkdown } from "./serializer";
+import { refinexParser, parseMarkdown } from "./parser";
+import { inlineSyncPlugin } from "./plugins/inline-sync";
+import { refinexSerializer, serializeMarkdown } from "./serializer";
 import "./editor.css";
 
 export interface RefinexEditorProps {
@@ -48,6 +49,7 @@ export function RefinexEditor({
       doc,
       plugins: [
         history(),
+        inlineSyncPlugin(refinexParser, refinexSerializer),
         keymap({
           "Mod-z": undo,
           "Mod-Shift-z": redo,
@@ -64,11 +66,11 @@ export function RefinexEditor({
       state,
       editable: () => !readOnlyRef.current,
       dispatchTransaction(transaction) {
-        const newState = view.state.apply(transaction);
-        view.updateState(newState);
+        const result = view.state.applyTransaction(transaction);
+        view.updateState(result.state);
 
-        if (transaction.docChanged && onChangeRef.current) {
-          const markdown = serializeMarkdown(newState.doc);
+        if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
+          const markdown = serializeMarkdown(result.state.doc);
           onChangeRef.current(markdown);
         }
       },
@@ -109,13 +111,7 @@ export function RefinexEditor({
     view.updateState(newState);
   }, [value]);
 
-  return (
-    <div
-      ref={mountRef}
-      className={className}
-      data-refinex-editor
-    />
-  );
+  return <div ref={mountRef} className={className} data-refinex-editor />;
 }
 
 export default RefinexEditor;

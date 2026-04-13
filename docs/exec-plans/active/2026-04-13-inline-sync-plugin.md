@@ -30,11 +30,11 @@ Implement the editor-core inline-sync plugin so Markdown syntax typed inside aff
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `src/editor/plugins/inline-sync.ts` exports `refinexInlineSyncKey` and `inlineSyncPlugin(parser, serializer)`.
-- [ ] AC-2: The plugin inspects doc-changing transactions, derives affected ranges from transaction mappings, and reparses only non-empty non-code textblocks.
-- [ ] AC-3: Closing Markdown syntax for heading, strong, emphasis, inline code, link, and strikethrough produces updated ProseMirror structure with stable caret placement.
-- [ ] AC-4: No-op conditions (no doc change, empty paragraph, code block) and multi-block deletion do not produce incorrect rewrites or cursor jumps.
-- [ ] AC-5: Undo remains functional for inline-sync-driven rewrites, and `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` pass.
+- [x] AC-1: `src/editor/plugins/inline-sync.ts` exports `refinexInlineSyncKey` and `inlineSyncPlugin(parser, serializer)`.
+- [x] AC-2: The plugin inspects doc-changing transactions, derives affected ranges from transaction mappings, and reparses only non-empty non-code textblocks.
+- [x] AC-3: Closing Markdown syntax for heading, strong, emphasis, inline code, link, and strikethrough produces updated ProseMirror structure with stable caret placement.
+- [x] AC-4: No-op conditions (no doc change, empty paragraph, code block) and multi-block deletion do not produce incorrect rewrites or cursor jumps.
+- [x] AC-5: Undo remains functional for inline-sync-driven rewrites, and `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` pass.
 
 ## Risk Notes
 
@@ -79,9 +79,9 @@ Deviations: Added an explicit "already formatted paragraph" no-op case to lock i
 **Files:** `src/editor/RefinexEditor.tsx`, `src/editor/index.ts`
 **Verification:** Full `npm test`, `npm run build`, and `cargo test --manifest-path src-tauri/Cargo.toml` pass
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Wired `inlineSyncPlugin(refinexParser, refinexSerializer)` into `src/editor/RefinexEditor.tsx`, switched dispatching to `state.applyTransaction(...)`, and re-exported the plugin surface from `src/editor/index.ts`. Full verification passes: `cargo test --manifest-path src-tauri/Cargo.toml` (0 tests, pass), `npm test` (31/31 pass), `npm run build` (pass).
+Deviations: None
 
 ## Progress Log
 
@@ -90,7 +90,7 @@ Deviations:
 | 1 | ✅ | `npm test` 20/20 pass; `npm run build` pass | Added helper-first scaffold before placeholder rewrite |
 | 2 | ✅ | `npm test -- src/editor/__tests__/inline-sync.test.ts` → 6/6 pass | Paragraph-scoped rewrite path chosen for stable Phase 2.1 closure rendering |
 | 3 | ✅ | `npm test -- src/editor/__tests__/inline-sync.test.ts` → 11/11 pass | Added no-op, deletion, formatted-block, and undo coverage |
-| 4 | ⬜ |  |  |
+| 4 | ✅ | `cargo test` pass; `npm test` 31/31 pass; `npm run build` pass | EditorView now consumes appended transactions correctly |
 
 ## Decision Log
 
@@ -100,6 +100,7 @@ Deviations:
 | Use raw paragraph text as the markdown source | `MarkdownSerializer` escapes literal Markdown delimiters in plain text, so plain paragraph reparse never sees `**`, `#`, or link syntax as Markdown | Continue using serializer output; add custom serializer escape bypass | Reading raw paragraph text preserves the exact user-typed syntax for the Phase 2.1 closure cases |
 | Map caret via prefix reparse instead of `\u200B` parsing | `markdown-it` fails to close emphasis-like syntax when `\u200B` is injected after the closing delimiter | Keep strict placeholder parsing; invent a custom sentinel syntax | Prefix reparse preserves closure detection while still deriving a deterministic text-offset target in the rewritten document |
 | Skip already formatted paragraphs in this phase | Once a paragraph already contains parsed marks, the rendered PM position no longer maps 1:1 to raw Markdown offsets | Reparse all paragraphs; introduce a full markdown-offset mapper now | The paragraph-only first-pass keeps closure rendering stable for the requested acceptance cases while avoiding cursor-jump regressions in richer mixed-mark paragraphs |
+| Use `applyTransaction` in `RefinexEditor` dispatch | `appendTransaction` output is invisible when the editor only calls `state.apply(transaction)` | Keep current dispatch path; call plugin logic manually outside state | `applyTransaction` is the ProseMirror-native path that preserves plugin append hooks, history semantics, and a single post-append `onChange` snapshot |
 
 ## Completion Summary
 
