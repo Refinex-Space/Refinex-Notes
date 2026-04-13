@@ -6,7 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-_No active execution plans._
+- [Define ProseMirror schema](exec-plans/active/2026-04-13-define-prosemirror-schema.md) — started 2026-04-13
 
 ## Completed Plans
 
