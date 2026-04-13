@@ -12,6 +12,7 @@ That distinction matters for agents. The source tree describes the current execu
 refinex-notes/
 ├── src/                    React 18 frontend bundle
 │   ├── components/         Domain UI (`ai`, `auth`, `editor`, `git`, `settings`, `sidebar`, `ui`)
+│   ├── editor/             Editor-core ProseMirror schema and future parser/runtime helpers
 │   ├── hooks/              Thin hooks over client state
 │   ├── services/           Frontend-side adapters for future Tauri IPC
 │   ├── stores/             Zustand state containers
@@ -37,6 +38,7 @@ refinex-notes/
 src/main.tsx
   -> src/App.tsx
      -> src/components/*
+     -> src/editor/*
      -> src/hooks/*
      -> src/stores/*
      -> src/services/*
@@ -48,6 +50,7 @@ src/main.tsx
 ### Current Runtime Shape
 
 - `src/App.tsx` currently renders a Phase 0.2 interactive UI verification page rather than the full notes workspace.
+- `src/editor/schema.ts` now owns the canonical ProseMirror document schema; `src/components/editor/schema.ts` is only a compatibility re-export so editor semantics stay centralized.
 - `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, and Command instead of placeholder pass-through components.
 - `src/stores/` now provides Phase 0.3 Zustand scaffolds backed by shared model definitions in `src/types/`; action bodies remain placeholders until later phases connect them to services.
 - `src/services/*.ts` and several UI surfaces intentionally throw `尚未实现`, preserving future integration seams without shipping the behavior yet.
@@ -68,6 +71,7 @@ src/main.tsx
 | Frontend runtime | React | `18.3.1` (`package.json`) |
 | Frontend rendering | React DOM | `18.3.1` (`package.json`) |
 | State management | Zustand | `5.0.12` (`package.json`) |
+| Editor document model | ProseMirror (`prosemirror-*`) | `1.x` packages (`package.json`) |
 | Build tool | Vite | `7.3.2` (`package.json`) |
 | Language | TypeScript | `5.9.3` (`package.json`) |
 | Styling | Tailwind CSS | `3.4.19` (`package.json`) |

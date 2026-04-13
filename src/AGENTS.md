@@ -12,6 +12,7 @@ This module does NOT own: native file I/O, Git operations, OAuth flows, search i
 ## Key Patterns
 
 - `src/components/ui/` contains low-level Radix/cmdk wrappers styled with Tailwind; domain UI lives in sibling directories such as `auth`, `editor`, `git`, `settings`, and `sidebar`.
+- `src/editor/` owns editor-core document semantics such as ProseMirror schema definitions; `src/components/editor/` should remain the React/UI layer over that core.
 - Global client state is centralized in `src/stores/`, with shared state models defined in `src/types/` and surfaced through thin hooks like `src/hooks/useAuth.ts`.
 - Store implementations use Zustand `create + immer`; early-phase action bodies may remain placeholders until later service wiring work lands.
 - `src/services/*.ts` are the intended integration seam for Tauri commands and currently contain explicit unimplemented stubs.
@@ -25,5 +26,5 @@ This module does NOT own: native file I/O, Git operations, OAuth flows, search i
 
 ## Dependencies
 
-- Depends on: `src/components/ui/`, `src/stores/`, `src/services/`, `src/hooks/`
+- Depends on: `src/components/ui/`, `src/editor/`, `src/stores/`, `src/services/`, `src/hooks/`
 - Depended on by: `src/main.tsx` and the Tauri desktop shell through frontend bundle loading

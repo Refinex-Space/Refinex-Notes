@@ -35,8 +35,9 @@ The repository is split cleanly between React UI code in `src/` and native Tauri
 
 ## Key Patterns
 
-- Frontend code is layered under `src/components/`, `src/stores/`, `src/services/`, `src/hooks/`, and `src/plugins/`.
+- Frontend code is layered under `src/components/`, `src/editor/`, `src/stores/`, `src/services/`, `src/hooks/`, and `src/plugins/`.
 - Shared client state uses Zustand stores in `src/stores/`; hooks such as `src/hooks/useAuth.ts` stay thin over those stores.
+- Editor model/schema code belongs in `src/editor/`; React-facing editor shells in `src/components/editor/` should consume that core instead of redefining document semantics locally.
 - React components should talk to native capabilities through service/IPC seams, not by embedding file, Git, auth, or search logic directly in UI components.
 - Native entry points belong in `src-tauri/src/commands/`, with domain logic grouped under `src-tauri/src/{ai,git,markdown,search}`.
 - Placeholder modules are explicit in this repo (`尚未实现` errors and `占位模块` comments); prefer filling those files before introducing new top-level structure.
