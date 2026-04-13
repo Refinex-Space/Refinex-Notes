@@ -6,7 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-<!-- none -->
+- [Input Rules and Keymap](exec-plans/active/2026-04-13-input-rules-keymap.md) — started 2026-04-13
 
 ## Completed Plans
 
