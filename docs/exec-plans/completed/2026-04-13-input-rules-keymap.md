@@ -105,8 +105,8 @@ Deviations: None
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-13
 Duration: 4 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: Implemented `src/editor/plugins/input-rules.ts` with block-level Markdown triggers for headings, blockquote, bullet/ordered lists, code blocks, horizontal rules, and task-list entry; implemented `src/editor/plugins/keymap.ts` with formatting, heading, list, code-block, history, and select-all bindings; and integrated both into `RefinexEditor` in front of inline-sync/history according to the planned plugin order. Added `src/editor/__tests__/input-rules-keymap.test.ts` with 14 focused cases, bringing the editor test suite to 45 passing tests across round-trip, inline-sync, input-rule, and keymap behavior.
