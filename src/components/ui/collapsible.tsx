@@ -1,5 +1,7 @@
-import type { PropsWithChildren } from "react";
+import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";
 
-export function Collapsible({ children }: PropsWithChildren) {
-  return <>{children}</>;
-}
+const Collapsible = CollapsiblePrimitive.Root;
+const CollapsibleTrigger = CollapsiblePrimitive.Trigger;
+const CollapsibleContent = CollapsiblePrimitive.Content;
+
+export { Collapsible, CollapsibleContent, CollapsibleTrigger };
