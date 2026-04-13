@@ -57,9 +57,9 @@ Deviations: The historical command `npm create tauri-app@latest ...` cannot be p
 **Files:** `package.json`, `src-tauri/tauri.conf.json`
 **Verification:** `cargo tauri dev` and/or `npm run tauri dev` evidence collected, plus page render evidence from the served React app
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo tauri dev` started successfully, launched the Vite `BeforeDevCommand`, reported `Local: http://localhost:1420/`, compiled `src-tauri`, and ran `target/debug/refinex-notes`; a browser snapshot of `http://localhost:1420/` showed the rendered React page titled `Refinex-Notes` with visible `PHASE 0 · SCAFFOLD READY`, `identifier: dev.refinex.notes`, and `1280 × 800`; browser console contained only Vite connection logs and the standard React DevTools info message, with no app errors.
+Deviations: The rendered page is a custom Phase 0 scaffold rather than the untouched template default page, but it satisfies the underlying acceptance goal of a normal React page rendering inside the Tauri dev workflow.
 
 ### Step 3: Record verdict and archive the audit
 
@@ -75,7 +75,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | Static config and builder requirements matched in `package.json`, `tsconfig.json`, `Cargo.toml`, `tauri.conf.json`, and `lib.rs` | Default scope assumption: Phase 0.1 only |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | `cargo tauri dev` compiled and ran; `http://localhost:1420/` rendered the Phase 0 React scaffold without app errors | Custom scaffold page supersedes the default template page |
 | 3 | ⬜ |  |  |
 
 ## Decision Log
@@ -83,6 +83,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | Audit only Phase 0.1 by default | `Complete-Plans` Phase 0 includes 0.1/0.2/0.3, but the user supplied only 0.1 acceptance criteria and was unavailable to clarify | Audit entire Phase 0; stop pending clarification | Minimizes scope drift and keeps the verdict aligned with the explicit acceptance criteria provided |
+| Treat the custom Phase 0 page as satisfying the "React 默认页面" criterion | The current app no longer shows the untouched Vite starter screen | Fail the criterion literally; demand restoration of the starter template | The acceptance intent is to prove that the Tauri shell can launch and render a React page successfully, which the current scaffold page demonstrates more explicitly |
 
 ## Completion Summary
 
