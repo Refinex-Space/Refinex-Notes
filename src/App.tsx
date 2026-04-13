@@ -187,7 +187,10 @@ function App() {
       shortcut: "⌥T",
       icon: Bell,
       onSelect: () =>
-        enqueueToast("Toast 已发送", "这条通知用于验证 Radix Toast 的动画与交互。"),
+        enqueueToast(
+          "Toast 已发送",
+          "这条通知用于验证 Radix Toast 的动画与交互。",
+        ),
     },
     {
       value: "toggle-theme",
@@ -275,7 +278,9 @@ function App() {
                           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/12 text-accent">
                             <Icon className="h-5 w-5" />
                           </span>
-                          <h2 className="mt-4 text-lg font-semibold">{card.title}</h2>
+                          <h2 className="mt-4 text-lg font-semibold">
+                            {card.title}
+                          </h2>
                           <p className="mt-3 text-sm leading-6 text-muted">
                             {card.description}
                           </p>
@@ -301,7 +306,8 @@ function App() {
                           </DialogDescription>
                         </DialogHeader>
                         <div className="rounded-3xl border border-border/70 bg-accent/6 p-4 text-sm leading-6 text-muted">
-                          当前主题：<strong className="text-fg">{theme}</strong>。
+                          当前主题：<strong className="text-fg">{theme}</strong>
+                          。
                           你可以先切换主题，再重新打开这个弹窗确认令牌变量是否同步生效。
                         </div>
                         <DialogFooter>
@@ -331,9 +337,12 @@ function App() {
                       </PopoverTrigger>
                       <PopoverContent align="start">
                         <div className="space-y-3">
-                          <h3 className="text-sm font-semibold">Design Tokens</h3>
+                          <h3 className="text-sm font-semibold">
+                            Design Tokens
+                          </h3>
                           <p className="text-sm leading-6 text-muted">
-                            当前 Popover 使用同一组 CSS 变量，因此也会跟随主题切换。
+                            当前 Popover 使用同一组 CSS
+                            变量，因此也会跟随主题切换。
                           </p>
                           <div className="grid grid-cols-2 gap-3">
                             {[
@@ -349,7 +358,9 @@ function App() {
                                 <div
                                   className={`h-10 rounded-xl border border-border/70 ${tone}`}
                                 />
-                                <p className="mt-2 text-xs text-muted">{label}</p>
+                                <p className="mt-2 text-xs text-muted">
+                                  {label}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -426,7 +437,10 @@ function App() {
                   <div className="border-b border-border/70 px-4 py-2 text-xs font-medium text-muted">
                     Markdown 源码
                   </div>
-                  <pre className="overflow-auto p-4 text-xs text-muted" style={{ minHeight: 420 }}>
+                  <pre
+                    className="overflow-auto p-4 text-xs text-muted"
+                    style={{ minHeight: 420 }}
+                  >
                     {editorMarkdown}
                   </pre>
                 </div>
