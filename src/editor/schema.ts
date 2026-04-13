@@ -273,6 +273,65 @@ const strikethroughSpec: MarkSpec = {
   },
 };
 
+const tableSpec: NodeSpec = {
+  content: "table_row+",
+  group: "block",
+  tableRole: "table",
+  parseDOM: [{ tag: "table" }],
+  toDOM() {
+    return ["table", ["tbody", 0]];
+  },
+};
+
+const tableRowSpec: NodeSpec = {
+  content: "(table_cell | table_header)+",
+  tableRole: "row",
+  parseDOM: [{ tag: "tr" }],
+  toDOM() {
+    return ["tr", 0];
+  },
+};
+
+const tableCellSpec: NodeSpec = {
+  content: "inline*",
+  attrs: { align: { default: null } },
+  tableRole: "cell",
+  parseDOM: [
+    {
+      tag: "td",
+      getAttrs: (dom) => ({
+        align: (dom as HTMLElement).style.textAlign || null,
+      }),
+    },
+  ],
+  toDOM(node) {
+    const attrs = node.attrs.align
+      ? { style: `text-align:${node.attrs.align}` }
+      : {};
+    return ["td", attrs, 0];
+  },
+};
+
+const tableHeaderSpec: NodeSpec = {
+  content: "inline*",
+  attrs: { align: { default: null } },
+  tableRole: "header_cell",
+  parseDOM: [
+    {
+      tag: "th",
+      getAttrs: (dom) => ({
+        align: (dom as HTMLElement).style.textAlign || null,
+      }),
+    },
+  ],
+  toDOM(node) {
+    const attrs = node.attrs.align
+      ? { style: `text-align:${node.attrs.align}` }
+      : {};
+    return ["th", attrs, 0];
+  },
+};
+
 const nodes = markdownSchema.spec.nodes
   .update("doc", docSpec)
   .update("paragraph", paragraphSpec)
@@ -285,7 +344,11 @@ const nodes = markdownSchema.spec.nodes
   .addBefore("list_item", "task_list_item", taskListItemSpec)
   .update("list_item", listItemSpec)
   .update("image", imageSpec)
-  .update("hard_break", hardBreakSpec);
+  .update("hard_break", hardBreakSpec)
+  .addToEnd("table", tableSpec)
+  .addToEnd("table_row", tableRowSpec)
+  .addToEnd("table_header", tableHeaderSpec)
+  .addToEnd("table_cell", tableCellSpec);
 
 const marks = markdownSchema.spec.marks
   .update("strong", strongSpec)
