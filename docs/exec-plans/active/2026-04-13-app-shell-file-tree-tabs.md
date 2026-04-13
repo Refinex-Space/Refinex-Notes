@@ -85,9 +85,13 @@ Deviations:
 **Files:** `src/components/sidebar/FileTree.tsx`, `src/components/sidebar/OutlinePanel.tsx`, supporting shell helpers/tests
 **Verification:** Focused tests cover file tree rendering/actions and outline extraction/indentation against representative markdown documents
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- Implemented `src/components/sidebar/FileTree.tsx` with Radix accordion/context-menu composition, current-file highlighting, mock git-status markers, and store-backed open/create/rename/delete actions.
+- Implemented `src/components/sidebar/OutlinePanel.tsx` plus pure sidebar helpers in `src/components/sidebar/sidebar-utils.ts` for path derivation, accordion expansion values, and markdown heading extraction.
+- Added focused helper coverage in `src/components/sidebar/__tests__/sidebar-utils.test.ts`; `npm test` now passes with 69 tests and `npm run build` passed with the new sidebar surfaces.
 Deviations:
+- Added `src/components/sidebar/sidebar-utils.ts` as a supporting pure-helper module so file-tree path logic and outline extraction stay testable without a DOM harness.
 
 ### Step 4: Integrate tabbed editor workspace and command palette
 
@@ -113,7 +117,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `npm test` passes with 65 tests including new workspace store coverage | `editorStore` moved off immer so `Set`-based dirty tracking does not require global `enableMapSet()` |
 | 2 | ✅ | `npm test` passes with 65 tests and `npm run build` passes after real Radix shell wrappers/layout landed | Added a new shared accordion wrapper because no repo-local abstraction existed yet |
-| 3 | ⬜ |  |  |
+| 3 | ✅ | `npm test` passes with 69 tests and `npm run build` passed after sidebar helpers/components landed | Added a dedicated sidebar helper module to keep file-tree and outline logic testable |
 | 4 | ⬜ |  |  |
 | 5 | ⬜ |  |  |
 
@@ -124,6 +128,7 @@ Deviations:
 | Keep mock workspace state inside stores rather than a separate service seam for this step | Phase 4.1 needs a complete frontend-only loop before Rust file APIs exist | Adding a temporary mock service layer under `src/services/` | The stores are the current source of truth for shell state, and keeping the mock data there keeps the future replacement boundary obvious |
 | Move `editorStore` off `zustand/immer` | Dirty-state tracking uses `Set`, and immer requires global `enableMapSet()` to proxy it safely | Enabling MapSet globally, or changing dirty tracking to arrays | Plain Zustand updates avoid a global side effect and keep `Set` semantics intact for the shell |
 | Add a repo-local accordion wrapper before implementing FileTree | The shell constraint requires domain components to reuse `src/components/ui/` primitives, but only a placeholder-free accordion dependency existed | Importing raw `@radix-ui/react-accordion` only inside `FileTree` | Creating the shared wrapper once keeps sidebar components consistent with the existing dialog/popover/command wrapper pattern |
+| Extract sidebar path and outline logic into a pure helper module | FileTree and OutlinePanel need path derivation, default context-menu targets, and markdown heading parsing that should be easy to test | Keeping all logic inline in React components | A pure helper layer keeps this step verifiable without adding a browser test harness before the full shell is wired into `App.tsx` |
 
 ## Completion Summary
 
