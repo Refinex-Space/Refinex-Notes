@@ -1,7 +1,7 @@
 # Execution Plan: Define ProseMirror schema
 
 Created: 2026-04-13
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -30,10 +30,10 @@ Introduce a canonical `src/editor/schema.ts` that defines the Refinex ProseMirro
 
 ## Acceptance Criteria
 
-- [ ] AC-1: The required ProseMirror and markdown dependencies are installed and the frontend build remains green.
-- [ ] AC-2: `src/editor/schema.ts` exports a `refinexSchema` whose required nodes and marks are accessible via `schema.nodes.*` / `schema.marks.*`.
-- [ ] AC-3: `src/components/editor/schema.ts` points at the canonical implementation without duplicating the schema definition.
-- [ ] AC-4: `npm run build` completes with zero TypeScript errors after the schema module is introduced.
+- [x] AC-1: The required ProseMirror and markdown dependencies are installed and the frontend build remains green.
+- [x] AC-2: `src/editor/schema.ts` exports a `refinexSchema` whose required nodes and marks are accessible via `schema.nodes.*` / `schema.marks.*`.
+- [x] AC-3: `src/components/editor/schema.ts` points at the canonical implementation without duplicating the schema definition.
+- [x] AC-4: `npm run build` completes with zero TypeScript errors after the schema module is introduced.
 
 ## Risk Notes
 
@@ -67,9 +67,9 @@ Deviations: None.
 **Files:** `docs/PLANS.md`, `docs/exec-plans/active/2026-04-13-define-prosemirror-schema.md`, any harness docs changed by the implementation
 **Verification:** `npm run build` passes, acceptance criteria are marked PASS/FAIL, and the plan is archived to `completed/`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `python3 scripts/check_harness.py`, `cargo test --manifest-path src-tauri/Cargo.toml`, and `npm run build` all passed after the schema landed; an additional runtime smoke check transpiled the project to a temporary directory and imported `editor/schema.js` to confirm `refinexSchema.nodes.*` / `refinexSchema.marks.*` expose the required surface; `AGENTS.md`, `src/AGENTS.md`, and `docs/ARCHITECTURE.md` were updated to document `src/editor/` as the canonical editor-core module.
+Deviations: None.
 
 ## Progress Log
 
@@ -77,7 +77,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | ProseMirror/markdown dependencies installed, canonical path created, and build stayed green | No conflicting active plans |
 | 2 | ✅ | `refinexSchema` implemented and TypeScript compilation stayed green | Old component-level schema path remains a re-export |
-| 3 | ⬜ |  |  |
+| 3 | ✅ | Harness preflight, native tests, frontend build, and schema runtime smoke check all passed; control-plane docs updated | Archived after acceptance criteria review |
 
 ## Decision Log
 
@@ -89,8 +89,8 @@ Deviations:
 
 <!-- Fill in when archiving the plan -->
 
-Completed:
+Completed: 2026-04-13
 Duration: 3 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: Added a canonical `src/editor/schema.ts` that extends the `prosemirror-markdown` schema into the Refinex Markdown document model, including block images, task list items, and strikethrough marks while preserving the legacy component-level import path as a re-export. The control plane now documents `src/editor/` as the editor-core layer, and final verification covered harness health, the native test baseline, frontend build integrity, and a runtime import check for the exported schema surface.
