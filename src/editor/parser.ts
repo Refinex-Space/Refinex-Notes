@@ -52,7 +52,10 @@ md.core.ruler.push("refinex_task_items", (state) => {
         const children = tokens[j].children!;
         for (let k = children.length - 1; k >= 0; k--) {
           const child = children[k];
-          if (child.type === "html_inline" && child.content.includes("checkbox")) {
+          if (
+            child.type === "html_inline" &&
+            child.content.includes("checkbox")
+          ) {
             checked = child.content.includes("checked");
             children.splice(k, 1);
             // Also trim the leading space from the next text token
