@@ -1,5 +1,39 @@
-import type { PropsWithChildren } from "react";
+import * as React from "react";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
-export function Tooltip({ children }: PropsWithChildren) {
-  return <>{children}</>;
-}
+const TooltipProvider = ({
+  delayDuration = 150,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Provider>) => (
+  <TooltipPrimitive.Provider delayDuration={delayDuration} {...props} />
+);
+
+const Tooltip = TooltipPrimitive.Root;
+const TooltipTrigger = TooltipPrimitive.Trigger;
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 8, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={[
+        "z-50 overflow-hidden rounded-2xl border border-border/70 bg-slate-950 px-3 py-2 text-xs font-medium text-slate-50 shadow-lg",
+        "data-[state=delayed-open]:animate-in data-[state=closed]:animate-out",
+        "data-[state=closed]:fade-out-0 data-[state=delayed-open]:fade-in-0",
+        "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
+        "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+));
+
+TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };

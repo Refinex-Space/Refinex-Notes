@@ -59,9 +59,9 @@ Deviations: Kept Tailwind on v3.4.19 as planned instead of migrating to v4.
 **Files:** `src/components/ui/dialog.tsx`, `src/components/ui/popover.tsx`, `src/components/ui/tooltip.tsx`, `src/components/ui/toast.tsx`, `src/components/ui/command.tsx`
 **Verification:** Build passes and the wrappers expose working content/trigger/provider composition for the demo page
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Replaced placeholder files in `src/components/ui/` with real Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, and Command, including Tailwind styling, portal usage, provider exports, and `data-[state=*]` / `data-[side=*]` animation classes; `npm run build` passed after the wrapper swap.
+Deviations: None.
 
 ### Step 3: Build the Phase 0.2 interactive demo page
 
@@ -86,7 +86,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | Missing packages installed; Tailwind class dark mode, CSS tokens, and animate plugin configured; `npm run build` passed | Tailwind v3 retained intentionally |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | Real Radix/cmdk wrappers replaced placeholders and compiled cleanly | Public file paths were preserved |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
 
