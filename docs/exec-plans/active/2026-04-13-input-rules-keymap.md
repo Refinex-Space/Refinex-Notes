@@ -63,9 +63,9 @@ Deviations: None
 **Files:** `src/editor/plugins/input-rules.ts`, `src/editor/__tests__/input-rules-keymap.test.ts`
 **Verification:** Focused Vitest cases prove heading, quote, bullet-list, and related rule triggers
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Implemented heading, blockquote, bullet-list, ordered-list, code-block, horizontal-rule, and task-list rules in `src/editor/plugins/input-rules.ts`. Added 7 focused input-rule tests in `src/editor/__tests__/input-rules-keymap.test.ts`, and `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` passes (7/7).
+Deviations: The horizontal-rule rule inserts a trailing empty paragraph after the `horizontal_rule` node so the caret remains in a valid textblock immediately after the transformation.
 
 ### Step 3: Implement custom key bindings for marks and list editing
 
@@ -90,7 +90,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test` pass; `npm test` 31/31 pass; `npm run build` pass | Added `prosemirror-schema-list` for list commands before implementing key bindings |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` → 7/7 pass | Added custom transaction rules for task list and horizontal rule |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
 
@@ -99,6 +99,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | Add `prosemirror-schema-list` explicitly | List indentation/splitting commands are required for the requested keymap, but the package was not declared directly in the repo | Reimplement list commands manually; depend on a transitive package | The official package provides the requested commands with less risk and clearer ownership in `package.json` |
+| Insert a trailing paragraph after the horizontal-rule input rule | Replacing an empty paragraph with only `horizontal_rule` leaves no obvious text cursor landing point for continued editing | Replace with only `horizontal_rule`; defer cursor recovery to a future trailing-node plugin | Keeping an empty paragraph after the rule preserves immediate typing flow without waiting for Phase 2.3 |
 
 ## Completion Summary
 
