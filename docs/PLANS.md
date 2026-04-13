@@ -6,7 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-<!-- none -->
+- [Inline Sync Plugin](exec-plans/active/2026-04-13-inline-sync-plugin.md) — started 2026-04-13
 
 ## Completed Plans
 
