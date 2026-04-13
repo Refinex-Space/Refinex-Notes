@@ -49,9 +49,9 @@ Introduce a canonical `src/editor/schema.ts` that defines the Refinex ProseMirro
 **Files:** `package.json`, `package-lock.json`, `src/editor/`, `src/components/editor/schema.ts`
 **Verification:** Required dependencies are installed and the project compiles with the new module path present
 
-Status: 🔄 In progress
-Evidence: Preflight is green; current editor placeholders have been inspected; `src/components/editor/schema.ts` is empty and `src/editor/` does not yet exist.
-Deviations:
+Status: ✅ Done
+Evidence: Installed the requested `prosemirror-*` packages, `markdown-it`, and `@types/markdown-it`; created `src/editor/schema.ts` as the canonical module path; converted `src/components/editor/schema.ts` into a compatibility re-export; `npm run build` passed after the dependency and path setup.
+Deviations: The canonical file is still a minimal placeholder at this step so that the implementation work can stay isolated to Step 2.
 
 ### Step 2: Implement the canonical `refinexSchema`
 
@@ -75,7 +75,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | Harness preflight green; current editor placeholder files and target path mapped | No conflicting active plans |
+| 1 | ✅ | ProseMirror/markdown dependencies installed, canonical path created, and build stayed green | No conflicting active plans |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 
