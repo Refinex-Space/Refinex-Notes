@@ -12,7 +12,8 @@ This module does NOT own: native file I/O, Git operations, OAuth flows, search i
 ## Key Patterns
 
 - `src/components/ui/` contains low-level Radix/cmdk wrappers styled with Tailwind; domain UI lives in sibling directories such as `auth`, `editor`, `git`, `settings`, and `sidebar`.
-- Global client state is centralized in `src/stores/` and surfaced through thin hooks like `src/hooks/useAuth.ts`.
+- Global client state is centralized in `src/stores/`, with shared state models defined in `src/types/` and surfaced through thin hooks like `src/hooks/useAuth.ts`.
+- Store implementations use Zustand `create + immer`; early-phase action bodies may remain placeholders until later service wiring work lands.
 - `src/services/*.ts` are the intended integration seam for Tauri commands and currently contain explicit unimplemented stubs.
 - `src/App.tsx` currently serves as a Phase 0.2 interactive verification page, so new work should preserve the layering even when replacing this temporary demo surface.
 

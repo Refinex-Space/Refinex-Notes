@@ -49,6 +49,7 @@ src/main.tsx
 
 - `src/App.tsx` currently renders a Phase 0.2 interactive UI verification page rather than the full notes workspace.
 - `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, and Command instead of placeholder pass-through components.
+- `src/stores/` now provides Phase 0.3 Zustand scaffolds backed by shared model definitions in `src/types/`; action bodies remain placeholders until later phases connect them to services.
 - `src/services/*.ts` and several UI surfaces intentionally throw `尚未实现`, preserving future integration seams without shipping the behavior yet.
 - `src-tauri/src/*.rs` is already partitioned by domain, but many modules are placeholders and not yet wired into `tauri::Builder`.
 - `docs/design-docs/Refinex-Notes 完整技术架构文档.md` and `docs/design-docs/Refinex-Notes 自研编辑器可行性深度调研报告.md` capture the intended editor, AI, Git, auth, and search architecture for subsequent implementation phases.

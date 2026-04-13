@@ -1,7 +1,7 @@
 # Execution Plan: Create Zustand store scaffolds
 
 Created: 2026-04-13
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -29,9 +29,9 @@ Replace the placeholder Zustand stores with Phase 0.3-ready scaffolds that expos
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `src/types/` contains independent type files for the requested shared models, and the type export surface remains importable.
-- [ ] AC-2: All six store files export `use[Name]Store` hooks built with Zustand `create` + `immer`, with the requested state shape and placeholder action signatures.
-- [ ] AC-3: `npm run build` completes with zero TypeScript errors after the store scaffolds are in place.
+- [x] AC-1: `src/types/` contains independent type files for the requested shared models, and the type export surface remains importable.
+- [x] AC-2: All six store files export `use[Name]Store` hooks built with Zustand `create` + `immer`, with the requested state shape and placeholder action signatures.
+- [x] AC-3: `npm run build` completes with zero TypeScript errors after the store scaffolds are in place.
 
 ## Risk Notes
 
@@ -65,9 +65,9 @@ Deviations: None.
 **Files:** `docs/PLANS.md`, `docs/exec-plans/active/2026-04-13-create-zustand-store-scaffolds.md`, any harness docs changed by the implementation
 **Verification:** `npm run build` passes, acceptance criteria are marked PASS/FAIL, and the plan is archived to `completed/`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `python3 scripts/check_harness.py`, `cargo test --manifest-path src-tauri/Cargo.toml`, and `npm run build` all passed; self-review diff from `e0bb7e4..HEAD` contained only the expected type/store scaffold files; `docs/ARCHITECTURE.md` and `src/AGENTS.md` were updated to document the new `src/types/` + `create + immer` store convention.
+Deviations: None.
 
 ## Progress Log
 
@@ -75,7 +75,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `immer` installed; shared type files created; build stayed green | No conflicting active plans |
 | 2 | ✅ | All six stores now expose requested state and action signatures via `create + immer` | Business logic intentionally left unimplemented |
-| 3 | ⬜ |  |  |
+| 3 | ✅ | Full verification passed and control plane docs were synchronized | Ready for archival |
 
 ## Decision Log
 
@@ -88,7 +88,8 @@ Deviations:
 <!-- Fill in when archiving the plan -->
 
 Completed:
+Completed: 2026-04-13
 Duration: 3 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: Phase 0.3 store scaffolding is complete. Shared state and domain models now live in independent files under `src/types/`, the six Zustand stores under `src/stores/` all use `create + immer`, and each store exposes the requested state shape with intentionally empty action signatures for later phases to implement. No native or service wiring was added, and the control plane now documents the new frontend state-management convention.
