@@ -1,6 +1,8 @@
 export { RefinexEditor } from "./RefinexEditor";
 export type { RefinexEditorProps } from "./RefinexEditor";
+export { refinexInputRules } from "./plugins/input-rules";
 export { inlineSyncPlugin, refinexInlineSyncKey } from "./plugins/inline-sync";
+export { refinexKeymap } from "./plugins/keymap";
 export type {
   InlineSyncParser,
   InlineSyncSerializer,

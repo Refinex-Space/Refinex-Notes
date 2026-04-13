@@ -54,9 +54,9 @@ Implement editor-core Markdown input rules and keyboard mappings so block shortc
 **Files:** `package.json`, `package-lock.json`, `src/editor/plugins/input-rules.ts`, `src/editor/plugins/keymap.ts`, `src/editor/index.ts`
 **Verification:** Dependency install is applied and the repo still builds/tests cleanly
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Added `prosemirror-schema-list` to `package.json` / lockfile, scaffolded `src/editor/plugins/input-rules.ts` and `src/editor/plugins/keymap.ts`, and exported both through `src/editor/index.ts`. Full suite remains green: `cargo test --manifest-path src-tauri/Cargo.toml` passes, `npm test` passes (31/31), `npm run build` passes.
+Deviations: None
 
 ### Step 2: Implement block-level input rules and cover trigger behavior
 
@@ -89,7 +89,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  |  |
+| 1 | ✅ | `cargo test` pass; `npm test` 31/31 pass; `npm run build` pass | Added `prosemirror-schema-list` for list commands before implementing key bindings |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
@@ -98,6 +98,7 @@ Deviations:
 
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
+| Add `prosemirror-schema-list` explicitly | List indentation/splitting commands are required for the requested keymap, but the package was not declared directly in the repo | Reimplement list commands manually; depend on a transitive package | The official package provides the requested commands with less risk and clearer ownership in `package.json` |
 
 ## Completion Summary
 
