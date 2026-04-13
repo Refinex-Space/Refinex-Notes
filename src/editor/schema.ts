@@ -172,6 +172,7 @@ const imageSpec: NodeSpec = {
     src: {},
     alt: { default: null },
     title: { default: null },
+    align: { default: "center" },
   },
   inline: true,
   group: "inline",
@@ -184,11 +185,23 @@ const imageSpec: NodeSpec = {
         src: (dom as HTMLElement).getAttribute("src"),
         alt: (dom as HTMLElement).getAttribute("alt"),
         title: (dom as HTMLElement).getAttribute("title"),
+        align:
+          (dom as HTMLElement).getAttribute("data-align") ??
+          (dom as HTMLElement).closest("figure")?.getAttribute("data-align") ??
+          "center",
       }),
     },
   ],
   toDOM(node) {
-    return ["img", node.attrs];
+    return [
+      "img",
+      {
+        src: node.attrs.src,
+        alt: node.attrs.alt,
+        title: node.attrs.title,
+        "data-align": node.attrs.align,
+      },
+    ];
   },
 };
 

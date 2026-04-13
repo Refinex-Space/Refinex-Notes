@@ -4,6 +4,7 @@ import type { EditorView } from "prosemirror-view";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { parseMarkdown } from "../parser";
+import type { RefinexKeymapOptions } from "../plugins/keymap";
 import { refinexInputRules } from "../plugins/input-rules";
 import {
   createRefinexKeyBindings,
@@ -47,15 +48,19 @@ function applyTextInput(markdown: string, text: string, from = 1, to = from) {
   return { handled, state: nextState };
 }
 
-function createKeymapState(markdown = "", state?: EditorState) {
-  const bindings = createRefinexKeyBindings();
+function createKeymapState(
+  markdown = "",
+  state?: EditorState,
+  options?: RefinexKeymapOptions,
+) {
+  const bindings = createRefinexKeyBindings(options);
   return {
     bindings,
     state:
       state ??
       EditorState.create({
         doc: parseMarkdown(markdown),
-        plugins: [history(), refinexKeymap()],
+        plugins: [history(), refinexKeymap(options)],
       }),
   };
 }
@@ -70,6 +75,7 @@ function applyBinding(
   bindings: ReturnType<typeof createRefinexKeyBindings>,
   key: string,
   state: EditorState,
+  view?: EditorView,
 ) {
   let nextState = state;
   const command = bindings[key];
@@ -79,7 +85,7 @@ function applyBinding(
 
   const handled = command(state, (transaction) => {
     nextState = nextState.applyTransaction(transaction).state;
-  });
+  }, view);
 
   return { handled, state: nextState };
 }
@@ -204,19 +210,18 @@ describe("refinexKeymap", () => {
     }
   });
 
-  it("uses Mod-k to add a link mark from prompt input", () => {
-    vi.stubGlobal("prompt", vi.fn(() => "https://example.com"));
-
-    const { bindings, state } = createKeymapState("link");
+  it("uses Mod-k to open the link editor callback", () => {
+    const onOpenLinkPopover = vi.fn(() => true);
+    const { bindings, state } = createKeymapState("link", undefined, {
+      onOpenLinkPopover,
+    });
     const range = findTextRange(state.doc, "link");
     const selected = setSelection(state, range.from, range.to);
-    const result = applyBinding(bindings, "Mod-k", selected);
+    const view = { state: selected } as EditorView;
+    const result = applyBinding(bindings, "Mod-k", selected, view);
 
     expect(result.handled).toBe(true);
-    const linkMark = result.state.doc.firstChild?.firstChild?.marks.find(
-      (mark) => mark.type.name === "link",
-    );
-    expect(linkMark?.attrs.href).toBe("https://example.com");
+    expect(onOpenLinkPopover).toHaveBeenCalledTimes(1);
   });
 
   it("uses heading shortcuts to set and reset block type", () => {

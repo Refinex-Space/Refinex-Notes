@@ -8,7 +8,8 @@
   padding: 1.25rem 1.5rem;
   line-height: 1.75;
   color: inherit;
-   caret-color: #0f172a;
+  caret-color: #0f172a;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
@@ -195,6 +196,53 @@
   border-radius: 6px;
 }
 
+.refinex-image-node-host {
+  display: block;
+}
+
+.refinex-image-node {
+  display: block;
+  width: fit-content;
+  max-width: min(100%, 42rem);
+  margin: 1rem auto;
+  cursor: pointer;
+}
+
+.refinex-image-node[data-align="left"] {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.refinex-image-node[data-align="center"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.refinex-image-node[data-align="right"] {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.refinex-image-node img {
+  display: block;
+  width: 100%;
+  border-radius: 0.875rem;
+  border: 1px solid transparent;
+}
+
+.refinex-image-node.is-selected img {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.22);
+}
+
+.refinex-image-node figcaption {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
 /* ============================================================
    Links
    ============================================================ */
@@ -374,6 +422,10 @@
 
 .dark .ProseMirror a:hover {
   color: #90cdf4;
+}
+
+.dark .refinex-image-node figcaption {
+  color: #94a3b8;
 }
 
 .dark .ProseMirror th {
