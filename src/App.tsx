@@ -1,76 +1,425 @@
-const phaseZeroSections = [
-  {
-    title: "前端基础层",
-    description: "React 18 + TypeScript strict + Vite + Tailwind CSS 已完成联通。",
-  },
-  {
-    title: "桌面容器",
-    description: "Tauri 2 配置已升级，主窗口标题、尺寸与 bundle 标识已对齐。",
-  },
-  {
-    title: "目录骨架",
-    description: "已预留 components、stores、services、src-tauri 与 skills 结构。",
-  },
-] as const;
+import { useEffect, useMemo, useState } from "react";
+import {
+  Bell,
+  Command as CommandIcon,
+  MessageSquareText,
+  MoonStar,
+  Paintbrush2,
+  PanelsTopLeft,
+  Sparkles,
+  SunMedium,
+} from "lucide-react";
+
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "./components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./components/ui/popover";
+import {
+  Toast,
+  ToastAction,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
+} from "./components/ui/toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./components/ui/tooltip";
+
+type DemoToast = {
+  id: number;
+  title: string;
+  description: string;
+};
+
+const surfaceButtonClasses = [
+  "inline-flex items-center justify-center gap-2 rounded-full border border-border/70 px-4 py-2.5 text-sm font-medium",
+  "bg-bg/90 text-fg transition hover:border-accent/50 hover:bg-accent/10",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
+].join(" ");
+
+const ghostButtonClasses = [
+  "inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-muted transition",
+  "hover:bg-accent/10 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
+].join(" ");
 
 function App() {
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [toasts, setToasts] = useState<DemoToast[]>([]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen((open) => !open);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [setCommandOpen]);
+
+  const cards = useMemo(
+    () => [
+      {
+        title: "Tailwind 主题变量",
+        description:
+          "颜色来自 CSS 变量，切换 `.dark` 类即可同步整个界面的背景、文字、边框与强调色。",
+        icon: Paintbrush2,
+      },
+      {
+        title: "Radix 交互原语",
+        description:
+          "Dialog、Popover、Tooltip、Toast 全部使用 headless primitives + Tailwind data-state 动画。",
+        icon: PanelsTopLeft,
+      },
+      {
+        title: "Cmd+K 命令面板",
+        description:
+          "通过 cmdk 构建 Command Palette，并使用 Lucide 图标统一视觉语言。",
+        icon: CommandIcon,
+      },
+    ],
+    [],
+  );
+
+  const enqueueToast = (title: string, description: string) => {
+    setToasts((current) => [
+      ...current,
+      { id: Date.now() + current.length, title, description },
+    ]);
+  };
+
+  const commandItems = [
+    {
+      value: "open-dialog",
+      label: "打开 Dialog 示例",
+      shortcut: "↵",
+      icon: PanelsTopLeft,
+      onSelect: () => setDialogOpen(true),
+    },
+    {
+      value: "show-toast",
+      label: "触发 Toast 通知",
+      shortcut: "⌥T",
+      icon: Bell,
+      onSelect: () =>
+        enqueueToast("Toast 已发送", "这条通知用于验证 Radix Toast 的动画与交互。"),
+    },
+    {
+      value: "toggle-theme",
+      label: theme === "dark" ? "切换到 Light 模式" : "切换到 Dark 模式",
+      shortcut: "⌘D",
+      icon: theme === "dark" ? SunMedium : MoonStar,
+      onSelect: () =>
+        setTheme((current) => (current === "dark" ? "light" : "dark")),
+    },
+  ];
+
   return (
-    <main className="min-h-screen bg-slate-950 px-8 py-10 text-slate-50">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10">
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-slate-950/40">
-          <div className="border-b border-white/10 px-6 py-4">
-            <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">
-              Phase 0 · Scaffold Ready
-            </p>
-          </div>
-          <div className="grid gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,1fr)]">
-            <div className="space-y-4">
-              <h1 className="text-4xl font-semibold tracking-tight text-white">
-                Refinex-Notes
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-300">
-                超越 Typora 的 AI-Native Markdown 笔记软件。当前项目已完成
-                Tauri 2、React、Vite、Tailwind 与 Radix UI 的基础初始化，可直接进入下一阶段开发。
-              </p>
-            </div>
+    <ToastProvider swipeDirection="right">
+      <TooltipProvider>
+        <main className="min-h-screen bg-bg px-6 py-8 text-fg md:px-10">
+          <div className="mx-auto flex max-w-6xl flex-col gap-8">
+            <section className="overflow-hidden rounded-[2rem] border border-border/70 bg-bg/95 shadow-panel">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/70 px-6 py-5">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.38em] text-accent">
+                    Phase 0.2 · UI Infrastructure
+                  </p>
+                  <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                    Tailwind + Radix + cmdk 验证页
+                  </h1>
+                </div>
 
-            <div className="rounded-2xl border border-cyan-400/20 bg-slate-900/80 p-5">
-              <div className="mb-4 flex items-center justify-between text-sm text-slate-300">
-                <span>Window</span>
-                <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-emerald-300">
-                  1280 × 800
-                </span>
-              </div>
-              <div className="grid gap-3 text-sm text-slate-400">
-                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
-                  identifier: dev.refinex.notes
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
-                  productName: Refinex-Notes
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
-                  tauri: 2.x / api: 2.x / cli: 2.x
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className={ghostButtonClasses}
+                        onClick={() =>
+                          setTheme((current) =>
+                            current === "dark" ? "light" : "dark",
+                          )
+                        }
+                      >
+                        {theme === "dark" ? (
+                          <SunMedium className="h-4 w-4" />
+                        ) : (
+                          <MoonStar className="h-4 w-4" />
+                        )}
+                        {theme === "dark" ? "Light" : "Dark"}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      通过 html 元素上的 <code>.dark</code> 类切换主题
+                    </TooltipContent>
+                  </Tooltip>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {phaseZeroSections.map((section) => (
-            <article
-              key={section.title}
-              className="rounded-2xl border border-white/10 bg-white/5 p-5"
-            >
-              <h2 className="text-lg font-medium text-white">{section.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                {section.description}
-              </p>
-            </article>
-          ))}
-        </section>
-      </div>
-    </main>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className={surfaceButtonClasses}
+                        onClick={() => setCommandOpen(true)}
+                      >
+                        <CommandIcon className="h-4 w-4" />
+                        打开命令面板
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>支持 Cmd/Ctrl + K</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+
+              <div className="grid gap-8 px-6 py-8 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="space-y-6">
+                  <p className="max-w-3xl text-base leading-7 text-muted">
+                    这个页面用于验收 Phase 0.2：Tailwind 样式变量、Radix
+                    交互原语、Lucide 图标与 cmdk 命令面板都在这里直接可见可点。
+                  </p>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {cards.map((card) => {
+                      const Icon = card.icon;
+
+                      return (
+                        <article
+                          key={card.title}
+                          className="rounded-3xl border border-border/70 bg-bg/80 p-5"
+                        >
+                          <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/12 text-accent">
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <h2 className="mt-4 text-lg font-semibold">{card.title}</h2>
+                          <p className="mt-3 text-sm leading-6 text-muted">
+                            {card.description}
+                          </p>
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                      <DialogTrigger asChild>
+                        <button type="button" className={surfaceButtonClasses}>
+                          <PanelsTopLeft className="h-4 w-4" />
+                          打开 Dialog
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Dialog 封装已接通</DialogTitle>
+                          <DialogDescription>
+                            这里验证 Radix Dialog 的 overlay、portal、Tailwind
+                            动画和 dark mode 表现。
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="rounded-3xl border border-border/70 bg-accent/6 p-4 text-sm leading-6 text-muted">
+                          当前主题：<strong className="text-fg">{theme}</strong>。
+                          你可以先切换主题，再重新打开这个弹窗确认令牌变量是否同步生效。
+                        </div>
+                        <DialogFooter>
+                          <button
+                            type="button"
+                            className={surfaceButtonClasses}
+                            onClick={() =>
+                              enqueueToast(
+                                "Dialog 动作已执行",
+                                "这个按钮同时验证了 Dialog 与 Toast 的组合使用。",
+                              )
+                            }
+                          >
+                            <Sparkles className="h-4 w-4" />
+                            触发联动 Toast
+                          </button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className={surfaceButtonClasses}>
+                          <Paintbrush2 className="h-4 w-4" />
+                          查看 Popover
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start">
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-semibold">Design Tokens</h3>
+                          <p className="text-sm leading-6 text-muted">
+                            当前 Popover 使用同一组 CSS 变量，因此也会跟随主题切换。
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              ["bg-bg", "bg-bg"],
+                              ["bg-fg", "bg-fg"],
+                              ["bg-muted", "bg-muted"],
+                              ["bg-accent", "bg-accent"],
+                            ].map(([label, tone]) => (
+                              <div
+                                key={label}
+                                className="rounded-2xl border border-border/70 p-3"
+                              >
+                                <div
+                                  className={`h-10 rounded-xl border border-border/70 ${tone}`}
+                                />
+                                <p className="mt-2 text-xs text-muted">{label}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+
+                    <button
+                      type="button"
+                      className={surfaceButtonClasses}
+                      onClick={() =>
+                        enqueueToast(
+                          "通知已送达",
+                          "Toast + Viewport + swipe 动画当前工作正常。",
+                        )
+                      }
+                    >
+                      <Bell className="h-4 w-4" />
+                      触发 Toast
+                    </button>
+                  </div>
+                </div>
+
+                <aside className="rounded-[2rem] border border-border/70 bg-bg/80 p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-fg">验收清单</p>
+                      <p className="mt-2 text-sm leading-6 text-muted">
+                        当前页面的每个模块都对应本次任务的一条验收标准。
+                      </p>
+                    </div>
+                    <MessageSquareText className="mt-1 h-5 w-5 text-accent" />
+                  </div>
+
+                  <ul className="mt-6 space-y-3 text-sm text-muted">
+                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
+                      1. Tailwind token + dark class
+                    </li>
+                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
+                      2. Dialog / Popover / Tooltip / Toast 封装
+                    </li>
+                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
+                      3. Cmd+K 命令面板
+                    </li>
+                    <li className="rounded-2xl border border-border/70 bg-bg/60 p-4">
+                      4. 零 TypeScript 类型错误
+                    </li>
+                  </ul>
+                </aside>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <CommandDialog
+          open={commandOpen}
+          onOpenChange={setCommandOpen}
+          title="Phase 0.2 Command Palette"
+          description="使用命令快速验证当前 UI 基础设施。"
+        >
+          <CommandInput placeholder="搜索命令或组件..." />
+          <CommandList>
+            <CommandEmpty>没有匹配的命令。</CommandEmpty>
+            <CommandGroup heading="验证动作">
+              {commandItems.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <CommandItem
+                    key={item.value}
+                    value={item.value}
+                    onSelect={() => {
+                      item.onSelect();
+                      setCommandOpen(false);
+                    }}
+                  >
+                    <Icon className="h-4 w-4 text-accent" />
+                    <span>{item.label}</span>
+                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="提示">
+              <CommandItem disabled>
+                <Sparkles className="h-4 w-4 text-muted" />
+                <span>这是一个仅用于 Phase 0.2 验证的演示面板</span>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
+
+        {toasts.map((toast) => (
+          <Toast
+            key={toast.id}
+            defaultOpen
+            onOpenChange={(open) => {
+              if (!open) {
+                setToasts((current) =>
+                  current.filter((item) => item.id !== toast.id),
+                );
+              }
+            }}
+          >
+            <div className="space-y-1">
+              <ToastTitle>{toast.title}</ToastTitle>
+              <ToastDescription>{toast.description}</ToastDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <ToastAction
+                altText="再次打开命令面板"
+                onClick={() => setCommandOpen(true)}
+              >
+                打开 Cmd+K
+              </ToastAction>
+              <ToastClose />
+            </div>
+          </Toast>
+        ))}
+        <ToastViewport />
+      </TooltipProvider>
+    </ToastProvider>
   );
 }
 

@@ -65,12 +65,12 @@ Deviations: None.
 
 ### Step 3: Build the Phase 0.2 interactive demo page
 
-**Files:** `src/App.tsx`
+**Files:** `src/App.tsx`, `vite.config.ts`
 **Verification:** Browser interaction confirms Dialog, Tooltip, Toast, and Cmd+K command palette all open and render with Tailwind styling
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Rebuilt `src/App.tsx` into an interactive Phase 0.2 verification page; `npm run build` passed after integrating the demo and raising the non-Windows Vite target to `safari15`; browser verification on `http://localhost:1420/` confirmed `.dark` class toggling, Tooltip hover text, Dialog opening, Popover expansion, Toast notification rendering, and `Control+K` opening the command palette; browser console remained free of app errors.
+Deviations: `vite.config.ts` and the tracked `vite.config.js` were updated to change the non-Windows build target from `safari13` to `safari15`, because the inherited target failed to transpile the modern Radix/Lucide runtime imports under Vite 7.
 
 ### Step 4: Verify, sync control plane, and archive
 
@@ -87,7 +87,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | Missing packages installed; Tailwind class dark mode, CSS tokens, and animate plugin configured; `npm run build` passed | Tailwind v3 retained intentionally |
 | 2 | ✅ | Real Radix/cmdk wrappers replaced placeholders and compiled cleanly | Public file paths were preserved |
-| 3 | ⬜ |  |  |
+| 3 | ✅ | Demo page compiled and browser interactions proved Dialog / Tooltip / Popover / Toast / Cmd+K / dark mode | Vite target raised to `safari15` for compatibility |
 | 4 | ⬜ |  |  |
 
 ## Decision Log
@@ -96,6 +96,7 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | Keep Tailwind on v3.4.19 for this task | The repo already uses Tailwind v3 and the request allows "v4 or v3 稳定版" | Migrate to Tailwind v4 during this task | Minimizes scope and risk while fully satisfying the requested Phase 0.2 capabilities |
 | Exclude full Phase 0.3 store work | The request only asks to install Zustand and Jotai, not to implement the full store contracts | Expand the task into store design and behavior work | Prevents scope drift and keeps the feature focused on UI infrastructure |
+| Raise the non-Windows Vite build target if needed for modern UI dependencies | Bringing Radix/Lucide into the runtime surfaced Vite/esbuild failures against the inherited `safari13` target | Revert the new UI stack; keep debugging around the old target | Adjusting the build target is the smallest repo-level change that preserves the requested UI stack and restores a green build |
 
 ## Completion Summary
 
