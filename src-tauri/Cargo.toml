@@ -1,0 +1,20 @@
+[package]
+name = "refinex-notes"
+version = "0.1.0"
+description = "AI-native Markdown notes powered by Tauri"
+authors = ["Refinex"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "refinex_notes_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2.10.2", features = [] }
