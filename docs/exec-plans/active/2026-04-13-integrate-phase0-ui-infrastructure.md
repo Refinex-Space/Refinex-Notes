@@ -1,7 +1,7 @@
 # Execution Plan: Integrate phase0 UI infrastructure
 
 Created: 2026-04-13
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -30,10 +30,10 @@ Integrate the Phase 0.2 frontend UI infrastructure so the existing React/Tauri s
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Tailwind configuration supports class-based dark mode, CSS variable theme tokens (`--color-bg`, `--color-fg`, `--color-muted`, `--color-accent`, `--color-border`), and `tailwindcss-animate`.
-- [ ] AC-2: `src/components/ui/` exports working Tailwind-styled wrappers for Dialog, Popover, Tooltip, Toast, and Command that use Radix/cmdk primitives and `data-[state=*]` driven animation classes.
-- [ ] AC-3: `src/App.tsx` renders a demo page where Dialog, Tooltip, Toast, and Command Palette can be opened interactively, and dark mode can be toggled via the root `.dark` class.
-- [ ] AC-4: `npm run build` completes with zero TypeScript errors after the integration.
+- [x] AC-1: Tailwind configuration supports class-based dark mode, CSS variable theme tokens (`--color-bg`, `--color-fg`, `--color-muted`, `--color-accent`, `--color-border`), and `tailwindcss-animate`.
+- [x] AC-2: `src/components/ui/` exports working Tailwind-styled wrappers for Dialog, Popover, Tooltip, Toast, and Command that use Radix/cmdk primitives and `data-[state=*]` driven animation classes.
+- [x] AC-3: `src/App.tsx` renders a demo page where Dialog, Tooltip, Toast, and Command Palette can be opened interactively, and dark mode can be toggled via the root `.dark` class.
+- [x] AC-4: `npm run build` completes with zero TypeScript errors after the integration.
 
 ## Risk Notes
 
@@ -77,9 +77,9 @@ Deviations: `vite.config.ts` and the tracked `vite.config.js` were updated to ch
 **Files:** `docs/PLANS.md`, `docs/exec-plans/active/2026-04-13-integrate-phase0-ui-infrastructure.md`, any harness docs changed by the implementation
 **Verification:** Acceptance criteria are marked PASS/FAIL, `npm run build` passes, and the plan is archived to `completed/`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `python3 scripts/check_harness.py`, `cargo test --manifest-path src-tauri/Cargo.toml`, and `npm run build` all passed; self-review diff from `70eb950..HEAD` contained only expected UI infrastructure files; `docs/ARCHITECTURE.md` and `src/AGENTS.md` were updated to reflect the new Phase 0.2 verification page and real Radix/cmdk wrappers.
+Deviations: None beyond the previously recorded Vite target adjustment.
 
 ## Progress Log
 
@@ -88,7 +88,7 @@ Deviations:
 | 1 | ✅ | Missing packages installed; Tailwind class dark mode, CSS tokens, and animate plugin configured; `npm run build` passed | Tailwind v3 retained intentionally |
 | 2 | ✅ | Real Radix/cmdk wrappers replaced placeholders and compiled cleanly | Public file paths were preserved |
 | 3 | ✅ | Demo page compiled and browser interactions proved Dialog / Tooltip / Popover / Toast / Cmd+K / dark mode | Vite target raised to `safari15` for compatibility |
-| 4 | ⬜ |  |  |
+| 4 | ✅ | Full verification passed and control plane docs were synchronized | Ready for archival |
 
 ## Decision Log
 
@@ -103,7 +103,8 @@ Deviations:
 <!-- Fill in when archiving the plan -->
 
 Completed:
+Completed: 2026-04-13
 Duration: 4 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: Phase 0.2 is complete. The frontend now has class-based Tailwind theming with CSS-variable tokens and `tailwindcss-animate`, real Radix/cmdk wrapper components under `src/components/ui/`, and an interactive verification page in `src/App.tsx` that proves Dialog, Popover, Tooltip, Toast, and the Cmd+K command palette work together. The only implementation deviation was raising the non-Windows Vite target from `safari13` to `safari15` so the modern Radix/Lucide runtime code could build cleanly under Vite 7.
