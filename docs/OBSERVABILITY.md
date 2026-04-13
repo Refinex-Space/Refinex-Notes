@@ -9,7 +9,7 @@
 | Install dependencies | `npm install` | Exit 0 |
 | Build frontend bundle | `npm run build` | Exit 0, assets emitted to `dist/` |
 | Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 0 tests |
-| Run frontend tests | Not configured (`package.json` has no `test` script) | N/A |
+| Run frontend tests | `npm test` | Exit 0, all tests pass |
 | Lint / format check | Not configured in the repository | N/A |
 | Start web dev server | `npm run dev` | Vite serves on `http://localhost:1420` |
 | Start desktop app | `npm run tauri dev` | Tauri window opens against the Vite dev server |
@@ -37,7 +37,8 @@ Before starting feature or fix work, run this baseline:
 
 ```bash
 cargo test --manifest-path src-tauri/Cargo.toml
+npm test
 npm run build
 ```
 
-The native test command currently validates compilation and runs 0 tests. Frontend test and lint automation are not configured yet, so build output is the primary repository-level verification path.
+The native test command currently validates compilation and runs 0 tests. Frontend tests use Vitest and validate editor round-trip conversion. Build output is the primary repository-level verification path.
