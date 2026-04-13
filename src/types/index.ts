@@ -1,6 +1,13 @@
 export type { UserProfile } from "./auth";
 export type { AuthStore, AuthStoreActions, AuthStoreState } from "./auth";
-export type { FileGitStatus, FileNode, NoteStore, NoteStoreActions, NoteStoreState } from "./notes";
+export type {
+  FileGitStatus,
+  FileNode,
+  NoteDocument,
+  NoteStore,
+  NoteStoreActions,
+  NoteStoreState,
+} from "./notes";
 export type {
   CursorPosition,
   EditorStore,
@@ -28,4 +35,9 @@ export type {
   SettingsStoreState,
   ThemeMode,
 } from "./settings";
-export type { AppShellSection } from "./app-shell";
+export type {
+  AppShellSection,
+  CommandPaletteItem,
+  OutlineHeading,
+  ShellPanelState,
+} from "./app-shell";

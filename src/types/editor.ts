@@ -13,6 +13,7 @@ export interface EditorStoreActions {
   setActiveTab: (path: string | null) => void;
   markDirty: (path: string) => void;
   markClean: (path: string) => void;
+  setCursorPosition: (cursorPosition: CursorPosition) => void;
 }
 
 export type EditorStore = EditorStoreState & EditorStoreActions;
