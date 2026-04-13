@@ -47,9 +47,9 @@ Replace the placeholder Zustand stores with Phase 0.3-ready scaffolds that expos
 **Files:** `package.json`, `package-lock.json`, `src/types/*.ts`
 **Verification:** `immer` is installed and the requested shared types are exported from independent files
 
-Status: 🔄 In progress
-Evidence: Current stores and `src/types/index.ts` have been inspected; `immer` is not installed yet and the shared models do not exist.
-Deviations:
+Status: ✅ Done
+Evidence: Installed `immer`; added independent type files under `src/types/` for auth, notes, editor, git, AI, settings, and app-shell models; converted `src/types/index.ts` into a pure export barrel; `npm run build` passed after the type-layer refactor.
+Deviations: None.
 
 ### Step 2: Replace placeholder stores with requested scaffolds
 
@@ -73,7 +73,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | Existing store placeholders and the single `src/types/index.ts` file have been mapped | No conflicting active plans |
+| 1 | ✅ | `immer` installed; shared type files created; build stayed green | No conflicting active plans |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 
