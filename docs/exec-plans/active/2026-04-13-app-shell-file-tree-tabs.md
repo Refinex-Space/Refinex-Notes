@@ -59,9 +59,13 @@ Replace the temporary Phase 0.2 demo surface with the first real Refinex-Notes w
 **Files:** `src/stores/noteStore.ts`, `src/stores/editorStore.ts`, `src/types/notes.ts`, `src/types/editor.ts`, `src/types/app-shell.ts`
 **Verification:** Focused tests prove file open/close, active tab, dirty state, and derived shell metadata behave correctly with mock workspace data
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- Implemented mock workspace documents/folders plus working `noteStore` actions for open/close/create/createFolder/delete/rename/refresh/update-content flows.
+- Replaced the placeholder `editorStore` actions with working active-tab, dirty-state, and cursor-position state updates.
+- Added focused store tests in `src/stores/__tests__/workspace-state.test.ts`; `npm test` now passes with 65 tests.
 Deviations:
+- `src/types/index.ts` was updated in this step as a supporting export surface so the new shell/store models can be consumed cleanly by later components and tests.
 
 ### Step 2: Complete shared shell primitives and frame layout
 
@@ -103,7 +107,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  |  |
+| 1 | ✅ | `npm test` passes with 65 tests including new workspace store coverage | `editorStore` moved off immer so `Set`-based dirty tracking does not require global `enableMapSet()` |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
@@ -113,6 +117,8 @@ Deviations:
 
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
+| Keep mock workspace state inside stores rather than a separate service seam for this step | Phase 4.1 needs a complete frontend-only loop before Rust file APIs exist | Adding a temporary mock service layer under `src/services/` | The stores are the current source of truth for shell state, and keeping the mock data there keeps the future replacement boundary obvious |
+| Move `editorStore` off `zustand/immer` | Dirty-state tracking uses `Set`, and immer requires global `enableMapSet()` to proxy it safely | Enabling MapSet globally, or changing dirty tracking to arrays | Plain Zustand updates avoid a global side effect and keep `Set` semantics intact for the shell |
 
 ## Completion Summary
 
