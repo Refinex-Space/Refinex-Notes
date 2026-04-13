@@ -50,9 +50,9 @@ Integrate the Phase 0.2 frontend UI infrastructure so the existing React/Tauri s
 **Files:** `package.json`, `package-lock.json`, `tailwind.config.js`, `src/styles.css`
 **Verification:** Missing packages are installed and `npm run build` stays green
 
-Status: 🔄 In progress
-Evidence: Current repo already has Tailwind v3.4.19, several Radix primitives, cmdk, and Zustand; missing packages and config gaps have been identified during planning.
-Deviations:
+Status: ✅ Done
+Evidence: Installed `tailwindcss-animate`, `lucide-react`, `jotai`, `@radix-ui/react-toggle-group`, and `@radix-ui/react-accordion`; updated `tailwind.config.js` with `darkMode: "class"`, CSS-variable-backed theme colors, and the animate plugin; updated `src/styles.css` with light/dark token definitions and base application; `npm run build` passed after the changes.
+Deviations: Kept Tailwind on v3.4.19 as planned instead of migrating to v4.
 
 ### Step 2: Replace placeholder UI wrappers with real Radix/cmdk components
 
@@ -85,7 +85,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | Preflight green; current dependency/config gaps mapped | Tailwind v3 retained intentionally |
+| 1 | ✅ | Missing packages installed; Tailwind class dark mode, CSS tokens, and animate plugin configured; `npm run build` passed | Tailwind v3 retained intentionally |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
