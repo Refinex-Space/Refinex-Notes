@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { history, undo, redo } from "prosemirror-history";
+import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
 
+import { refinexInputRules } from "./plugins/input-rules";
 import { refinexParser, parseMarkdown } from "./parser";
 import { inlineSyncPlugin } from "./plugins/inline-sync";
+import { refinexKeymap } from "./plugins/keymap";
 import { refinexSerializer, serializeMarkdown } from "./serializer";
 import "./editor.css";
 
@@ -48,15 +50,11 @@ export function RefinexEditor({
     const state = EditorState.create({
       doc,
       plugins: [
-        history(),
-        inlineSyncPlugin(refinexParser, refinexSerializer),
-        keymap({
-          "Mod-z": undo,
-          "Mod-Shift-z": redo,
-          // Also support Ctrl+Y on Windows
-          "Ctrl-y": redo,
-        }),
+        refinexKeymap(),
         keymap(baseKeymap),
+        refinexInputRules(),
+        inlineSyncPlugin(refinexParser, refinexSerializer),
+        history(),
         dropCursor(),
         gapCursor(),
       ],

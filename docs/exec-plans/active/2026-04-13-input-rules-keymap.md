@@ -32,11 +32,11 @@ Implement editor-core Markdown input rules and keyboard mappings so block shortc
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `src/editor/plugins/input-rules.ts` exports `refinexInputRules()` and implements block-level rules for headings, blockquote, bullet list, ordered list, code block, horizontal rule, and task-list entry.
-- [ ] AC-2: `src/editor/plugins/keymap.ts` exports `refinexKeymap()` and binds the requested mark, heading, list, code-block, undo/redo, and select-all shortcuts with `baseKeymap` reserved as fallback.
-- [ ] AC-3: `RefinexEditor` loads the new plugins in the intended order so `## `, `> `, `- `, Ctrl/Cmd+B/I, Tab/Shift-Tab, Enter, and Backspace are effective in the mounted editor.
-- [ ] AC-4: Automated tests cover representative input-rule triggers, formatting shortcuts, list indentation/splitting, and list exit behavior.
-- [ ] AC-5: `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`, and `npm run build` all pass after integration.
+- [x] AC-1: `src/editor/plugins/input-rules.ts` exports `refinexInputRules()` and implements block-level rules for headings, blockquote, bullet list, ordered list, code block, horizontal rule, and task-list entry.
+- [x] AC-2: `src/editor/plugins/keymap.ts` exports `refinexKeymap()` and binds the requested mark, heading, list, code-block, undo/redo, and select-all shortcuts with `baseKeymap` reserved as fallback.
+- [x] AC-3: `RefinexEditor` loads the new plugins in the intended order so `## `, `> `, `- `, Ctrl/Cmd+B/I, Tab/Shift-Tab, Enter, and Backspace are effective in the mounted editor.
+- [x] AC-4: Automated tests cover representative input-rule triggers, formatting shortcuts, list indentation/splitting, and list exit behavior.
+- [x] AC-5: `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`, and `npm run build` all pass after integration.
 
 ## Risk Notes
 
@@ -81,9 +81,9 @@ Deviations: Exported `createRefinexKeyBindings()` alongside `refinexKeymap()` so
 **Files:** `src/editor/RefinexEditor.tsx`, `src/editor/index.ts`
 **Verification:** Full `cargo test --manifest-path src-tauri/Cargo.toml`, `npm test`, and `npm run build` pass
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: Updated `src/editor/RefinexEditor.tsx` to load `refinexKeymap()`, `keymap(baseKeymap)`, `refinexInputRules()`, `inlineSyncPlugin(...)`, `history()`, `dropCursor()`, and `gapCursor()` in the planned order. Full verification passes: `cargo test --manifest-path src-tauri/Cargo.toml` (0 tests, pass), `npm test` (45/45 pass), `npm run build` (pass).
+Deviations: None
 
 ## Progress Log
 
@@ -92,7 +92,7 @@ Deviations:
 | 1 | ✅ | `cargo test` pass; `npm test` 31/31 pass; `npm run build` pass | Added `prosemirror-schema-list` for list commands before implementing key bindings |
 | 2 | ✅ | `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` → 7/7 pass | Added custom transaction rules for task list and horizontal rule |
 | 3 | ✅ | `npm test -- src/editor/__tests__/input-rules-keymap.test.ts` → 14/14 pass | Added direct binding-map coverage for mark, list, and history shortcuts |
-| 4 | ⬜ |  |  |
+| 4 | ✅ | `cargo test` pass; `npm test` 45/45 pass; `npm run build` pass | `RefinexEditor` now mounts custom keymap + input rules ahead of inline-sync/history |
 
 ## Decision Log
 
@@ -101,6 +101,7 @@ Deviations:
 | Add `prosemirror-schema-list` explicitly | List indentation/splitting commands are required for the requested keymap, but the package was not declared directly in the repo | Reimplement list commands manually; depend on a transitive package | The official package provides the requested commands with less risk and clearer ownership in `package.json` |
 | Insert a trailing paragraph after the horizontal-rule input rule | Replacing an empty paragraph with only `horizontal_rule` leaves no obvious text cursor landing point for continued editing | Replace with only `horizontal_rule`; defer cursor recovery to a future trailing-node plugin | Keeping an empty paragraph after the rule preserves immediate typing flow without waiting for Phase 2.3 |
 | Export `createRefinexKeyBindings()` in addition to `refinexKeymap()` | Keymap behavior needed stable command-level tests that still assert the intended key strings | Test only through mocked `handleKeyDown`; avoid any extra export | A thin exported binding map keeps runtime behavior unchanged while making the shortcut contract explicit and testable |
+| Keep inline input rules omitted in this phase | Inline formatting is already handled by the existing paragraph-scoped inline-sync plugin, and duplicate input rules would compete for the same syntax closures | Add inline emphasis/code/link input rules as fallback now | Deferring inline rules avoids double transforms and keeps Phase 2.2 focused on block shortcuts and key bindings |
 
 ## Completion Summary
 
