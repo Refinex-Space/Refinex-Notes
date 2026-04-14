@@ -64,9 +64,9 @@ Author: agent
 **Files:** `src-tauri/Cargo.toml`, `src-tauri/src/search/mod.rs`, `src-tauri/src/search/fuzzy.rs`, `src-tauri/src/state.rs`, `src-tauri/src/lib.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml search::`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml search::` 通过，新增 5 个搜索域测试（Markdown 纯文本提取、tags 提取、Tantivy 构建/搜索/增量更新、Nucleo 排序、空查询）全部通过。
+Deviations: 第 1 步同时补录了 `Cargo.lock` 作为依赖引入的可复现快照；搜索索引先以内存 `tantivy::Index::create_in_ram` 交付，避免本轮把任务扩大成索引持久化设计。
 
 ### Step 2: 接入索引构建、增量更新与搜索命令
 
@@ -108,7 +108,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ | | |
+| 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml search::` 通过，5 个搜索域测试通过 | 搜索依赖、全文/模糊搜索基础能力与 AppState 持有位已建立 |
 | 2 | ⬜ | | |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
@@ -119,6 +119,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 搜索结果跳转优先做首个命中文本定位 | 现有编辑器暴露了标题跳转，但未直接暴露任意 offset 定位 API | 先扩展完整原生到编辑器字符级映射接口 | 在当前任务范围内先交付稳定可用的跳转体验，避免把搜索任务扩大成编辑器底层改造 |
+| 搜索索引先以内存 Tantivy 构建 | 需求要求打开工作区自动建索引与增量更新，但未要求磁盘持久化 | 在工作区目录下维护持久化索引 | 先满足查询时延和增量更新目标，减少索引目录生命周期与兼容性复杂度 |
 
 ## Completion Summary
 
