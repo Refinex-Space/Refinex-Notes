@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Fix Git Sync Runtime Panic](exec-plans/active/2026-04-15-fix-git-sync-runtime-panic.md) — started 2026-04-15
 
 ## Completed Plans
 
+- [Fix Git Sync Runtime Panic](exec-plans/completed/2026-04-15-fix-git-sync-runtime-panic.md) — completed 2026-04-15
 - [Phase 6 Search](exec-plans/completed/2026-04-15-phase6-search.md) — completed 2026-04-15
 - [Phase 6 Git UI](exec-plans/completed/2026-04-14-phase6-git-ui.md) — completed 2026-04-14
 - [Phase 6 Git Engine Sync](exec-plans/completed/2026-04-14-phase6-git-engine-sync.md) — completed 2026-04-14
