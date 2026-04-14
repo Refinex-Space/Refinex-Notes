@@ -66,7 +66,7 @@ function SidebarContent({
                 选择工作区
               </button>
               <span className="truncate text-xs text-muted">
-                {workspacePath ?? "当前仍在使用内置 mock 工作区"}
+                {workspacePath ?? "尚未打开本地工作区"}
               </span>
             </div>
           </div>

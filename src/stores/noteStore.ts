@@ -5,146 +5,6 @@ import { fileService } from "../services/fileService";
 import type { FileNode, NoteDocument, NoteStore } from "../types/notes";
 import { useEditorStore } from "./editorStore";
 
-const MOCK_DOCUMENTS: NoteDocument[] = [
-  {
-    path: "Inbox/Welcome.md",
-    name: "Welcome.md",
-    content: `# Welcome to Refinex Notes
-
-## Capture ideas fast
-
-Refinex keeps your notes, tasks, and AI workflows in one workspace.
-
-## Current focus
-
-- Build the application shell
-- Connect the Rust file backend
-- Prepare multi-tab editing
-`,
-    savedContent: `# Welcome to Refinex Notes
-
-## Capture ideas fast
-
-Refinex keeps your notes, tasks, and AI workflows in one workspace.
-
-## Current focus
-
-- Build the application shell
-- Connect the Rust file backend
-- Prepare multi-tab editing
-`,
-    language: "Markdown",
-    gitStatus: "clean",
-    isMarkdown: true,
-  },
-  {
-    path: "Daily/2026-04-13.md",
-    name: "2026-04-13.md",
-    content: `# 2026-04-13
-
-## Wins
-
-- Finished rich editor UI surfaces
-- Started the application shell
-
-## Next
-
-- File tree
-- Status bar
-- Command palette
-`,
-    savedContent: `# 2026-04-13
-
-## Wins
-
-- Finished rich editor UI surfaces
-- Started the application shell
-
-## Next
-
-- File tree
-- Status bar
-- Command palette
-`,
-    language: "Markdown",
-    gitStatus: "modified",
-    isMarkdown: true,
-  },
-  {
-    path: "Projects/Refinex/Roadmap.md",
-    name: "Roadmap.md",
-    content: `# Product Roadmap
-
-## Phase 4
-
-Build the application shell and the native file foundation.
-
-## Phase 5
-
-Wire real file system events and Git state.
-`,
-    savedContent: `# Product Roadmap
-
-## Phase 4
-
-Build the application shell and the native file foundation.
-
-## Phase 5
-
-Wire real file system events and Git state.
-`,
-    language: "Markdown",
-    gitStatus: "added",
-    isMarkdown: true,
-  },
-  {
-    path: "Projects/Refinex/Meeting-Notes.md",
-    name: "Meeting-Notes.md",
-    content: `# Meeting Notes
-
-## Decisions
-
-- Keep editor core in \`src/editor/\`
-- Build shell UI in \`src/components/\`
-`,
-    savedContent: `# Meeting Notes
-
-## Decisions
-
-- Keep editor core in \`src/editor/\`
-- Build shell UI in \`src/components/\`
-`,
-    language: "Markdown",
-    gitStatus: "clean",
-    isMarkdown: true,
-  },
-  {
-    path: "Archive/Deprecated.md",
-    name: "Deprecated.md",
-    content: `# Deprecated
-
-Legacy note kept for shell state testing.
-`,
-    savedContent: `# Deprecated
-
-Legacy note kept for shell state testing.
-`,
-    language: "Markdown",
-    gitStatus: "deleted",
-    isMarkdown: true,
-  },
-];
-
-const MOCK_FOLDERS = [
-  "Inbox",
-  "Daily",
-  "Projects",
-  "Projects/Refinex",
-  "Archive",
-] as const;
-
-const DEFAULT_CURRENT_FILE = "Inbox/Welcome.md";
-
 type StoreState = Pick<
   NoteStore,
   | "workspacePath"
@@ -259,17 +119,14 @@ export function buildFileTree(
 }
 
 function createInitialState(): StoreState {
-  const documents = createDocumentMap(MOCK_DOCUMENTS);
-  const folders = [...MOCK_FOLDERS];
-
   return {
     workspacePath: null,
-    files: buildFileTree(folders, documents),
-    documents,
-    folders,
-    currentFile: DEFAULT_CURRENT_FILE,
-    openFiles: [DEFAULT_CURRENT_FILE],
-    recentFiles: [DEFAULT_CURRENT_FILE],
+    files: [],
+    documents: {},
+    folders: [],
+    currentFile: null,
+    openFiles: [],
+    recentFiles: [],
   };
 }
 

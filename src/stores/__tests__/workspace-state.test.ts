@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { FileNode } from "../../types";
+import type { NoteDocument } from "../../types/notes";
 import { resetEditorStore, useEditorStore } from "../editorStore";
 import {
   buildFileTree,
@@ -8,6 +9,44 @@ import {
   resetNoteStore,
   useNoteStore,
 } from "../noteStore";
+
+function createTestDocument(
+  path: string,
+  gitStatus: NoteDocument["gitStatus"] = "clean",
+): NoteDocument {
+  const name = path.split("/").at(-1) ?? path;
+  return {
+    path,
+    name,
+    content: `# ${name}`,
+    savedContent: `# ${name}`,
+    language: "Markdown",
+    gitStatus,
+    isMarkdown: true,
+  };
+}
+
+function seedWorkspaceState() {
+  const documents = {
+    "Inbox/Welcome.md": createTestDocument("Inbox/Welcome.md"),
+    "Daily/2026-04-13.md": createTestDocument("Daily/2026-04-13.md", "modified"),
+    "Projects/Refinex/Roadmap.md": createTestDocument(
+      "Projects/Refinex/Roadmap.md",
+      "added",
+    ),
+  } satisfies Record<string, NoteDocument>;
+  const folders = ["Inbox", "Daily", "Projects", "Projects/Refinex"];
+
+  useNoteStore.setState({
+    workspacePath: null,
+    documents,
+    folders,
+    files: buildFileTree(folders, documents),
+    currentFile: "Inbox/Welcome.md",
+    openFiles: ["Inbox/Welcome.md"],
+    recentFiles: ["Inbox/Welcome.md"],
+  });
+}
 
 function flattenTree(paths: string[], nodes: FileNode[]) {
   for (const node of nodes) {
@@ -23,6 +62,7 @@ describe("workspace state stores", () => {
   beforeEach(() => {
     resetNoteStore();
     resetEditorStore();
+    seedWorkspaceState();
   });
 
   it("opens files, tracks recents, and closes the active tab predictably", async () => {
