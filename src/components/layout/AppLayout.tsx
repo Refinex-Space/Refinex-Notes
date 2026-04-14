@@ -110,7 +110,7 @@ export function AppLayout({
   }, [rightPanelCollapsed, rightPanelWidth, sidebarCollapsed, sidebarWidth]);
 
   return (
-    <div className="flex h-screen min-h-screen flex-col bg-bg text-fg">
+    <div className="flex h-screen min-h-screen overflow-hidden flex-col bg-bg text-fg">
       <header className="flex h-12 items-center justify-between border-b border-border/70 bg-bg/90 px-4 backdrop-blur">
         <div className="flex items-center gap-2">
           <button
@@ -146,7 +146,7 @@ export function AppLayout({
       </header>
 
       <div
-        className="grid min-h-0 flex-1"
+        className="grid min-h-0 flex-1 overflow-hidden"
         style={{ gridTemplateColumns }}
       >
         <Collapsible open={!sidebarCollapsed}>

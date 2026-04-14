@@ -73,7 +73,7 @@ function FileRow({
 
   const row = node.isDir ? (
     <div>
-      <Accordion type="multiple" defaultValue={[node.path]}>
+      <Accordion type="multiple">
         <AccordionItem value={node.path} className="border-b-0">
           <AccordionTrigger
             className={[
@@ -210,6 +210,16 @@ export function FileTree() {
     );
   }
 
+  return <FileTreeNodes files={files} currentFile={currentFile} />;
+}
+
+export function FileTreeNodes({
+  files,
+  currentFile,
+}: {
+  files: readonly FileNode[];
+  currentFile: string | null;
+}) {
   return (
     <div className="space-y-1 p-3">
       {files.map((node) => (

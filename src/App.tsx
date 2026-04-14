@@ -48,7 +48,7 @@ function SidebarContent({
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <section className="border-b border-border/70 p-4">
+      <section className="shrink-0 border-b border-border/70 p-4">
         <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg/70 p-4">
           <FileSearch className="mt-0.5 h-4 w-4 text-accent" />
           <div className="space-y-1">
@@ -73,24 +73,24 @@ function SidebarContent({
         </div>
       </section>
 
-      <section className="min-h-0 flex-1 border-b border-border/70">
+      <section className="flex min-h-0 flex-1 flex-col border-b border-border/70">
         <div className="border-b border-border/70 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
             Files
           </p>
         </div>
-        <div className="min-h-0 overflow-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <FileTree />
         </div>
       </section>
 
-      <section className="min-h-0 flex-1">
+      <section className="flex min-h-0 flex-1 flex-col">
         <div className="border-b border-border/70 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
             Outline
           </p>
         </div>
-        <div className="min-h-0 overflow-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <OutlinePanel markdown={markdown} onSelectHeading={onSelectHeading} />
         </div>
       </section>
@@ -279,7 +279,7 @@ function App() {
         tabBar={<TabBar />}
         editor={
           currentDocument ? (
-            <div className="h-full overflow-auto bg-bg">
+            <div className="h-full min-h-0 overflow-auto bg-bg">
               <RefinexEditor
                 key={currentDocument.path}
                 value={currentDocument.content}
