@@ -42,11 +42,11 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `src-tauri` 内实现 Tantivy schema、索引构建/增量更新、全文搜索、Nucleo 文件名模糊搜索，并通过 Rust 测试覆盖核心索引与排序路径。
-- [ ] AC-2: 工作区打开后会自动建立搜索索引，文件变更后监听链路会触发增量索引更新。
-- [ ] AC-3: `search_files(query)` 与 `search_fulltext(query)` Tauri commands 已注册；短查询走文件名模糊搜索，长查询可返回全文结果并含片段/snippet。
-- [ ] AC-4: `SearchPanel` 可展示搜索输入与结果列表，长查询时合并文件名与全文结果；点击结果可打开对应文件并触发跳转。
-- [ ] AC-5: `CommandPalette` 文件搜索改为使用原生 fuzzy search 结果；`cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 在完成后保持通过。
+- [x] AC-1: `src-tauri` 内实现 Tantivy schema、索引构建/增量更新、全文搜索、Nucleo 文件名模糊搜索，并通过 Rust 测试覆盖核心索引与排序路径。
+- [x] AC-2: 工作区打开后会自动建立搜索索引，文件变更后监听链路会触发增量索引更新。
+- [x] AC-3: `search_files(query)` 与 `search_fulltext(query)` Tauri commands 已注册；短查询走文件名模糊搜索，长查询可返回全文结果并含片段/snippet。
+- [x] AC-4: `SearchPanel` 可展示搜索输入与结果列表，长查询时合并文件名与全文结果；点击结果可打开对应文件并触发跳转。
+- [x] AC-5: `CommandPalette` 文件搜索改为使用原生 fuzzy search 结果；`cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 在完成后保持通过。
 
 ## Risk Notes
 
@@ -100,9 +100,9 @@ Deviations: `CommandPalette` 在有查询时只显示文件搜索结果，不再
 **Files:** `docs/PLANS.md`, `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/exec-plans/active/2026-04-15-phase6-search.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml && npm test -- --run && npm run build`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 34/34 通过，`npm test -- --run` 94/94 通过，`npm run build` 成功（仅保留既有 chunk size warning）；控制面已更新 `docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md`。
+Deviations: 搜索索引保持内存态，不做磁盘持久化；跳转实现为“打开文件后定位到首个命中文本”，没有扩展原生结果为字符级 offset。
 
 ## Progress Log
 
@@ -112,7 +112,7 @@ Deviations:
 | 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml search::` 通过，8 个搜索相关测试通过 | 原生索引器、监听器更新与搜索命令已接通 |
 | 3 | ✅ | SearchPanel focused tests 通过，`npm run build` 通过 | 搜索 service、搜索面板和点击结果跳转链路已完成 |
 | 4 | ✅ | app-shell-utils tests 通过，`npm run build` 通过 | 命令面板文件搜索已切到 native fuzzy 结果 |
-| 5 | ⬜ | | |
+| 5 | ✅ | Rust 34/34、前端 94/94、构建成功；控制面文档已同步 | 全量验证通过并完成控制面更新 |
 
 ## Decision Log
 
@@ -126,8 +126,8 @@ Deviations:
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-15
 Duration: 5 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 已完成 Phase 6 搜索能力交付：原生层新增 Tantivy 全文索引、Markdown 语法剥离、Nucleo 文件名模糊匹配，以及工作区打开/文件监听触发的索引构建与增量更新；前端新增 `searchService`、侧栏 `SearchPanel`、搜索结果打开跳转链路，并将命令面板文件搜索切换为原生 fuzzy 结果。为了控制范围和稳定性，索引当前以内存方式维护，目录级 watcher 事件回退整库重建，搜索结果跳转优先定位到首个命中文本；在这些约束下，Rust 测试、前端测试和构建均保持通过。
