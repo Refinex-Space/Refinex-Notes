@@ -96,7 +96,7 @@ export function SyncStatus({
   const lastSyncTime = useGitStore((state) => state.lastSyncTime);
   const changedFiles = useGitStore((state) => state.changedFiles);
   const isRunningAction = useGitStore((state) => state.isRunningAction);
-  const forceSync = useGitStore((state) => state.forceSync);
+  const refreshStatus = useGitStore((state) => state.refreshStatus);
 
   const meta = syncIndicatorMeta(syncStatus);
   const Icon = meta.icon;
@@ -143,7 +143,7 @@ export function SyncStatus({
           <div>
             <p className="text-sm font-semibold text-fg">Git 同步</p>
             <p className="mt-1 text-xs leading-5 text-muted">
-              {syncDetail ?? "通过立即同步或查看历史来检查当前工作区的版本状态。"}
+              {syncDetail ?? "自动同步已关闭，通过手动提交、推送、拉取或刷新状态来管理版本。"}
             </p>
           </div>
 
@@ -153,10 +153,10 @@ export function SyncStatus({
               className="inline-flex items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
               disabled={isRunningAction}
               onClick={() => {
-                void forceSync();
+                void refreshStatus();
               }}
             >
-              <span>立即同步</span>
+              <span>刷新状态</span>
               <RefreshCcw className="h-4 w-4 text-accent" />
             </button>
             <button

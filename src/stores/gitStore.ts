@@ -119,6 +119,10 @@ export const useGitStore = create<GitStore>()(
         return;
       }
 
+      set((state) => {
+        state.isSyncEnabled = false;
+        state.syncDetail = "自动同步已关闭，请手动提交、推送或拉取。";
+      });
       await get().refreshStatus();
     },
 

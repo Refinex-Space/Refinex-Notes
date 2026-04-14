@@ -125,11 +125,11 @@ export function HistoryPanel({ currentFile }: HistoryPanelProps) {
             当前原生层提供的是 commit patch 预览，因此这里展示的是该提交的只读变更内容。
           </p>
           {errorMessage ? (
-            <p className="mb-3 rounded-2xl border border-rose-300/15 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+            <p className="mb-3 rounded-2xl border border-rose-300/40 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-300/15 dark:bg-rose-400/10 dark:text-rose-100">
               {errorMessage}
             </p>
           ) : null}
-          <pre className="min-h-[240px] overflow-auto rounded-3xl border border-border/70 bg-slate-950/90 p-4 text-xs leading-6 text-slate-100">
+          <pre className="min-h-[240px] overflow-auto rounded-3xl border border-border/70 bg-slate-50 p-4 text-xs leading-6 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:bg-slate-950/90 dark:text-slate-100 dark:shadow-none">
             {selectedCommitDiff ?? "选择一条提交以查看只读快照。"}
           </pre>
         </div>

@@ -70,9 +70,9 @@ function SidebarContent({
   const logout = useAuthStore((state) => state.logout);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(8,14,29,0.98),rgba(4,9,21,0.98))]">
+    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.98))] dark:bg-[linear-gradient(180deg,rgba(8,14,29,0.98),rgba(4,9,21,0.98))]">
       <section className="shrink-0 border-b border-border/70 p-4">
-        <div className="rounded-[1.25rem] border border-white/6 bg-white/[0.03] p-3.5">
+        <div className="rounded-[1.25rem] border border-border/80 bg-white/80 p-3.5 shadow-[0_12px_30px_rgba(148,163,184,0.12)] dark:border-white/6 dark:bg-white/[0.03] dark:shadow-none">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted/90">
@@ -85,7 +85,7 @@ function SidebarContent({
                 {workspacePath ?? "选择一个本地目录后，这里会在侧栏里显示工作区路径与导航入口。"}
               </p>
               {authenticatedUser ? (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-[11px] text-fg/90">
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-50 px-3 py-1.5 text-[11px] text-slate-700 dark:border-white/8 dark:bg-white/[0.04] dark:text-fg/90">
                   <Activity className="h-3.5 w-3.5 text-emerald-300" />
                   <span className="truncate">
                     GitHub 已连接：{authenticatedUser.login}
@@ -93,11 +93,11 @@ function SidebarContent({
                 </div>
               ) : null}
             </div>
-            <div className="rounded-full border border-white/6 bg-bg/70 p-2 text-muted">
+            <div className="rounded-full border border-border/70 bg-white/75 p-2 text-muted dark:border-white/6 dark:bg-bg/70">
               <FileSearch className="h-3.5 w-3.5" />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/6 bg-bg/60 px-3 py-2.5">
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-white/70 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/6 dark:bg-bg/60 dark:shadow-none">
             <FolderOpen className="h-3.5 w-3.5 shrink-0 text-fg/70" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-medium text-fg/95">
@@ -110,7 +110,7 @@ function SidebarContent({
             <div className="shrink-0">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-fg transition hover:border-accent/35 hover:bg-accent/8 hover:text-accent"
+                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white px-3 py-1.5 text-[11px] font-semibold text-fg transition hover:border-accent/35 hover:bg-accent/8 hover:text-accent dark:border-white/8 dark:bg-white/[0.04]"
                 onClick={onOpenWorkspace}
               >
                 打开
@@ -188,7 +188,6 @@ function RightPanelContent({
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
   const initRepo = useGitStore((state) => state.initRepo);
   const cloneRepo = useGitStore((state) => state.cloneRepo);
-  const startSync = useGitStore((state) => state.startSync);
   const syncStatus = useGitStore((state) => state.syncStatus);
   const isRunningAction = useGitStore((state) => state.isRunningAction);
   const errorMessage = useGitStore((state) => state.errorMessage);
@@ -234,7 +233,9 @@ function RightPanelContent({
             isBusy={isRunningAction}
             errorMessage={errorMessage}
             onInitRepo={() => {
-              void initRepo().then(() => startSync());
+              void initRepo().then(() => {
+                setActiveTab("history");
+              });
             }}
             onCloneRepo={(url, targetPath) => {
               void cloneRepo(url, targetPath).then(async () => {
@@ -270,9 +271,9 @@ function EmptyEditorState() {
 
 function SplashScreen() {
   return (
-    <main className="flex h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_38%),linear-gradient(180deg,#071120_0%,#050a17_55%,#03060f_100%)] px-6 text-fg">
-      <section className="w-full max-w-sm rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 text-center shadow-[0_24px_120px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/18 bg-cyan-400/10 text-cyan-100">
+    <main className="flex h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.12),transparent_38%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#e2e8f0_100%)] px-6 text-fg dark:bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_38%),linear-gradient(180deg,#071120_0%,#050a17_55%,#03060f_100%)]">
+      <section className="w-full max-w-sm rounded-[2rem] border border-border/70 bg-white/80 p-8 text-center shadow-[0_24px_120px_rgba(148,163,184,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.045] dark:shadow-[0_24px_120px_rgba(0,0,0,0.45)]">
+        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-50 text-cyan-600 dark:border-cyan-300/18 dark:bg-cyan-400/10 dark:text-cyan-100">
           <RefreshCcw className="h-6 w-6 animate-spin" />
         </div>
         <h1 className="mt-5 text-xl font-semibold tracking-tight text-fg">
@@ -318,8 +319,6 @@ function WorkspaceShell({
   const markClean = useEditorStore((state) => state.markClean);
   const setCursorPosition = useEditorStore((state) => state.setCursorPosition);
   const hydrateWorkspace = useGitStore((state) => state.hydrateWorkspace);
-  const startSync = useGitStore((state) => state.startSync);
-  const stopSync = useGitStore((state) => state.stopSync);
   const handleSyncEvent = useGitStore((state) => state.handleSyncEvent);
 
   const editorViewRef = useRef<EditorView | null>(null);
@@ -366,16 +365,7 @@ function WorkspaceShell({
 
   useEffect(() => {
     void hydrateWorkspace(workspacePath);
-    if (!workspacePath || !gitService.isNativeAvailable()) {
-      return;
-    }
-
-    void startSync();
-
-    return () => {
-      void stopSync();
-    };
-  }, [hydrateWorkspace, startSync, stopSync, workspacePath]);
+  }, [hydrateWorkspace, workspacePath]);
 
   useEffect(() => {
     let disposed = false;
@@ -587,7 +577,7 @@ function WorkspaceShell({
 }
 
 function App() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const hasResolvedAuth = useAuthStore((state) => state.hasResolvedAuth);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
