@@ -105,7 +105,7 @@ export function LoginScreen() {
                 使用 GitHub 登录
               </button>
               <p className="mt-4 text-xs leading-5 text-muted">
-                登录成功后，GitHub access token 会安全写入操作系统钥匙串，不会存到浏览器存储。
+                登录成功后，GitHub 登录会话会安全写入操作系统钥匙串，不会存到浏览器存储。
               </p>
             </>
           ) : (

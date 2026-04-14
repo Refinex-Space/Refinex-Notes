@@ -11,14 +11,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let github_client_id = std::env::var("GITHUB_CLIENT_ID")
-                .ok()
-                .filter(|value| !value.trim().is_empty())
-                .unwrap_or_else(|| {
-                    option_env!("GITHUB_CLIENT_ID")
-                        .unwrap_or_default()
-                        .to_string()
-                });
+            let github_client_id = option_env!("GITHUB_APP_CLIENT_ID")
+                .or(option_env!("GITHUB_CLIENT_ID"))
+                .unwrap_or_default()
+                .to_string();
             let database = db::init_database(&app.handle())?;
 
             app.manage(AppState::new(github_client_id, database));

@@ -8,7 +8,7 @@ import type {
 
 function requireNativeAuth() {
   if (!isTauri()) {
-    throw new Error("GitHub OAuth 仅在 Tauri 桌面环境可用");
+    throw new Error("GitHub 登录仅在 Tauri 桌面环境可用");
   }
 }
 
