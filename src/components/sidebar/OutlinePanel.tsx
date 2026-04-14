@@ -34,16 +34,16 @@ export function OutlinePanel({
   }
 
   return (
-    <div className="space-y-1 p-3">
+    <div className="space-y-px px-2 py-2">
       {headings.map((heading) => (
         <button
           key={heading.id}
           type="button"
-          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted transition hover:bg-accent/8 hover:text-fg"
-          style={{ paddingLeft: `${0.75 + (heading.level - 1) * 1}rem` }}
+          className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-5 text-muted transition hover:bg-white/[0.04] hover:text-fg"
+          style={{ paddingLeft: `${0.65 + (heading.level - 1) * 0.9}rem` }}
           onClick={() => onSelectHeading?.(heading)}
         >
-          <Hash className="h-3.5 w-3.5 shrink-0 text-accent" />
+          <Hash className="h-3.5 w-3.5 shrink-0 text-fg/50" />
           <span className="truncate">{heading.text}</span>
         </button>
       ))}

@@ -2,6 +2,7 @@ import {
   ChevronRight,
   Circle,
   FileText,
+  FolderClosed,
   FolderOpen,
   FolderPlus,
   Pencil,
@@ -52,6 +53,10 @@ async function copyPath(path: string) {
   await navigator.clipboard.writeText(path);
 }
 
+function shouldRenderGitStatus(status: FileNode["gitStatus"]) {
+  return status !== undefined && status !== "clean";
+}
+
 function FileRow({
   node,
   depth,
@@ -67,7 +72,7 @@ function FileRow({
   const renameFile = useNoteStore((state) => state.renameFile);
   const deleteFile = useNoteStore((state) => state.deleteFile);
 
-  const indentation = { paddingLeft: `${depth * 0.75}rem` };
+  const indentation = { paddingLeft: `${0.55 + depth * 0.9}rem` };
   const isCurrent = currentFile === node.path;
   const directoryPath = getNodeDirectoryPath(node);
 
@@ -77,20 +82,24 @@ function FileRow({
         <AccordionItem value={node.path} className="border-b-0">
           <AccordionTrigger
             className={[
-              "rounded-xl px-3 py-2 hover:bg-accent/8",
-              isCurrent ? "bg-accent/10 text-fg" : "text-fg",
+              "rounded-lg px-2.5 py-1.5 text-[13px] font-medium leading-5",
+              "text-muted hover:bg-white/[0.04] hover:text-fg data-[state=open]:bg-white/[0.05] data-[state=open]:text-fg",
+              isCurrent ? "bg-accent/10 text-fg" : "",
             ]
               .filter(Boolean)
               .join(" ")}
             style={indentation}
           >
-            <span className="flex min-w-0 items-center gap-2">
-              <FolderOpen className="h-4 w-4 shrink-0 text-accent" />
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="relative flex h-4 w-4 shrink-0 items-center justify-center text-fg/75">
+                <FolderClosed className="h-3.5 w-3.5 group-data-[state=open]:hidden" />
+                <FolderOpen className="hidden h-3.5 w-3.5 group-data-[state=open]:block" />
+              </span>
               <span className="truncate">{node.name}</span>
             </span>
           </AccordionTrigger>
           <AccordionContent className="pb-0">
-            <div className="space-y-1">
+            <div className="space-y-px pt-0.5">
               {(node.children ?? []).map((child) => (
                 <FileRow
                   key={child.path}
@@ -108,9 +117,9 @@ function FileRow({
     <button
       type="button"
       className={[
-        "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition",
-        "hover:bg-accent/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-        isCurrent ? "bg-accent/12 text-fg" : "text-muted",
+        "flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-5 transition",
+        "hover:bg-white/[0.04] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        isCurrent ? "bg-accent/10 text-fg" : "text-muted",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -121,10 +130,18 @@ function FileRow({
         }
         void openFile(node.path);
       }}
+      title={node.path}
     >
-      <FileText className="h-4 w-4 shrink-0" />
+      <FileText className="h-3.5 w-3.5 shrink-0 text-fg/55" />
       <span className="truncate">{node.name}</span>
-      <Circle className={["ml-auto h-2.5 w-2.5 fill-current", gitStatusTone(node.gitStatus)].join(" ")} />
+      {shouldRenderGitStatus(node.gitStatus) ? (
+        <Circle
+          className={[
+            "ml-auto h-2 w-2 shrink-0 fill-current",
+            gitStatusTone(node.gitStatus),
+          ].join(" ")}
+        />
+      ) : null}
     </button>
   );
 
@@ -221,7 +238,7 @@ export function FileTreeNodes({
   currentFile: string | null;
 }) {
   return (
-    <div className="space-y-1 p-3">
+    <div className="space-y-px px-2 py-2">
       {files.map((node) => (
         <FileRow
           key={node.path}

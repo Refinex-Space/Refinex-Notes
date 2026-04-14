@@ -46,36 +46,54 @@ function SidebarContent({
   workspacePath: string | null;
   onOpenWorkspace: () => void;
 }) {
+  const workspaceLabel = workspacePath?.split(/[\\/]/).filter(Boolean).at(-1) ?? null;
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(8,14,29,0.98),rgba(4,9,21,0.98))]">
       <section className="shrink-0 border-b border-border/70 p-4">
-        <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg/70 p-4">
-          <FileSearch className="mt-0.5 h-4 w-4 text-accent" />
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-fg">Search</p>
-            <p className="text-sm leading-6 text-muted">
-              全局搜索会在下一阶段接入。当前先使用文件树 + 命令面板浏览工作区。
-            </p>
-            <div className="mt-3 flex items-center gap-3">
+        <div className="rounded-[1.25rem] border border-white/6 bg-white/[0.03] p-3.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted/90">
+                Workspace
+              </p>
+              <p className="mt-2 truncate text-sm font-semibold text-fg">
+                {workspaceLabel ?? "尚未打开本地工作区"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted">
+                {workspacePath ?? "选择一个本地目录后，这里会在侧栏里显示工作区路径与导航入口。"}
+              </p>
+            </div>
+            <div className="rounded-full border border-white/6 bg-bg/70 p-2 text-muted">
+              <FileSearch className="h-3.5 w-3.5" />
+            </div>
+          </div>
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/6 bg-bg/60 px-3 py-2.5">
+            <FolderOpen className="h-3.5 w-3.5 shrink-0 text-fg/70" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-medium text-fg/95">
+                {workspacePath ?? "点击右侧按钮选择工作区"}
+              </p>
+              <p className="text-[11px] leading-5 text-muted">
+                当前先以文件树导航为主，全局搜索下一阶段接入。
+              </p>
+            </div>
+            <div className="shrink-0">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-bg px-3 py-1.5 text-xs font-semibold text-fg transition hover:border-accent/50 hover:text-accent"
+                className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold text-fg transition hover:border-accent/35 hover:bg-accent/8 hover:text-accent"
                 onClick={onOpenWorkspace}
               >
-                <FolderOpen className="h-3.5 w-3.5" />
-                选择工作区
+                打开
               </button>
-              <span className="truncate text-xs text-muted">
-                {workspacePath ?? "尚未打开本地工作区"}
-              </span>
             </div>
           </div>
         </div>
       </section>
 
       <section className="flex min-h-0 flex-1 flex-col border-b border-border/70">
-        <div className="border-b border-border/70 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+        <div className="border-b border-border/70 px-4 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
             Files
           </p>
         </div>
@@ -85,8 +103,8 @@ function SidebarContent({
       </section>
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="border-b border-border/70 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+        <div className="border-b border-border/70 px-4 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
             Outline
           </p>
         </div>
