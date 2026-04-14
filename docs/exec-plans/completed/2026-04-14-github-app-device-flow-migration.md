@@ -1,7 +1,7 @@
 # Execution Plan: GitHub App Device Flow Migration
 
 Created: 2026-04-14
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -50,8 +50,8 @@ Author: agent
 **Files:** `docs/exec-plans/active/2026-04-14-github-app-device-flow-migration.md`, `docs/PLANS.md`
 **Verification:** `git diff -- docs/PLANS.md docs/exec-plans/active/2026-04-14-github-app-device-flow-migration.md`
 
-Status: 🔄 In progress
-Evidence:
+Status: ✅ Done
+Evidence: `git diff -- docs/PLANS.md docs/exec-plans/active/2026-04-14-github-app-device-flow-migration.md` 已建立新计划并注册到 Active Plans。
 Deviations:
 
 ### Step 2: 重构 Rust 认证链路与 keyring 会话模型
@@ -59,47 +59,49 @@ Deviations:
 **Files:** `src-tauri/src/commands/auth.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/state.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 通过（10/10）；`src-tauri/src/commands/auth.rs` 已切换到 GitHub App Device Flow 会话模型，keyring 改为结构化会话，`check_auth_status` 可按 refresh token 续期。
+Deviations: 为兼容已落地的旧钥匙串条目，新增了对“纯 access token 字符串”格式的兼容解析，而不是强制删除旧会话。
 
 ### Step 3: 对齐前端认证语义与错误处理
 
 **Files:** `src/services/authService.ts`, `src/stores/authStore.ts`, `src/types/auth.ts`, `src/components/auth/LoginScreen.tsx`, `src/stores/__tests__/authStore.test.ts`
 **Verification:** `npm test -- --run src/stores/__tests__/authStore.test.ts`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `npm test -- --run` 通过（80/80）；登录界面与 auth service/store 交互未改形，但前端语义已从 “OAuth/access token” 收敛为“GitHub 登录会话”。
+Deviations: 没有新增前端状态字段，继续复用现有 `DeviceCodeResponse` / `AuthProgressEvent` 模型以减少界面层扰动。
 
 ### Step 4: 同步文档与完成全量验证
 
 **Files:** `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/PLANS.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml && npm test -- --run && npm run build && python3 scripts/check_harness.py`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build`、`python3 scripts/check_harness.py` 全部通过；`docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md` 已同步为 GitHub App + 编译期内置 client_id 模型。
+Deviations: 当前仓库仍未内置真实的 GitHub App client ID，因此桌面手工 smoke 仍需由维护者在构建时提供 `GITHUB_APP_CLIENT_ID`。
 
 ## Progress Log
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | 计划文件创建中 | 收敛 GitHub App 迁移范围、验收标准与风险 |
-| 2 | ⬜ |  | 待改造原生 token 交换/刷新/配置来源 |
-| 3 | ⬜ |  | 待对齐前端语义与测试 |
-| 4 | ⬜ |  | 待同步控制面并归档 |
+| 1 | ✅ | 新计划已创建并注册到 `docs/PLANS.md` | 与已归档 OAuth 计划拆分，保留独立审计链条 |
+| 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 通过（10/10） | Rust 侧已切到 GitHub App user access token / refresh token 模型 |
+| 3 | ✅ | `npm test -- --run` 通过（80/80） | 前端交互未重写，仅收敛语义与错误文案 |
+| 4 | ✅ | `cargo test` / `npm test` / `npm run build` / `check_harness` 全绿 | 控制面文档已同步 |
 
 ## Decision Log
 
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 为 GitHub App 迁移创建新计划，而不是回写已归档的 OAuth 计划 | 已有计划已归档且结论不同 | 直接修改旧归档计划 | 保持审计链条清晰，避免把产品方向变更覆盖成同一轮交付 |
+| `client_id` 改为编译期内置，保留 `GITHUB_CLIENT_ID` 仅作旧构建链路回退 | 用户不应在运行时手工配置登录参数 | 继续使用运行时环境变量、把 `client_id` 硬编码进仓库 | 让发布版满足“最终用户零配置”，同时不阻断当前本地构建链路 |
+| keyring 条目升级为结构化 session JSON，并兼容旧纯 token 字符串 | GitHub App user access token 默认短期过期 | 继续只存 access token、强制清空旧 session | 既满足 refresh token 续期，又避免升级后立刻把已有会话全部打掉 |
 
 ## Completion Summary
 
 Completed:
-Duration:
-All acceptance criteria:
+Duration: 4 steps
+All acceptance criteria: PASS
 
-Summary:
+Summary: 本轮将 Refinex-Notes 的 Phase 5 登录实现从 GitHub OAuth App Device Flow 收敛到了 GitHub App + Device Flow：Rust 侧不再使用 scope 语义，而是改为 GitHub App user access token / refresh token 会话模型，并把 keyring 持久化从单字符串升级为结构化 session；`check_auth_status` 在启动恢复时可先校验、再按需刷新 token。前端交互维持原有 `LoginScreen`、验证码展示和轮询提示，只把用户可见语义收口为“GitHub 登录会话”。配置上，`client_id` 已改为编译期内置来源，避免把配置责任推给最终用户。当前残余风险只有一项：仓库仍未内置真实 GitHub App client ID，因此真实桌面授权 smoke 仍需要维护者在构建时提供 `GITHUB_APP_CLIENT_ID`。

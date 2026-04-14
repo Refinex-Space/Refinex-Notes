@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [GitHub App Device Flow Migration](exec-plans/active/2026-04-14-github-app-device-flow-migration.md) — started 2026-04-14
 
 ## Completed Plans
 
+- [GitHub App Device Flow Migration](exec-plans/completed/2026-04-14-github-app-device-flow-migration.md) — completed 2026-04-14
 - [GitHub OAuth Device Flow](exec-plans/completed/2026-04-14-github-oauth-device-flow.md) — completed 2026-04-14
 - [Pane Scroll And Collapsed Tree Fix](exec-plans/completed/2026-04-14-pane-scroll-and-collapsed-tree-fix.md) — completed 2026-04-14
 - [Inline Code Editor Hardening](exec-plans/completed/2026-04-14-inline-code-editor-hardening.md) — completed 2026-04-14
