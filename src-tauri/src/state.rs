@@ -5,6 +5,7 @@ use notify::RecommendedWatcher;
 use rusqlite::Connection;
 
 use crate::git::sync::GitSyncController;
+use crate::search::WorkspaceSearchIndex;
 
 #[allow(dead_code)]
 pub struct AppState {
@@ -14,6 +15,7 @@ pub struct AppState {
     pub workspace_path: Mutex<Option<PathBuf>>,
     pub watcher: Mutex<Option<RecommendedWatcher>>,
     pub git_sync: Mutex<Option<GitSyncController>>,
+    pub search_index: Mutex<Option<WorkspaceSearchIndex>>,
 }
 
 impl AppState {
@@ -25,6 +27,7 @@ impl AppState {
             workspace_path: Mutex::new(None),
             watcher: Mutex::new(None),
             git_sync: Mutex::new(None),
+            search_index: Mutex::new(None),
         }
     }
 }

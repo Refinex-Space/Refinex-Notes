@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod git;
+mod search;
 mod state;
 mod watcher;
 
