@@ -61,9 +61,9 @@ Author: agent
 **Files:** `src/types/git.ts`, `src/services/gitService.ts`, `src/stores/gitStore.ts`
 **Verification:** `npm run build`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `npm run build` 通过，新的 Git 类型模型、Tauri service 封装与编译适配后的 `gitStore` 均已纳入构建。
+Deviations: 新类型落地后，原占位 `gitStore` 已无法通过 TypeScript 检查，因此本步额外加入 `src/stores/gitStore.ts` 的最小编译适配，真实行为留在第 2 步实现。
 
 ### Step 2: 实现 gitStore 状态管理与测试
 
@@ -105,7 +105,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ | | |
+| 1 | ✅ | `npm run build` 通过 | Git 类型模型、service 契约和 store 编译适配已完成 |
 | 2 | ⬜ | | |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
@@ -116,6 +116,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | SetupPanel 以 URL clone 为交付基线 | 当前无 GitHub repo list 前端/原生接口 | 在本轮追加后端 repo-list 命令 | 遵循已确认范围，先完成前端 UI 主路径与已存在原生能力接线 |
+| 第 1 步包含 `gitStore` 编译适配 | 新的 Git 状态模型导致旧占位 store 类型失效 | 将类型改动延后到 store 实现时再做 | 尽早让类型与服务契约进入稳定编译面，避免后续 UI 改动建立在失配模型之上 |
 
 ## Completion Summary
 
