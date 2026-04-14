@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Phase 6 Search](exec-plans/active/2026-04-15-phase6-search.md) — started 2026-04-15
 
 ## Completed Plans
 
