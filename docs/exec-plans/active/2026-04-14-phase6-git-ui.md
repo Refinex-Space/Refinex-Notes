@@ -59,7 +59,7 @@ Author: agent
 ### Step 1: 扩展 Git 前端类型与服务契约
 
 **Files:** `src/types/git.ts`, `src/services/gitService.ts`
-**Verification:** `npm test -- --run src/stores/__tests__/gitStore.test.ts`
+**Verification:** `npm run build`
 
 Status: ⬜ Not started
 Evidence:
