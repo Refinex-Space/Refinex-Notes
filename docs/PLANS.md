@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Pane Scroll And Collapsed Tree Fix](exec-plans/active/2026-04-14-pane-scroll-and-collapsed-tree-fix.md) — started 2026-04-14
+
 
 ## Completed Plans
 
