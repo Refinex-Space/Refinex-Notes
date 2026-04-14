@@ -88,9 +88,9 @@ Deviations: 为了降低 SSR 测试脆弱性，组件测试优先断言 `SyncSta
 **Files:** `src/components/git/HistoryPanel.tsx`, `src/components/sidebar/FileTree.tsx`, `src/App.tsx`, `src/types/notes.ts`, `src/components/sidebar/__tests__/FileTree.test.tsx`
 **Verification:** `npm test -- --run src/components/git/__tests__/HistoryPanel.test.tsx src/components/sidebar/__tests__/FileTree.test.tsx`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `npm test -- --run src/components/git/__tests__/HistoryPanel.test.tsx src/components/sidebar/__tests__/FileTree.test.tsx` 通过，`npm run build` 通过；`App.tsx` 已接入 Git 状态栏、同步事件订阅、右侧 Setup/History 面板切换。
+Deviations: `src/types/notes.ts` 在本步扩展了 `FileGitStatus` 枚举，以兼容真实 Git 状态颜色映射；历史详情当前展示的是 commit patch 只读快照，而非文件完整旧版本内容。
 
 ### Step 5: 全量验证并更新控制面
 
@@ -108,7 +108,7 @@ Deviations:
 | 1 | ✅ | `npm run build` 通过 | Git 类型模型、service 契约和 store 编译适配已完成 |
 | 2 | ✅ | `npm test -- --run src/stores/__tests__/gitStore.test.ts` 通过，4 个 gitStore 测试通过 | Git store 已接入工作区状态、历史与同步事件 |
 | 3 | ✅ | `npm test -- --run src/components/git/__tests__/SyncStatus.test.tsx` 通过，3 个组件测试通过 | 状态栏 Git 组件与 setup 引导组件已完成 |
-| 4 | ⬜ | | |
+| 4 | ✅ | `HistoryPanel`/`FileTree` focused tests 通过，`npm run build` 通过 | Git 右侧面板、文件树状态和应用壳接线完成 |
 | 5 | ⬜ | | |
 
 ## Decision Log
@@ -119,6 +119,7 @@ Deviations:
 | 第 1 步包含 `gitStore` 编译适配 | 新的 Git 状态模型导致旧占位 store 类型失效 | 将类型改动延后到 store 实现时再做 | 尽早让类型与服务契约进入稳定编译面，避免后续 UI 改动建立在失配模型之上 |
 | `gitStore` 直接读取 `noteStore` 的工作区上下文 | Git 状态与当前文件都依赖现有工作区状态 | 新建共享 workspace provider | 复用现有 Zustand 边界，减少无意义状态复制和额外 Provider 层 |
 | 第 3 步测试避开弹层交互细节 | 当前测试栈以静态渲染和纯逻辑断言为主 | 为 Radix Popover/Tooltip 引入 DOM 交互测试基础设施 | 先锁定 UI 文案和状态映射，交互集成由后续壳层接线和全量构建验证兜底 |
+| 历史详情采用 patch 只读快照 | 原生层当前只暴露 `git_get_diff`，没有 file-at-commit API | 在本轮扩展后端读取旧版本文件内容 | 保持前后端边界稳定，先交付可读的提交历史与差异详情 |
 
 ## Completion Summary
 
