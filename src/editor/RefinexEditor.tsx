@@ -51,20 +51,58 @@ export interface RefinexEditorProps {
   onEditorView?: (view: EditorView | null) => void;
 }
 
-export function getCursorPosition(state: EditorState): EditorCursorPosition {
-  const textBeforeSelection = state.doc.textBetween(
+function countTextblockLines(text: string) {
+  return Math.max(1, text.split("\n").length);
+}
+
+function getCursorPositionFallback(state: EditorState): EditorCursorPosition {
+  const { $from } = state.selection;
+  const blockPosition = $from.depth > 0 ? $from.before($from.depth) : 0;
+  const currentBlockTextBefore = $from.parent.textBetween(
     0,
-    state.selection.from,
+    $from.parentOffset,
     "\n",
     "\n",
   );
-  const lines = textBeforeSelection.split("\n");
+  const lines = currentBlockTextBefore.split("\n");
   const currentLine = lines.at(-1) ?? "";
+  let line = 1;
+
+  state.doc.descendants((node, pos) => {
+    if (!node.isTextblock || pos >= blockPosition) {
+      return false;
+    }
+
+    line += countTextblockLines(
+      node.textBetween(0, node.content.size, "\n", "\n"),
+    );
+    return false;
+  });
 
   return {
-    line: lines.length,
+    line: line + lines.length - 1,
     col: currentLine.length + 1,
   };
+}
+
+export function getCursorPosition(state: EditorState): EditorCursorPosition {
+  try {
+    const textBeforeSelection = state.doc.textBetween(
+      0,
+      state.selection.from,
+      "\n",
+      "\n",
+    );
+    const lines = textBeforeSelection.split("\n");
+    const currentLine = lines.at(-1) ?? "";
+
+    return {
+      line: lines.length,
+      col: currentLine.length + 1,
+    };
+  } catch {
+    return getCursorPositionFallback(state);
+  }
 }
 
 export function RefinexEditor({

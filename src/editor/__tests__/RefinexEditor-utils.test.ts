@@ -18,4 +18,11 @@ Line two
 
     expect(getCursorPosition(state)).toEqual({ line: 2, col: 5 });
   });
+
+  it("does not throw for a document that starts with inline code", () => {
+    const doc = parseMarkdown("`**text**`");
+    const state = EditorState.create({ doc });
+
+    expect(getCursorPosition(state)).toEqual({ line: 1, col: 1 });
+  });
 });
