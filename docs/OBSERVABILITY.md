@@ -8,7 +8,7 @@
 |------|---------|----------|
 | Install dependencies | `npm install` | Exit 0 |
 | Build frontend bundle | `npm run build` | Exit 0, assets emitted to `dist/` |
-| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 3 Rust tests + compile validation |
+| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 6 Rust tests + compile validation |
 | Run frontend tests | `npm test` | Exit 0, all tests pass |
 | Lint / format check | Not configured in the repository | N/A |
 | Start web dev server | `npm run dev` | Vite serves on `http://localhost:1420` |
@@ -29,9 +29,20 @@
 - Native plugins required by the current app:
   - `tauri-plugin-dialog` for directory selection
 - Relevant environment variables consumed by the current config:
+  - `GITHUB_CLIENT_ID` — required to enable GitHub OAuth Device Flow in the desktop app
   - `TAURI_DEV_HOST` — optional Vite host override during `tauri dev`
   - `TAURI_PLATFORM` — switches Vite build target per platform
   - `TAURI_DEBUG` — disables minification and enables sourcemaps in debug builds
+
+## Auth Smoke Notes
+
+- Device Flow login is only fully exercisable under `npm run tauri dev` or a bundled desktop build because the auth commands depend on Tauri IPC and the system keyring.
+- For a real login smoke test, export `GITHUB_CLIENT_ID` before starting the desktop app:
+
+```bash
+export GITHUB_CLIENT_ID=<your-github-oauth-app-client-id>
+npm run tauri dev
+```
 
 ## Verify Before Building
 
