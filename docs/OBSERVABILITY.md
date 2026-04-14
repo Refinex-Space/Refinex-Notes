@@ -38,9 +38,9 @@
 ## Auth Smoke Notes
 
 - Device Flow login is only fully exercisable under `npm run tauri dev` or a bundled desktop build because the auth commands depend on Tauri IPC and the system keyring.
-- End users不应被要求配置运行时环境变量；但当前仓库尚未提交真实的 GitHub App `client_id`，因此本地维护者测试时仍需在构建前注入。
+- GitHub App `client_id` 已内置在当前仓库；终端用户不应被要求配置运行时环境变量。
 - 如果误把 40 位十六进制的 GitHub App `client secret` 当成 `client_id` 注入，原生层会直接拒绝启动登录并给出明确错误。
-- 本地维护者做真实 smoke 时，请在构建前导出 GitHub App 设置页中的 **Client ID**：
+- 本地维护者如需覆盖内置值做真实 smoke，可在构建前导出 GitHub App 设置页中的 **Client ID**：
 
 ```bash
 export GITHUB_APP_CLIENT_ID=<your-github-app-client-id>
