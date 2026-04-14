@@ -59,7 +59,7 @@ Author: agent
 
 Status: ✅ Done
 Evidence: `cargo test --manifest-path src-tauri/Cargo.toml git::` 通过，新增 6 个 Git 域单测（状态映射 3 个、token 解析 3 个）全部通过。
-Deviations: 为了让 Git 域测试进入编译图，本步额外接入了 `src-tauri/src/lib.rs` 的 `mod git;` 声明。
+Deviations: 为了让 Git 域测试进入编译图，本步额外接入了 `src-tauri/src/lib.rs` 的 `mod git;` 声明；`git2` 解析出的 `src-tauri/Cargo.lock` 在第 5 步补录为单独依赖快照提交。
 
 ### Step 2: 实现核心 Git 操作与离线仓库测试
 
@@ -113,6 +113,7 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | 使用本地 bare repo 做 Git 集成测试 | push/fetch/pull 需要可重复验证 | 直接访问 GitHub、mock git2 | 本地 bare repo 不依赖网络且能覆盖真实 libgit2 行为 |
 | 第 1 步提前接入 `mod git;` | Rust 模块未进入编译图，Git 域测试不会执行 | 推迟到 commands 接线阶段 | 先把模块纳入编译/测试，能尽早暴露类型和依赖问题 |
+| `Cargo.lock` 在第 5 步补录 | 新依赖直到完整验证时才生成稳定锁文件差异 | 在第 1 步立即提交 lockfile | 保持依赖快照与最终通过验证的解析结果一致，同时仍明确归因到依赖引入步骤 |
 | 第 2 步测试与实现共置于 `git/mod.rs` | 当前仓库只有内联 Rust 测试惯例 | 新建 `tests/` 目录 | 遵循 `src-tauri/AGENTS.md` 的“inline unit tests”约定，减少控制面漂移 |
 | 同步循环拆分为“纯同步周期 + task 外壳” | 需要同时满足可测试性与 Tauri 事件发射 | 直接把所有逻辑写进 `tokio::spawn` | 保持状态机可离线单测，同时让命令层只管理生命周期 |
 | Git commands 只做参数校验与状态取用 | 避免 command 层重新承载 Git 业务逻辑 | 在 `commands/git.rs` 里直接拼装底层操作 | 保持 `src-tauri/AGENTS.md` 规定的 IPC 边界清晰，测试也更聚焦 |
