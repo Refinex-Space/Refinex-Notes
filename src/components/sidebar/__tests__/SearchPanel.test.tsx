@@ -36,12 +36,13 @@ describe("SearchPanel helpers", () => {
 });
 
 describe("SearchPanel", () => {
-  it("renders guidance when workspace is not open", () => {
+  it("renders the popup search trigger when workspace is not open", () => {
     const markup = renderToStaticMarkup(
       <SearchPanel workspacePath={null} onSelectResult={vi.fn()} />,
     );
 
-    expect(markup).toContain("打开工作区后即可构建搜索索引");
-    expect(markup).toContain("搜索文件名或全文");
+    expect(markup).toContain("搜索项目");
+    expect(markup).toContain("文件名模糊检索与全文搜索");
+    expect(markup).toContain("打开");
   });
 });

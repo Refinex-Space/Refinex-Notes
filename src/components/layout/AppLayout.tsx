@@ -160,11 +160,13 @@ export function AppLayout({
               .join(" ")}
           >
             <aside className="flex h-full min-h-0 flex-col">
-              <div className="border-b border-border/70 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
-                  {sidebarTitle}
-                </p>
-              </div>
+              {sidebarTitle ? (
+                <div className="border-b border-border/70 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+                    {sidebarTitle}
+                  </p>
+                </div>
+              ) : null}
               <div className="min-h-0 flex-1 overflow-auto">{sidebar}</div>
             </aside>
           </CollapsibleContent>

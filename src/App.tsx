@@ -1,15 +1,10 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   AlertCircle,
-  BrainCircuit,
-  FileSearch,
-  FolderOpen,
   GitBranch,
   LogOut,
   RefreshCcw,
-  Sparkles,
   Wand2,
 } from "lucide-react";
 import { TextSelection } from "prosemirror-state";
@@ -71,73 +66,32 @@ function SidebarContent({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.98))] dark:bg-[linear-gradient(180deg,rgba(8,14,29,0.98),rgba(4,9,21,0.98))]">
-      <section className="shrink-0 border-b border-border/70 p-4">
-        <div className="rounded-[1.25rem] border border-border/80 bg-white/80 p-3.5 shadow-[0_12px_30px_rgba(148,163,184,0.12)] dark:border-white/6 dark:bg-white/[0.03] dark:shadow-none">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted/90">
-                Workspace
-              </p>
-              <p className="mt-2 truncate text-sm font-semibold text-fg">
-                {workspaceLabel ?? "尚未打开本地工作区"}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-muted">
-                {workspacePath ?? "选择一个本地目录后，这里会在侧栏里显示工作区路径与导航入口。"}
-              </p>
-              {authenticatedUser ? (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-50 px-3 py-1.5 text-[11px] text-slate-700 dark:border-white/8 dark:bg-white/[0.04] dark:text-fg/90">
-                  <Activity className="h-3.5 w-3.5 text-emerald-300" />
-                  <span className="truncate">
-                    GitHub 已连接：{authenticatedUser.login}
-                  </span>
-                </div>
-              ) : null}
-            </div>
-            <div className="rounded-full border border-border/70 bg-white/75 p-2 text-muted dark:border-white/6 dark:bg-bg/70">
-              <FileSearch className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/70 bg-white/70 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:border-white/6 dark:bg-bg/60 dark:shadow-none">
-            <FolderOpen className="h-3.5 w-3.5 shrink-0 text-fg/70" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-medium text-fg/95">
-                {workspacePath ?? "点击右侧按钮选择工作区"}
-              </p>
-              <p className="text-[11px] leading-5 text-muted">
-                当前先以文件树导航为主，全局搜索下一阶段接入。
-              </p>
-            </div>
-            <div className="shrink-0">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white px-3 py-1.5 text-[11px] font-semibold text-fg transition hover:border-accent/35 hover:bg-accent/8 hover:text-accent dark:border-white/8 dark:bg-white/[0.04]"
-                onClick={onOpenWorkspace}
-              >
-                打开
-              </button>
-            </div>
-          </div>
-          {authenticatedUser ? (
-            <button
-              type="button"
-              className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-rose-200"
-              onClick={() => {
-                void logout();
-              }}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              退出 GitHub
-            </button>
-          ) : null}
-        </div>
+      <section className="shrink-0 border-b border-border/70 px-4 py-4">
+        <button
+          type="button"
+          className="inline-flex w-full items-center justify-center rounded-2xl border border-border/70 bg-white px-3 py-2.5 text-sm font-semibold text-fg transition hover:border-accent/35 hover:bg-accent/8 hover:text-accent dark:bg-white/[0.04]"
+          onClick={onOpenWorkspace}
+        >
+          打开项目
+        </button>
+        <p className="mt-3 truncate text-xs text-muted">
+          {workspaceLabel ? `当前项目：${workspaceLabel}` : "尚未打开本地工作区"}
+        </p>
+        {authenticatedUser ? (
+          <button
+            type="button"
+            className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-rose-200"
+            onClick={() => {
+              void logout();
+            }}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            退出 GitHub
+          </button>
+        ) : null}
       </section>
 
       <section className="flex min-h-0 flex-[0.92] flex-col border-b border-border/70">
-        <div className="border-b border-border/70 px-4 py-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
-            Search
-          </p>
-        </div>
         <div className="min-h-0 flex-1 overflow-auto">
           <SearchPanel
             workspacePath={workspacePath}
@@ -536,7 +490,7 @@ function WorkspaceShell({
             }
           />
         }
-        sidebarTitle="Navigator"
+        sidebarTitle=""
         rightPanelTitle="Git"
       />
 
