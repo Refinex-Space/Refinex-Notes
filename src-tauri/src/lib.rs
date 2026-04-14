@@ -6,16 +6,30 @@ mod watcher;
 use crate::state::AppState;
 use tauri::Manager;
 
-const DEFAULT_GITHUB_APP_CLIENT_ID: &str = "Iv23ctsXIgmZwXNsdyyt";
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let github_client_id = option_env!("GITHUB_APP_CLIENT_ID")
-                .or(option_env!("GITHUB_CLIENT_ID"))
-                .unwrap_or(DEFAULT_GITHUB_APP_CLIENT_ID)
+            let github_client_id = std::env::var("GITHUB_APP_CLIENT_ID")
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .or_else(|| {
+                    std::env::var("GITHUB_CLIENT_ID")
+                        .ok()
+                        .filter(|value| !value.trim().is_empty())
+                })
+                .or_else(|| {
+                    option_env!("GITHUB_APP_CLIENT_ID")
+                        .map(ToString::to_string)
+                        .filter(|value| !value.trim().is_empty())
+                })
+                .or_else(|| {
+                    option_env!("GITHUB_CLIENT_ID")
+                        .map(ToString::to_string)
+                        .filter(|value| !value.trim().is_empty())
+                })
+                .unwrap_or_default()
                 .to_string();
             let database = db::init_database(&app.handle())?;
 

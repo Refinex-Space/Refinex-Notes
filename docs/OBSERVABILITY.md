@@ -32,15 +32,15 @@
   - `TAURI_DEV_HOST` — optional Vite host override during `tauri dev`
   - `TAURI_PLATFORM` — switches Vite build target per platform
   - `TAURI_DEBUG` — disables minification and enables sourcemaps in debug builds
-  - `GITHUB_APP_CLIENT_ID` — optional build-time override for the embedded GitHub App client ID
-  - `GITHUB_CLIENT_ID` — legacy build-time fallback kept for local compatibility
+  - `GITHUB_APP_CLIENT_ID` — GitHub App Client ID，运行时优先读取，编译时可作为回退嵌入
+  - `GITHUB_CLIENT_ID` — legacy fallback，运行时与编译时都兼容
 
 ## Auth Smoke Notes
 
 - Device Flow login is only fully exercisable under `npm run tauri dev` or a bundled desktop build because the auth commands depend on Tauri IPC and the system keyring.
-- GitHub App `client_id` 已内置在当前仓库；终端用户不应被要求配置运行时环境变量。
+- 仓库不再保存明文 GitHub App `client_id`；本地开发时请从 shell 环境提供，发布构建可在 CI / 打包环境注入。
 - 如果误把 40 位十六进制的 GitHub App `client secret` 当成 `client_id` 注入，原生层会直接拒绝启动登录并给出明确错误。
-- 本地维护者如需覆盖内置值做真实 smoke，可在构建前导出 GitHub App 设置页中的 **Client ID**：
+- 本地维护者做真实 smoke 时，请在启动前导出 GitHub App 设置页中的 **Client ID**：
 
 ```bash
 export GITHUB_APP_CLIENT_ID=<your-github-app-client-id>
