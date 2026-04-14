@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Inline Code Cursor Fix](exec-plans/active/2026-04-14-inline-code-cursor-fix.md) — started 2026-04-14
 
 ## Completed Plans
 
