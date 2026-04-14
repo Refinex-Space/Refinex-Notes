@@ -52,6 +52,17 @@ pub fn run() {
             commands::files::create_dir,
             commands::files::delete_file,
             commands::files::rename_file,
+            commands::git::git_init_repo,
+            commands::git::git_clone_repo,
+            commands::git::git_get_status,
+            commands::git::git_commit,
+            commands::git::git_push,
+            commands::git::git_pull,
+            commands::git::git_get_log,
+            commands::git::git_get_diff,
+            commands::git::git_start_sync,
+            commands::git::git_stop_sync,
+            commands::git::git_force_sync,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
