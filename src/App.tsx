@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BrainCircuit, FileSearch, GitBranch, Sparkles, Wand2 } from "lucide-react";
+import {
+  BrainCircuit,
+  FileSearch,
+  FolderOpen,
+  GitBranch,
+  Sparkles,
+  Wand2,
+} from "lucide-react";
 import { TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
@@ -23,6 +30,7 @@ import {
   DialogTitle,
 } from "./components/ui/dialog";
 import { RefinexEditor } from "./editor";
+import { fileService } from "./services/fileService";
 import { useEditorStore } from "./stores/editorStore";
 import { useNoteStore } from "./stores/noteStore";
 import type { OutlineHeading } from "./types";
@@ -30,9 +38,13 @@ import type { OutlineHeading } from "./types";
 function SidebarContent({
   markdown,
   onSelectHeading,
+  workspacePath,
+  onOpenWorkspace,
 }: {
   markdown: string;
   onSelectHeading: (heading: OutlineHeading) => void;
+  workspacePath: string | null;
+  onOpenWorkspace: () => void;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -44,6 +56,19 @@ function SidebarContent({
             <p className="text-sm leading-6 text-muted">
               全局搜索会在下一阶段接入。当前先使用文件树 + 命令面板浏览工作区。
             </p>
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-bg px-3 py-1.5 text-xs font-semibold text-fg transition hover:border-accent/50 hover:text-accent"
+                onClick={onOpenWorkspace}
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                选择工作区
+              </button>
+              <span className="truncate text-xs text-muted">
+                {workspacePath ?? "当前仍在使用内置 mock 工作区"}
+              </span>
+            </div>
           </div>
         </div>
       </section>
@@ -129,10 +154,14 @@ function App() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  const workspacePath = useNoteStore((state) => state.workspacePath);
   const documents = useNoteStore((state) => state.documents);
   const currentFile = useNoteStore((state) => state.currentFile);
+  const openWorkspace = useNoteStore((state) => state.openWorkspace);
   const openFile = useNoteStore((state) => state.openFile);
   const createFile = useNoteStore((state) => state.createFile);
+  const refreshWorkspace = useNoteStore((state) => state.refreshWorkspace);
+  const saveCurrentFile = useNoteStore((state) => state.saveCurrentFile);
   const updateFileContent = useNoteStore((state) => state.updateFileContent);
 
   const activeTab = useEditorStore((state) => state.activeTab);
@@ -154,6 +183,43 @@ function App() {
   useEffect(() => {
     setActiveTab(currentFile);
   }, [currentFile, setActiveTab]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") {
+        return;
+      }
+
+      event.preventDefault();
+      void saveCurrentFile();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [saveCurrentFile]);
+
+  useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
+    void fileService.onFilesChanged((payload) => {
+      if (disposed) {
+        return;
+      }
+      void refreshWorkspace(payload.paths);
+    }).then((unlisten) => {
+      if (disposed) {
+        unlisten();
+        return;
+      }
+      cleanup = unlisten;
+    });
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, [refreshWorkspace]);
 
   const commandPaletteFiles = useMemo(
     () => buildCommandPaletteItems(documents),
@@ -189,6 +255,15 @@ function App() {
     void createFile(nextPath);
   };
 
+  const handleOpenWorkspace = () => {
+    void fileService.selectWorkspace().then((path) => {
+      if (!path) {
+        return;
+      }
+      void openWorkspace(path);
+    });
+  };
+
   return (
     <>
       <AppLayout
@@ -197,6 +272,8 @@ function App() {
           <SidebarContent
             markdown={currentDocument?.content ?? ""}
             onSelectHeading={handleSelectHeading}
+            workspacePath={workspacePath}
+            onOpenWorkspace={handleOpenWorkspace}
           />
         }
         tabBar={<TabBar />}

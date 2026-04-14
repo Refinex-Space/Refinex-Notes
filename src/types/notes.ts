@@ -24,6 +24,7 @@ export interface NoteDocument {
 }
 
 export interface NoteStoreState {
+  workspacePath: string | null;
   files: FileNode[];
   documents: Record<string, NoteDocument>;
   folders: string[];
@@ -33,6 +34,7 @@ export interface NoteStoreState {
 }
 
 export interface NoteStoreActions {
+  openWorkspace: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
   closeFile: (path: string) => Promise<void>;
   createFile: (path: string) => Promise<void>;
@@ -40,6 +42,8 @@ export interface NoteStoreActions {
   deleteFile: (path: string) => Promise<void>;
   renameFile: (oldPath: string, newPath: string) => Promise<void>;
   refreshFileTree: () => Promise<void>;
+  refreshWorkspace: (changedPaths?: string[]) => Promise<void>;
+  saveCurrentFile: () => Promise<void>;
   updateFileContent: (path: string, content: string) => void;
 }
 

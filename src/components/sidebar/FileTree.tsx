@@ -197,12 +197,15 @@ function FileRow({
 
 export function FileTree() {
   const files = useNoteStore((state) => state.files);
+  const workspacePath = useNoteStore((state) => state.workspacePath);
   const currentFile = useNoteStore((state) => state.currentFile);
 
   if (files.length === 0) {
     return (
       <div className="p-4 text-sm text-muted">
-        还没有文件，右键侧边栏可创建新的笔记或文件夹。
+        {workspacePath
+          ? "当前工作区中没有可显示的文件。"
+          : "还没有选择工作区，点击上方按钮打开本地文件夹。"}
       </div>
     );
   }
