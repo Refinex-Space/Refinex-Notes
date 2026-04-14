@@ -2,9 +2,9 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
+use tauri::async_runtime::{self, JoinHandle};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
 use tokio::time::{self, Duration, Instant};
 
 use super::{
@@ -163,7 +163,7 @@ fn spawn_sync_task(
     interval_secs: u64,
     mut trigger_rx: mpsc::UnboundedReceiver<SyncTrigger>,
 ) -> JoinHandle<()> {
-    tokio::spawn(async move {
+    async_runtime::spawn(async move {
         let mut interval = time::interval(sync_interval(interval_secs));
         interval.tick().await;
 
