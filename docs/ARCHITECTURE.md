@@ -2,7 +2,7 @@
 
 # Architecture
 
-Refinex-Notes is organized as a Tauri desktop application with a React frontend in `src/` and a Rust native module in `src-tauri/`. The repository is currently in an early implementation phase: `src/App.tsx` now renders the first real workspace shell, GitHub OAuth Device Flow + keyring-backed session restore gate the shell at startup, the native file backend + workspace watcher + SQLite metadata store are wired through Tauri commands, and the richer product architecture lives in team-authored design documents under `docs/design-docs/`.
+Refinex-Notes is organized as a Tauri desktop application with a React frontend in `src/` and a Rust native module in `src-tauri/`. The repository is currently in an early implementation phase: `src/App.tsx` now renders the first real workspace shell, GitHub App Device Flow + keyring-backed session restore gate the shell at startup, the native file backend + workspace watcher + SQLite metadata store are wired through Tauri commands, and the richer product architecture lives in team-authored design documents under `docs/design-docs/`.
 
 That distinction matters for agents. The source tree describes the current executable system; the design docs describe the intended future system. When making changes, treat code paths in this file as implemented boundaries and treat `docs/design-docs/*.md` as architectural references and decision records.
 
@@ -53,12 +53,12 @@ src/main.tsx
 - `src/App.tsx` now gates the application through `checkAuth()`: unauthenticated users see `LoginScreen`, authenticated users enter the existing workspace shell with draggable/collapsible side panels, `FileTree`, `TabBar`, `OutlinePanel`, `StatusBar`, `CommandPalette`, a native-backed workspace picker, and a central `RefinexEditor`.
 - `src/editor/schema.ts` now owns the canonical ProseMirror document schema; `src/components/editor/schema.ts` is only a compatibility re-export so editor semantics stay centralized.
 - `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, Command, Tabs, Collapsible, Context Menu, and Accordion instead of placeholder pass-through components.
-- `src/components/auth/LoginScreen.tsx` now owns the GitHub Device Flow login UI: it renders the verification code, allows copying/opening the GitHub verification page, and reflects polling progress from the native channel.
+- `src/components/auth/LoginScreen.tsx` now owns the GitHub Device Flow login UI: it renders the verification code, allows copying/opening the GitHub verification page, and reflects polling progress from the native channel while keeping token details out of the frontend.
 - `src/stores/authStore.ts` now owns the client-side auth state machine (`checkAuth`, `login`, `logout`, device-code state, and polling progress) while `src/services/authService.ts` is the sole Tauri invoke boundary for auth commands.
 - `src/stores/noteStore.ts` now supports both the existing mock shell state and a real workspace mode backed by Tauri commands for open/read/write/create/delete/rename/refresh.
 - `src/services/fileService.ts` now owns the Tauri `invoke` calls, workspace directory picker, and `files-changed` event subscription used by the note store.
-- `src-tauri/src/commands/auth.rs` now implements GitHub OAuth Device Flow (`github_auth_start`, `github_auth_poll`, `check_auth_status`, `github_logout`) plus a tightly-scoped `open_external_url` helper used by the login screen to open the GitHub verification page in the system browser.
-- `src-tauri/src/state.rs` now keeps `github_client_id` and `pending_device_code` in `AppState`, allowing the native auth commands to share login context across command calls.
+- `src-tauri/src/commands/auth.rs` now implements the GitHub App Device Flow (`github_auth_start`, `github_auth_poll`, `check_auth_status`, `github_logout`) plus a tightly-scoped `open_external_url` helper used by the login screen to open the GitHub verification page in the system browser; keyring storage now keeps a structured GitHub session so `check_auth_status` can refresh expiring user access tokens.
+- `src-tauri/src/state.rs` now keeps the embedded `github_client_id` and `pending_device_code` in `AppState`, allowing the native auth commands to share login context across command calls without asking end users for runtime configuration.
 - `src-tauri/src/db.rs` creates `~/.refinex-notes/meta.db` with `settings`, `recent_workspaces`, and `file_meta` tables during app startup.
 - `src-tauri/src/commands/files.rs` now enforces workspace-scoped file operations and recursive file-tree scanning while ignoring `.git`, `node_modules`, and `.DS_Store`.
 - `src-tauri/src/watcher.rs` uses `notify` to watch the active workspace and emits a debounced `files-changed` event back to the frontend.
