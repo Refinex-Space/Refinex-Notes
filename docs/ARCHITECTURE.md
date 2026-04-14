@@ -21,7 +21,7 @@ refinex-notes/
 ├── src-tauri/              Tauri 2 Rust crate
 │   ├── src/commands/       IPC command layer
 │   ├── src/ai/             Planned AI provider and streaming domain
-│   ├── src/git/            Planned Git integration domain
+│   ├── src/git/            Git engine, auth bridge, and sync state machine
 │   ├── src/markdown/       Planned Markdown parsing/export domain
 │   ├── src/search/         Planned search indexing/query domain
 │   ├── src/state.rs        Shared native app state (`AppState`)
@@ -61,6 +61,8 @@ src/main.tsx
 - `src-tauri/src/state.rs` now keeps the embedded `github_client_id` and `pending_device_code` in `AppState`, allowing the native auth commands to share login context across command calls without asking end users for runtime configuration.
 - `src-tauri/src/db.rs` creates `~/.refinex-notes/meta.db` with `settings`, `recent_workspaces`, and `file_meta` tables during app startup.
 - `src-tauri/src/commands/files.rs` now enforces workspace-scoped file operations and recursive file-tree scanning while ignoring `.git`, `node_modules`, and `.DS_Store`.
+- `src-tauri/src/git/mod.rs` now implements `git2-rs` backed repository init/clone/status/stage/commit/fetch/push/pull/log/diff primitives, while `src-tauri/src/git/auth.rs` bridges the GitHub OAuth token in keyring to HTTPS remote credentials.
+- `src-tauri/src/git/sync.rs` now owns the auto-sync state machine and emits `git-sync-status` events through a background tokio task; `src-tauri/src/commands/git.rs` exposes the native Git commands plus auto-sync lifecycle controls to the frontend IPC boundary.
 - `src-tauri/src/watcher.rs` uses `notify` to watch the active workspace and emits a debounced `files-changed` event back to the frontend.
 - `docs/design-docs/Refinex-Notes 完整技术架构文档.md` and `docs/design-docs/Refinex-Notes 自研编辑器可行性深度调研报告.md` capture the intended editor, AI, Git, auth, and search architecture for subsequent implementation phases.
 
@@ -84,6 +86,7 @@ src/main.tsx
 | Styling | Tailwind CSS | `3.4.19` (`package.json`) |
 | Desktop bridge | `@tauri-apps/api`, `@tauri-apps/plugin-dialog` / CLI | `2.10.1`, `2.7.0` (`package.json`) |
 | Native runtime | `tauri` crate | `2.10.2` (`src-tauri/Cargo.toml`) |
+| Native Git | `git2` | `0.19` (`src-tauri/Cargo.toml`) |
 | Native storage / FS | `rusqlite`, `notify`, `walkdir`, `keyring` | `0.32`, `7`, `2`, `3` (`src-tauri/Cargo.toml`) |
 | Native HTTP / async | `reqwest`, `tokio` | `0.12`, `1` (`src-tauri/Cargo.toml`) |
 | Native serialization | `serde` / `serde_json` | `1.x` (`src-tauri/Cargo.toml`) |
