@@ -2,6 +2,7 @@ import type { Node as ProseMirrorNode } from "prosemirror-model";
 
 import type { CommandPaletteItem, OutlineHeading } from "../types";
 import type { NoteDocument } from "../types/notes";
+import type { SearchResult } from "../types/search";
 
 export function countWords(content: string) {
   const matches = content.trim().match(/\S+/g);
@@ -36,6 +37,19 @@ export function buildCommandPaletteItems(
       path: document.path,
     }))
     .sort((left, right) => left.description.localeCompare(right.description, "en"));
+}
+
+export function searchResultsToCommandPaletteItems(
+  results: readonly SearchResult[],
+): CommandPaletteItem[] {
+  return results.map((result) => ({
+    id: `search:${result.path}`,
+    title: result.title,
+    description: result.path,
+    keywords: [result.title, result.path, result.snippet],
+    group: "files" as const,
+    path: result.path,
+  }));
 }
 
 export function findHeadingPosition(

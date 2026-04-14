@@ -32,6 +32,7 @@ import {
   createNextNotePath,
   findHeadingPosition,
   findTextPosition,
+  searchResultsToCommandPaletteItems,
 } from "./components/app-shell-utils";
 import {
   Dialog,
@@ -43,6 +44,7 @@ import {
 import { RefinexEditor } from "./editor";
 import { fileService } from "./services/fileService";
 import { gitService } from "./services/gitService";
+import { searchService } from "./services/searchService";
 import { useAuthStore } from "./stores/authStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useGitStore } from "./stores/gitStore";
@@ -470,6 +472,16 @@ function WorkspaceShell({
     });
   };
 
+  const handleCommandPaletteSearch = async (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed || !workspacePath || !searchService.isNativeAvailable()) {
+      return commandPaletteFiles;
+    }
+
+    const results = await searchService.searchFiles(trimmed);
+    return searchResultsToCommandPaletteItems(results);
+  };
+
   return (
     <>
       <AppLayout
@@ -541,6 +553,7 @@ function WorkspaceShell({
       <CommandPalette
         files={commandPaletteFiles}
         theme={theme}
+        searchFiles={handleCommandPaletteSearch}
         onCreateFile={handleCreateQuickNote}
         onOpenFile={(path) => {
           void openFile(path);

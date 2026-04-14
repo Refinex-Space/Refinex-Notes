@@ -6,6 +6,7 @@ import {
   countWords,
   createNextNotePath,
   findHeadingPosition,
+  searchResultsToCommandPaletteItems,
 } from "../app-shell-utils";
 
 describe("app shell helpers", () => {
@@ -60,5 +61,27 @@ describe("app shell helpers", () => {
 
     expect(findHeadingPosition(doc, { text: "Two", level: 2 })).toBe(5);
     expect(findHeadingPosition(doc, { text: "Missing", level: 2 })).toBeNull();
+  });
+
+  it("maps search results into command palette items", () => {
+    const items = searchResultsToCommandPaletteItems([
+      {
+        path: "Inbox/Welcome.md",
+        title: "Welcome",
+        snippet: "welcome snippet",
+        score: 88,
+      },
+    ]);
+
+    expect(items).toEqual([
+      {
+        id: "search:Inbox/Welcome.md",
+        title: "Welcome",
+        description: "Inbox/Welcome.md",
+        keywords: ["Welcome", "Inbox/Welcome.md", "welcome snippet"],
+        group: "files",
+        path: "Inbox/Welcome.md",
+      },
+    ]);
   });
 });

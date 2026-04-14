@@ -27,6 +27,7 @@ interface CommandPaletteProps {
   onOpenFile: (path: string) => void;
   onOpenSettings: () => void;
   onToggleTheme: () => void;
+  searchFiles: (query: string) => Promise<CommandPaletteItem[]>;
 }
 
 export function CommandPalette({
@@ -36,8 +37,11 @@ export function CommandPalette({
   onOpenFile,
   onOpenSettings,
   onToggleTheme,
+  searchFiles,
 }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<CommandPaletteItem[]>(files);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -55,6 +59,24 @@ export function CommandPalette({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!open || !query.trim()) {
+      setSearchResults(files);
+      return;
+    }
+
+    let disposed = false;
+    void searchFiles(query).then((results) => {
+      if (!disposed) {
+        setSearchResults(results);
+      }
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [files, open, query, searchFiles]);
 
   const commands = useMemo(
     () => [
@@ -93,11 +115,15 @@ export function CommandPalette({
       title="Refinex 命令面板"
       description="搜索文件或执行全局命令。"
     >
-      <CommandInput placeholder="搜索文件、命令..." />
+      <CommandInput
+        placeholder="搜索文件、命令..."
+        value={query}
+        onValueChange={setQuery}
+      />
       <CommandList>
         <CommandEmpty>没有匹配结果。</CommandEmpty>
         <CommandGroup heading="文件">
-          {files.map((item) => (
+          {searchResults.map((item) => (
             <CommandItem
               key={item.id}
               value={`${item.title} ${item.description ?? ""} ${item.keywords.join(" ")}`}
@@ -116,39 +142,43 @@ export function CommandPalette({
             </CommandItem>
           ))}
         </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="命令">
-          {commands.map((command) => {
-            const Icon = command.icon;
+        {query.trim().length === 0 ? (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="命令">
+              {commands.map((command) => {
+                const Icon = command.icon;
 
-            return (
-              <CommandItem
-                key={command.id}
-                value={`${command.title} ${command.description}`}
-                onSelect={() => {
-                  command.onSelect();
-                  setOpen(false);
-                }}
-              >
-                <Icon className="h-4 w-4 text-accent" />
-                <div className="flex min-w-0 flex-col">
-                  <span>{command.title}</span>
-                  <span className="truncate text-xs text-muted">
-                    {command.description}
-                  </span>
-                </div>
-                <CommandShortcut>{command.shortcut}</CommandShortcut>
+                return (
+                  <CommandItem
+                    key={command.id}
+                    value={`${command.title} ${command.description}`}
+                    onSelect={() => {
+                      command.onSelect();
+                      setOpen(false);
+                    }}
+                  >
+                    <Icon className="h-4 w-4 text-accent" />
+                    <div className="flex min-w-0 flex-col">
+                      <span>{command.title}</span>
+                      <span className="truncate text-xs text-muted">
+                        {command.description}
+                      </span>
+                    </div>
+                    <CommandShortcut>{command.shortcut}</CommandShortcut>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="提示">
+              <CommandItem disabled value="command:hint">
+                <Command className="h-4 w-4 text-muted" />
+                <span>编辑器内的 Cmd/Ctrl+K 仍保留给链接编辑</span>
               </CommandItem>
-            );
-          })}
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="提示">
-          <CommandItem disabled value="command:hint">
-            <Command className="h-4 w-4 text-muted" />
-            <span>编辑器内的 Cmd/Ctrl+K 仍保留给链接编辑</span>
-          </CommandItem>
-        </CommandGroup>
+            </CommandGroup>
+          </>
+        ) : null}
       </CommandList>
     </CommandDialog>
   );
