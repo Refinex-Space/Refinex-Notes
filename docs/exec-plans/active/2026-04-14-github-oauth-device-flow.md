@@ -96,6 +96,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 使用 GitHub 官方 Device Flow + keyring | 认证与 token 存储方案 | 自建回调、localStorage、明文文件 | 与设计文档一致，且满足桌面端安全约束 |
+| 使用极小的 `open_external_url` 原生命令替代 opener plugin | 需要“打开浏览器”按钮但仓库当前未接入 opener 能力 | 新增 `tauri-plugin-opener`、纯前端 `window.open` | 减少额外依赖与 capability 变更，同时仍可在原生层安全限制只打开 GitHub 授权链接 |
 
 ## Completion Summary
 
