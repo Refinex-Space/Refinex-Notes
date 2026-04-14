@@ -84,9 +84,9 @@ Deviations: 同步器核心循环拆成可单测的 `run_sync_cycle`，后台 `t
 **Files:** `src-tauri/src/commands/git.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/commands/mod.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml commands::git::tests::`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml commands::git::tests::` 通过，Git commands 的路径解析、limit 归一化、停止同步状态构造均已验证；同时 `src-tauri/src/lib.rs` 已完成 invoke handler 注册。
+Deviations: command 层保持薄封装，仅测试无 Tauri runtime 依赖的辅助逻辑；运行时接线的有效性由本步编译通过和第 5 步全量验证共同兜底。
 
 ### Step 5: 全量验证并更新控制面
 
@@ -104,7 +104,7 @@ Deviations:
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml git::` 通过，6/6 Git 域测试通过 | 建立 `git2` 依赖、错误类型与 keyring 凭证桥接 |
 | 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml git::tests::` 通过，6 个 Git 域测试全部通过 | 核心 Git 原语已可离线验证，包含冲突路径 |
 | 3 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml git::sync::tests::` 通过，3 个同步场景测试通过 | 已接入后台循环、30 秒保存防抖与 conflicted 上报 |
-| 4 | ⬜ | | |
+| 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml commands::git::tests::` 通过，3 个 command 辅助测试通过 | Git IPC commands 与运行时注册已接通 |
 | 5 | ⬜ | | |
 
 ## Decision Log
@@ -115,6 +115,7 @@ Deviations:
 | 第 1 步提前接入 `mod git;` | Rust 模块未进入编译图，Git 域测试不会执行 | 推迟到 commands 接线阶段 | 先把模块纳入编译/测试，能尽早暴露类型和依赖问题 |
 | 第 2 步测试与实现共置于 `git/mod.rs` | 当前仓库只有内联 Rust 测试惯例 | 新建 `tests/` 目录 | 遵循 `src-tauri/AGENTS.md` 的“inline unit tests”约定，减少控制面漂移 |
 | 同步循环拆分为“纯同步周期 + task 外壳” | 需要同时满足可测试性与 Tauri 事件发射 | 直接把所有逻辑写进 `tokio::spawn` | 保持状态机可离线单测，同时让命令层只管理生命周期 |
+| Git commands 只做参数校验与状态取用 | 避免 command 层重新承载 Git 业务逻辑 | 在 `commands/git.rs` 里直接拼装底层操作 | 保持 `src-tauri/AGENTS.md` 规定的 IPC 边界清晰，测试也更聚焦 |
 
 ## Completion Summary
 
