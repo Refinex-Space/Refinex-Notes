@@ -61,7 +61,7 @@ Author: agent
 
 ### Step 1: 引入搜索依赖与原生搜索域模型
 
-**Files:** `src-tauri/Cargo.toml`, `src-tauri/src/search/mod.rs`, `src-tauri/src/search/fuzzy.rs`, `src-tauri/src/state.rs`
+**Files:** `src-tauri/Cargo.toml`, `src-tauri/src/search/mod.rs`, `src-tauri/src/search/fuzzy.rs`, `src-tauri/src/state.rs`, `src-tauri/src/lib.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml search::`
 
 Status: ⬜ Not started
