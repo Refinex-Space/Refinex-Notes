@@ -1,7 +1,7 @@
 # Execution Plan: Pane Scroll And Collapsed Tree Fix
 
 Created: 2026-04-14
-Status: In Progress
+Status: Completed
 Author: agent
 
 ## Bug Brief
@@ -24,18 +24,28 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: 工作区目录树默认折叠。
-- [ ] AC-2: 应用整体不再出现页面级长滚动，左栏文件区/大纲区和主编辑区在各自 pane 内滚动。
-- [ ] AC-3: `npm test -- --run` 与 `npm run build` 通过。
+- [x] AC-1: 工作区目录树默认折叠。
+- [x] AC-2: 应用整体不再出现页面级长滚动，左栏文件区/大纲区和主编辑区在各自 pane 内滚动。
+- [x] AC-3: `npm test -- --run` 与 `npm run build` 通过。
 
 ## Steps
 
 1. 修复目录树默认展开状态
    verify: `npm test -- --run`
-   status: ⏳ In Progress
+   status: ✅ Done
+   evidence: `src/components/sidebar/FileTree.tsx` 移除了目录 `Accordion` 的 `defaultValue`；新增 `FileTreeNodes` 纯渲染组件和 `src/components/sidebar/__tests__/FileTree.test.tsx` 回归用例，验证目录初始态为 `closed`。
 2. 收紧 App shell 高度与各 pane 滚动边界
    verify: `npm run build`
-   status: ⏳ Pending
+   status: ✅ Done
+   evidence: `src/components/layout/AppLayout.tsx` 为 shell 根节点和主 grid 增加 `overflow-hidden`；`src/App.tsx` 将左栏 `Files/Outline` section 改为 `flex-col + flex-1 overflow-auto`；`src/styles.css` 将 `html/body/#root` 设为 `height: 100%` 与 `overflow: hidden`。
 3. 运行验证并归档计划
    verify: `npm test -- --run && npm run build`
-   status: ⏳ Pending
+   status: ✅ Done
+   evidence: `npm test -- --run` 通过（77/77）；`npm run build` 通过；`cargo test --manifest-path src-tauri/Cargo.toml` 通过（3/3）；`python3 scripts/check_harness.py` 通过。
+
+## Completion Summary
+
+Completed: 2026-04-14
+All acceptance criteria: PASS
+
+Summary: 这次修复把目录树默认展开改回默认折叠，同时把应用高度约束统一下沉到 `html/body/#root`、`AppLayout` 和左栏 pane 内部，避免页面级长滚动重新出现。现状是左栏文件区/大纲区、主编辑区、右栏内容区都在各自容器内滚动，目录树回到更符合笔记应用预期的折叠初始态。
