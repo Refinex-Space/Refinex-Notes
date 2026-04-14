@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Fix GitHub Device Flow 404](exec-plans/active/2026-04-14-fix-github-device-flow-404.md) — started 2026-04-14
 
 ## Completed Plans
 
