@@ -35,11 +35,11 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `git_init_repo`、`git_clone_repo`、`git_get_status`、`git_commit`、`git_push`、`git_pull`、`git_get_log`、`git_get_diff` commands 可编译并在 Rust 测试中覆盖核心成功路径。
-- [ ] AC-2: `src-tauri/src/git/mod.rs` 支持仓库初始化、HTTPS clone、状态枚举、`add -A`、commit、fetch、push、`pull --rebase`、日志与 diff 查询，并对空仓库/无变更/无 upstream 等边界返回明确错误或空结果。
-- [ ] AC-3: `src-tauri/src/git/sync.rs` 提供可启动/停止/强制触发的后台同步任务，状态在 `not-initialized → dirty → committed → fetching → merging → pushing → synced/conflicted` 之间转换，并通过 Tauri event `git-sync-status` 发给前端。
-- [ ] AC-4: `write_file`/`create_file`/`create_dir`/`delete_file`/`rename_file` 在工作区已启动同步时会触发 30 秒防抖即时同步；rebase 冲突时会发出 `conflicted` 状态而不是静默失败。
-- [ ] AC-5: `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 在完成后保持通过，不劣化基线。
+- [x] AC-1: `git_init_repo`、`git_clone_repo`、`git_get_status`、`git_commit`、`git_push`、`git_pull`、`git_get_log`、`git_get_diff` commands 可编译并在 Rust 测试中覆盖核心成功路径。
+- [x] AC-2: `src-tauri/src/git/mod.rs` 支持仓库初始化、HTTPS clone、状态枚举、`add -A`、commit、fetch、push、`pull --rebase`、日志与 diff 查询，并对空仓库/无变更/无 upstream 等边界返回明确错误或空结果。
+- [x] AC-3: `src-tauri/src/git/sync.rs` 提供可启动/停止/强制触发的后台同步任务，状态在 `not-initialized → dirty → committed → fetching → merging → pushing → synced/conflicted` 之间转换，并通过 Tauri event `git-sync-status` 发给前端。
+- [x] AC-4: `write_file`/`create_file`/`create_dir`/`delete_file`/`rename_file` 在工作区已启动同步时会触发 30 秒防抖即时同步；rebase 冲突时会发出 `conflicted` 状态而不是静默失败。
+- [x] AC-5: `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 在完成后保持通过，不劣化基线。
 
 ## Risk Notes
 
@@ -93,9 +93,9 @@ Deviations: command 层保持薄封装，仅测试无 Tauri runtime 依赖的辅
 **Files:** `docs/PLANS.md`, `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/exec-plans/active/2026-04-14-phase6-git-engine-sync.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml && npm test -- --run && npm run build`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 26/26 通过，`npm test -- --run` 80/80 通过，`npm run build` 成功（仅保留既有 Vite chunk size warning）；控制面已更新 `docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md`。
+Deviations: `src-tauri/Cargo.lock` 作为依赖引入的解析结果在本步单独补录并提交；该偏差已在决策日志登记。
 
 ## Progress Log
 
@@ -105,7 +105,7 @@ Deviations:
 | 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml git::tests::` 通过，6 个 Git 域测试全部通过 | 核心 Git 原语已可离线验证，包含冲突路径 |
 | 3 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml git::sync::tests::` 通过，3 个同步场景测试通过 | 已接入后台循环、30 秒保存防抖与 conflicted 上报 |
 | 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml commands::git::tests::` 通过，3 个 command 辅助测试通过 | Git IPC commands 与运行时注册已接通 |
-| 5 | ⬜ | | |
+| 5 | ✅ | `cargo test` 26/26、`npm test` 80/80、`npm run build` 成功；控制面文档已同步 | 全量验证通过，控制面更新完毕 |
 
 ## Decision Log
 
@@ -120,8 +120,8 @@ Deviations:
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-14
 Duration: 5 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 已在 `src-tauri` 内完成 Phase 6 的 Git 原生能力交付：`git2-rs` Git 引擎、keyring→HTTPS 凭证桥接、自动同步状态机、文件保存防抖触发、冲突 `conflicted` 上报，以及对应的 Tauri Git commands 均已落地。实现采用本地 bare repo 离线测试覆盖 push/fetch/pull --rebase 与冲突路径，并同步更新了架构与观测文档，最终验证保持 Rust/前端测试与构建全部通过。
