@@ -23,7 +23,7 @@ refinex-notes/
 │   ├── src/ai/             Planned AI provider and streaming domain
 │   ├── src/git/            Git engine, auth bridge, and sync state machine
 │   ├── src/markdown/       Planned Markdown parsing/export domain
-│   ├── src/search/         Planned search indexing/query domain
+│   ├── src/search/         Tantivy index, fuzzy matcher, and search commands
 │   ├── src/state.rs        Shared native app state (`AppState`)
 │   ├── src/db.rs           SQLite bootstrap and recent-workspace metadata
 │   ├── src/watcher.rs      Workspace file watcher and debounced event bridge
@@ -50,7 +50,7 @@ src/main.tsx
 
 ### Current Runtime Shape
 
-- `src/App.tsx` now gates the application through `checkAuth()`: unauthenticated users see `LoginScreen`, authenticated users enter the existing workspace shell with draggable/collapsible side panels, `FileTree`, `TabBar`, `OutlinePanel`, a Git-aware `StatusBar`, `CommandPalette`, a native-backed workspace picker, and a central `RefinexEditor`; the right panel now switches between Git setup and history views instead of placeholder copy.
+- `src/App.tsx` now gates the application through `checkAuth()`: unauthenticated users see `LoginScreen`, authenticated users enter the existing workspace shell with draggable/collapsible side panels, `SearchPanel`, `FileTree`, `TabBar`, `OutlinePanel`, a Git-aware `StatusBar`, `CommandPalette`, a native-backed workspace picker, and a central `RefinexEditor`; the right panel now switches between Git setup and history views instead of placeholder copy.
 - `src/editor/schema.ts` now owns the canonical ProseMirror document schema; `src/components/editor/schema.ts` is only a compatibility re-export so editor semantics stay centralized.
 - `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, Command, Tabs, Collapsible, Context Menu, and Accordion instead of placeholder pass-through components.
 - `src/components/auth/LoginScreen.tsx` now owns the GitHub Device Flow login UI: it renders the verification code, allows copying/opening the GitHub verification page, and reflects polling progress from the native channel while keeping token details out of the frontend.
@@ -59,12 +59,14 @@ src/main.tsx
 - `src/services/fileService.ts` now owns the Tauri `invoke` calls, workspace directory picker, and `files-changed` event subscription used by the note store.
 - `src/stores/gitStore.ts` now owns the frontend Git state model: workspace status refresh, sync event handling, history loading, and command dispatch all flow through the Git store instead of mock labels.
 - `src/services/gitService.ts` now fronts the Tauri Git command boundary (`git_*`) plus the `git-sync-status` event listener, and `src/components/git/` contains the active SyncStatus / SetupPanel / HistoryPanel UI surfaces.
+- `src/services/searchService.ts` now fronts the native search commands, `src/components/sidebar/SearchPanel.tsx` renders the sidebar search surface, and `CommandPalette` now delegates file lookup to native fuzzy search results instead of only sorting currently open documents.
 - `src-tauri/src/commands/auth.rs` now implements the GitHub App Device Flow (`github_auth_start`, `github_auth_poll`, `check_auth_status`, `github_logout`) plus a tightly-scoped `open_external_url` helper used by the login screen to open the GitHub verification page in the system browser; keyring storage now keeps a structured GitHub session so `check_auth_status` can refresh expiring user access tokens.
 - `src-tauri/src/state.rs` now keeps the embedded `github_client_id` and `pending_device_code` in `AppState`, allowing the native auth commands to share login context across command calls without asking end users for runtime configuration.
 - `src-tauri/src/db.rs` creates `~/.refinex-notes/meta.db` with `settings`, `recent_workspaces`, and `file_meta` tables during app startup.
 - `src-tauri/src/commands/files.rs` now enforces workspace-scoped file operations and recursive file-tree scanning while ignoring `.git`, `node_modules`, and `.DS_Store`.
 - `src-tauri/src/git/mod.rs` now implements `git2-rs` backed repository init/clone/status/stage/commit/fetch/push/pull/log/diff primitives, while `src-tauri/src/git/auth.rs` bridges the GitHub OAuth token in keyring to HTTPS remote credentials.
 - `src-tauri/src/git/sync.rs` now owns the auto-sync state machine and emits `git-sync-status` events through a background tokio task; `src-tauri/src/commands/git.rs` exposes the native Git commands plus auto-sync lifecycle controls to the frontend IPC boundary.
+- `src-tauri/src/search/mod.rs` now owns the in-memory Tantivy workspace index, Markdown-to-plain-text extraction, and Nucleo-backed fuzzy search; `src-tauri/src/search/indexer.rs` rebuilds or incrementally updates the index when the workspace opens or files change; `src-tauri/src/commands/search.rs` exposes `search_files` and `search_fulltext` to the frontend.
 - `src-tauri/src/watcher.rs` uses `notify` to watch the active workspace and emits a debounced `files-changed` event back to the frontend.
 - `docs/design-docs/Refinex-Notes 完整技术架构文档.md` and `docs/design-docs/Refinex-Notes 自研编辑器可行性深度调研报告.md` capture the intended editor, AI, Git, auth, and search architecture for subsequent implementation phases.
 
@@ -89,6 +91,7 @@ src/main.tsx
 | Desktop bridge | `@tauri-apps/api`, `@tauri-apps/plugin-dialog` / CLI | `2.10.1`, `2.7.0` (`package.json`) |
 | Native runtime | `tauri` crate | `2.10.2` (`src-tauri/Cargo.toml`) |
 | Native Git | `git2` | `0.19` (`src-tauri/Cargo.toml`) |
+| Native Search | `tantivy`, `nucleo-matcher`, `comrak` | `0.22`, `0.3`, `0.36` (`src-tauri/Cargo.toml`) |
 | Native storage / FS | `rusqlite`, `notify`, `walkdir`, `keyring` | `0.32`, `7`, `2`, `3` (`src-tauri/Cargo.toml`) |
 | Native HTTP / async | `reqwest`, `tokio` | `0.12`, `1` (`src-tauri/Cargo.toml`) |
 | Native serialization | `serde` / `serde_json` | `1.x` (`src-tauri/Cargo.toml`) |
