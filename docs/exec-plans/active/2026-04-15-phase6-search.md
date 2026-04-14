@@ -73,9 +73,9 @@ Deviations: 第 1 步同时补录了 `Cargo.lock` 作为依赖引入的可复现
 **Files:** `src-tauri/src/search/mod.rs`, `src-tauri/src/search/indexer.rs`, `src-tauri/src/commands/search.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/commands/files.rs`, `src-tauri/src/watcher.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml search:: tests::`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml search::` 通过，`search::indexer` 的 rebuild/fallback 规则与 `commands::search` 模块已进入编译和测试；`open_workspace` 现在会建索引，`watcher` flush 时会触发搜索索引更新。
+Deviations: 目录级或空路径事件不做“猜测式增量更新”，统一安全回退为整库重建，优先保证索引正确性。
 
 ### Step 3: 实现前端搜索 service 与 SearchPanel
 
@@ -109,7 +109,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml search::` 通过，5 个搜索域测试通过 | 搜索依赖、全文/模糊搜索基础能力与 AppState 持有位已建立 |
-| 2 | ⬜ | | |
+| 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml search::` 通过，8 个搜索相关测试通过 | 原生索引器、监听器更新与搜索命令已接通 |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
 | 5 | ⬜ | | |
@@ -120,6 +120,7 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | 搜索结果跳转优先做首个命中文本定位 | 现有编辑器暴露了标题跳转，但未直接暴露任意 offset 定位 API | 先扩展完整原生到编辑器字符级映射接口 | 在当前任务范围内先交付稳定可用的跳转体验，避免把搜索任务扩大成编辑器底层改造 |
 | 搜索索引先以内存 Tantivy 构建 | 需求要求打开工作区自动建索引与增量更新，但未要求磁盘持久化 | 在工作区目录下维护持久化索引 | 先满足查询时延和增量更新目标，减少索引目录生命周期与兼容性复杂度 |
+| 目录级 watcher 事件统一回退整库重建 | `notify` 对 rename/dir 事件不保证总能给出每个受影响文件 | 为目录事件实现复杂的递归 diff | 在现有任务范围内优先保证索引正确性，文件级变更仍走增量更新 |
 
 ## Completion Summary
 
