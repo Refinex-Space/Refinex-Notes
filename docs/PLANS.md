@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Fix GitHub Device Flow 404](exec-plans/active/2026-04-14-fix-github-device-flow-404.md) — started 2026-04-14
 
 ## Completed Plans
 
+- [Fix GitHub Device Flow 404](exec-plans/completed/2026-04-14-fix-github-device-flow-404.md) — completed 2026-04-14
 - [GitHub App Device Flow Migration](exec-plans/completed/2026-04-14-github-app-device-flow-migration.md) — completed 2026-04-14
 - [GitHub OAuth Device Flow](exec-plans/completed/2026-04-14-github-oauth-device-flow.md) — completed 2026-04-14
 - [Pane Scroll And Collapsed Tree Fix](exec-plans/completed/2026-04-14-pane-scroll-and-collapsed-tree-fix.md) — completed 2026-04-14

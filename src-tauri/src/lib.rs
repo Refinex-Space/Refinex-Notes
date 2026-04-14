@@ -6,8 +6,6 @@ mod watcher;
 use crate::state::AppState;
 use tauri::Manager;
 
-const DEFAULT_GITHUB_APP_CLIENT_ID: &str = "a9ab7b77f62cf312de59c99476da93a6f53e5f6e";
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -15,7 +13,7 @@ pub fn run() {
         .setup(|app| {
             let github_client_id = option_env!("GITHUB_APP_CLIENT_ID")
                 .or(option_env!("GITHUB_CLIENT_ID"))
-                .unwrap_or(DEFAULT_GITHUB_APP_CLIENT_ID)
+                .unwrap_or_default()
                 .to_string();
             let database = db::init_database(&app.handle())?;
 

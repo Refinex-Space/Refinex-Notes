@@ -1,7 +1,7 @@
 # Fix Plan: GitHub Device Flow 404
 
 Created: 2026-04-14
-Status: Active
+Status: Completed
 Author: agent
 Type: fix
 
@@ -66,27 +66,27 @@ Conclusion: CONFIRMED
 **Files:** `src-tauri/src/lib.rs`, `src-tauri/src/commands/auth.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
-Status: 🔄 In progress
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 通过（11/11）；`src-tauri/src/lib.rs` 已移除错误内置值，`src-tauri/src/commands/auth.rs` 新增 secret 形态识别与明确错误提示。
+Deviations: 为了降低误报，只检测“40 位十六进制串”这种高置信度 secret 形态，没有对所有可能的非法 client id 格式做强校验。
 
 #### Step 2: 写入回归测试与运行文档
 
 **Files:** `src-tauri/src/commands/auth.rs`, `docs/OBSERVABILITY.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml && python3 scripts/check_harness.py`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml && npm test -- --run && npm run build && python3 scripts/check_harness.py` 全部通过；新增 `detect_client_secret_like_value` 单测，`docs/OBSERVABILITY.md` 已说明本地维护者必须提供真实 Client ID，且误填 secret 会被直接拒绝。
 Deviations:
 
 ## Verification
 
-- [ ] Reproduction test now passes
-- [ ] Regression test added and passes
-- [ ] Full test suite passes (no new failures)
-- [ ] Lint and type checks pass
-- [ ] Diff reviewed — only fix-related changes present
-- [ ] Pre-existing failures unchanged
+- [x] Reproduction test now passes
+- [x] Regression test added and passes
+- [x] Full test suite passes (no new failures)
+- [x] Lint and type checks pass
+- [x] Diff reviewed — only fix-related changes present
+- [x] Pre-existing failures unchanged
 
 ## Progress Log
 
@@ -94,16 +94,16 @@ Deviations:
 | ---------- | ------ | -------- | ----- |
 | Reproduce  | ✅ | `curl` 复现 `{"error":"Not Found"}` | 故障可稳定重现 |
 | Root cause | ✅ | 内置值为 40 位十六进制串 | 确认为错误凭据类型 |
-| Fix        | 🔄 | 进行中 | 准备移除错误内置值并加校验 |
-| Verify     | ⬜ |  | 待完成 |
-| Regression | ⬜ |  | 待完成 |
+| Fix        | ✅ | `src-tauri/src/lib.rs` / `src-tauri/src/commands/auth.rs` 已修正 | 不再把错误凭据内置到客户端 |
+| Verify     | ✅ | `cargo test` / `npm test` / `npm run build` / `check_harness` 全绿 | 仓库级回归通过 |
+| Regression | ✅ | `detect_client_secret_like_value` | 防止再次把 secret 当成 client id |
 
 ## Completion Summary
 
 Completed:
-Root cause:
-Fix:
-Regression test:
-All verification criteria:
+Root cause: 误把 GitHub App client secret 形态的值内置为 client id，导致 Device Flow 起始请求返回 404。
+Fix: 移除错误内置值，并在原生层提前识别“像 secret 的 client_id”并给出明确错误提示。
+Regression test: `commands::auth::tests::detect_client_secret_like_value`
+All verification criteria: PASS
 
-Summary:
+Summary: 本轮以 `curl` 复现证据确认 `404 {"error":"Not Found"}` 的根因不是 GitHub API 或请求编码方式，而是仓库中误内置了一个 40 位十六进制串形式的错误凭据。修复后，native 启动配置不再携带这个错误值，登录前会先拦截高置信度的 secret 形态并返回明确错误，避免继续误导为 Device Flow 故障。回归上，Rust 测试由 10 个增至 11 个，前端测试、构建和 Harness 校验全部保持通过。

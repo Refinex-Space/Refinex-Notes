@@ -324,9 +324,15 @@ fn require_github_client_id(state: &State<'_, AppState>) -> Result<String, Strin
     let client_id = state.github_client_id.trim();
     if client_id.is_empty() {
         Err("当前应用构建未嵌入 GitHub App client_id，无法启动 GitHub 登录".to_string())
+    } else if looks_like_github_client_secret(client_id) {
+        Err("当前配置看起来是 GitHub App client secret，不是 client id；请改用 GitHub App 设置页里的 Client ID".to_string())
     } else {
         Ok(client_id.to_string())
     }
+}
+
+fn looks_like_github_client_secret(value: &str) -> bool {
+    value.len() == 40 && value.chars().all(|character| character.is_ascii_hexdigit())
 }
 
 fn get_pending_device_code(state: &State<'_, AppState>) -> Result<Option<String>, String> {
@@ -569,8 +575,8 @@ fn keyring_error_to_string(error: KeyringError) -> KeyringMessage {
 mod tests {
     use super::{
         describe_device_flow_error, describe_refresh_error, is_allowed_browser_url,
-        next_poll_interval, parse_stored_session, StoredGithubSession,
-        ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
+        looks_like_github_client_secret, next_poll_interval, parse_stored_session,
+        StoredGithubSession, ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
     };
 
     #[test]
@@ -653,5 +659,14 @@ mod tests {
         assert!(session.can_refresh(0));
         assert!(!session.should_refresh_access_token(0));
         assert!(session.should_refresh_access_token(15));
+    }
+
+    #[test]
+    fn detect_client_secret_like_value() {
+        assert!(looks_like_github_client_secret(
+            "a9ab7b77f62cf312de59c99476da93a6f53e5f6e"
+        ));
+        assert!(!looks_like_github_client_secret("Iv23li1234567890abcd"));
+        assert!(!looks_like_github_client_secret("not-a-secret"));
     }
 }
