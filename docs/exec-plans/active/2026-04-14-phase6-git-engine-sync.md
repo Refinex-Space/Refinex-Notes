@@ -57,9 +57,9 @@ Author: agent
 **Files:** `src-tauri/Cargo.toml`, `src-tauri/src/git/mod.rs`, `src-tauri/src/git/auth.rs`, `src-tauri/src/lib.rs`, `docs/exec-plans/active/2026-04-14-phase6-git-engine-sync.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml git::`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml git::` 通过，新增 6 个 Git 域单测（状态映射 3 个、token 解析 3 个）全部通过。
+Deviations: 为了让 Git 域测试进入编译图，本步额外接入了 `src-tauri/src/lib.rs` 的 `mod git;` 声明。
 
 ### Step 2: 实现核心 Git 操作与离线仓库测试
 
@@ -101,7 +101,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ | | |
+| 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml git::` 通过，6/6 Git 域测试通过 | 建立 `git2` 依赖、错误类型与 keyring 凭证桥接 |
 | 2 | ⬜ | | |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
@@ -112,6 +112,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 使用本地 bare repo 做 Git 集成测试 | push/fetch/pull 需要可重复验证 | 直接访问 GitHub、mock git2 | 本地 bare repo 不依赖网络且能覆盖真实 libgit2 行为 |
+| 第 1 步提前接入 `mod git;` | Rust 模块未进入编译图，Git 域测试不会执行 | 推迟到 commands 接线阶段 | 先把模块纳入编译/测试，能尽早暴露类型和依赖问题 |
 
 ## Completion Summary
 
