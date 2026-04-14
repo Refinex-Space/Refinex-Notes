@@ -8,7 +8,7 @@
 |------|---------|----------|
 | Install dependencies | `npm install` | Exit 0 |
 | Build frontend bundle | `npm run build` | Exit 0, assets emitted to `dist/` |
-| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 0 tests |
+| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 3 Rust tests + compile validation |
 | Run frontend tests | `npm test` | Exit 0, all tests pass |
 | Lint / format check | Not configured in the repository | N/A |
 | Start web dev server | `npm run dev` | Vite serves on `http://localhost:1420` |
@@ -26,6 +26,8 @@
 - Frontend toolchain: Node.js with the dependencies defined in `package.json`
 - Native toolchain: Rust stable + Cargo for `src-tauri/`
 - Desktop runtime: Tauri 2 prerequisites for the host OS
+- Native plugins required by the current app:
+  - `tauri-plugin-dialog` for directory selection
 - Relevant environment variables consumed by the current config:
   - `TAURI_DEV_HOST` — optional Vite host override during `tauri dev`
   - `TAURI_PLATFORM` — switches Vite build target per platform
@@ -41,4 +43,4 @@ npm test
 npm run build
 ```
 
-The native test command currently validates compilation and runs 0 tests. Frontend tests use Vitest and validate editor round-trip conversion. Build output is the primary repository-level verification path.
+The native test command now validates compilation and runs schema/workspace unit tests in `src-tauri/src/db.rs` and `src-tauri/src/commands/files.rs`. Frontend tests use Vitest and validate editor/store behavior. Build output remains the primary repository-level verification path.

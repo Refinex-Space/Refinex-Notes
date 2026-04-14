@@ -2,7 +2,7 @@
 
 # Architecture
 
-Refinex-Notes is organized as a Tauri desktop application with a React frontend in `src/` and a Rust native module in `src-tauri/`. The repository is currently in an early implementation phase: `src/App.tsx` now renders the first real workspace shell around mock note state, many service and command files are still placeholders, and the richer product architecture lives in team-authored design documents under `docs/design-docs/`.
+Refinex-Notes is organized as a Tauri desktop application with a React frontend in `src/` and a Rust native module in `src-tauri/`. The repository is currently in an early implementation phase: `src/App.tsx` now renders the first real workspace shell, the native file backend + workspace watcher + SQLite metadata store are wired through Tauri commands, and the richer product architecture lives in team-authored design documents under `docs/design-docs/`.
 
 That distinction matters for agents. The source tree describes the current executable system; the design docs describe the intended future system. When making changes, treat code paths in this file as implemented boundaries and treat `docs/design-docs/*.md` as architectural references and decision records.
 
@@ -24,8 +24,9 @@ refinex-notes/
 │   ├── src/git/            Planned Git integration domain
 │   ├── src/markdown/       Planned Markdown parsing/export domain
 │   ├── src/search/         Planned search indexing/query domain
-│   ├── src/state.rs        Planned shared native state
-│   ├── src/db.rs           Planned database bootstrap
+│   ├── src/state.rs        Shared native app state (`AppState`)
+│   ├── src/db.rs           SQLite bootstrap and recent-workspace metadata
+│   ├── src/watcher.rs      Workspace file watcher and debounced event bridge
 │   └── tauri.conf.json     Desktop runtime and build wiring
 ├── public/                 Static Vite assets
 ├── skills/                 In-repo skill assets
@@ -42,19 +43,21 @@ src/main.tsx
      -> src/hooks/*
      -> src/stores/*
      -> src/services/*
-        -> (planned) Tauri invoke/listen boundary
+        -> Tauri invoke/listen boundary
            -> src-tauri/src/commands/*
               -> src-tauri/src/{ai,git,markdown,search,watcher,state,db}
 ```
 
 ### Current Runtime Shape
 
-- `src/App.tsx` now renders the Phase 4.1 application shell: draggable/collapsible side panels, `FileTree`, `TabBar`, `OutlinePanel`, `StatusBar`, `CommandPalette`, and a central `RefinexEditor` driven by mock workspace state from `src/stores/`.
+- `src/App.tsx` now renders the Phase 4.1 application shell: draggable/collapsible side panels, `FileTree`, `TabBar`, `OutlinePanel`, `StatusBar`, `CommandPalette`, a native-backed workspace picker, and a central `RefinexEditor`.
 - `src/editor/schema.ts` now owns the canonical ProseMirror document schema; `src/components/editor/schema.ts` is only a compatibility re-export so editor semantics stay centralized.
 - `src/components/ui/` now contains working Radix/cmdk wrappers for Dialog, Popover, Tooltip, Toast, Command, Tabs, Collapsible, Context Menu, and Accordion instead of placeholder pass-through components.
-- `src/stores/` now provides mock workspace state for documents, folders, open tabs, dirty markers, and cursor status, giving the shell a frontend-only source of truth until later phases connect real services.
-- `src/services/*.ts` and several UI surfaces intentionally throw `尚未实现`, preserving future integration seams without shipping the behavior yet.
-- `src-tauri/src/*.rs` is already partitioned by domain, but many modules are placeholders and not yet wired into `tauri::Builder`.
+- `src/stores/noteStore.ts` now supports both the existing mock shell state and a real workspace mode backed by Tauri commands for open/read/write/create/delete/rename/refresh.
+- `src/services/fileService.ts` now owns the Tauri `invoke` calls, workspace directory picker, and `files-changed` event subscription used by the note store.
+- `src-tauri/src/db.rs` creates `~/.refinex-notes/meta.db` with `settings`, `recent_workspaces`, and `file_meta` tables during app startup.
+- `src-tauri/src/commands/files.rs` now enforces workspace-scoped file operations and recursive file-tree scanning while ignoring `.git`, `node_modules`, and `.DS_Store`.
+- `src-tauri/src/watcher.rs` uses `notify` to watch the active workspace and emits a debounced `files-changed` event back to the frontend.
 - `docs/design-docs/Refinex-Notes 完整技术架构文档.md` and `docs/design-docs/Refinex-Notes 自研编辑器可行性深度调研报告.md` capture the intended editor, AI, Git, auth, and search architecture for subsequent implementation phases.
 
 ## Key Architectural Constraints
@@ -75,8 +78,9 @@ src/main.tsx
 | Build tool | Vite | `7.3.2` (`package.json`) |
 | Language | TypeScript | `5.9.3` (`package.json`) |
 | Styling | Tailwind CSS | `3.4.19` (`package.json`) |
-| Desktop bridge | `@tauri-apps/api` / CLI | `2.10.1` (`package.json`) |
+| Desktop bridge | `@tauri-apps/api`, `@tauri-apps/plugin-dialog` / CLI | `2.10.1`, `2.7.0` (`package.json`) |
 | Native runtime | `tauri` crate | `2.10.2` (`src-tauri/Cargo.toml`) |
+| Native storage / FS | `rusqlite`, `notify`, `walkdir` | `0.32`, `7`, `2` (`src-tauri/Cargo.toml`) |
 | Native serialization | `serde` / `serde_json` | `1.x` (`src-tauri/Cargo.toml`) |
 
 ## Related Design References
