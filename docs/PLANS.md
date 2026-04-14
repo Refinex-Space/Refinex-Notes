@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Fix Git Sync Runtime Panic](exec-plans/active/2026-04-15-fix-git-sync-runtime-panic.md) — started 2026-04-15
 
 ## Completed Plans
 
