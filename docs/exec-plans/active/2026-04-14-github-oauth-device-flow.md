@@ -51,8 +51,8 @@ Author: agent
 **Files:** `src-tauri/Cargo.toml`, `src-tauri/src/commands/auth.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/state.rs`, `src-tauri/capabilities/default.json`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 通过，Rust 测试由 3 个增至 6 个；`github_auth_start` / `github_auth_poll` / `check_auth_status` / `github_logout` / `open_external_url` 已注册到 Tauri invoke handler。
 Deviations:
 
 ### Step 2: 实现前端认证 service/store 与进度模型
@@ -86,7 +86,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ | | |
+| 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 通过（6/6） | Rust 侧 GitHub Device Flow、keyring 与浏览器打开辅助命令已落地 |
 | 2 | ⬜ | | |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
