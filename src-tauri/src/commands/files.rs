@@ -5,6 +5,7 @@ use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use crate::db;
+use crate::search::indexer as search_indexer;
 use crate::state::AppState;
 use crate::watcher;
 
@@ -45,7 +46,7 @@ pub fn open_workspace(
             .workspace_path
             .lock()
             .map_err(|_| "工作区状态锁获取失败".to_string())?;
-        *workspace_guard = Some(workspace_path);
+        *workspace_guard = Some(workspace_path.clone());
     }
 
     {
@@ -55,6 +56,8 @@ pub fn open_workspace(
             .map_err(|_| "监听器状态锁获取失败".to_string())?;
         *watcher_guard = Some(workspace_watcher);
     }
+
+    search_indexer::rebuild_workspace_index(&state, &workspace_path)?;
 
     Ok(file_tree)
 }

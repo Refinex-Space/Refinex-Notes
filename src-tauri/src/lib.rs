@@ -64,6 +64,8 @@ pub fn run() {
             commands::git::git_start_sync,
             commands::git::git_stop_sync,
             commands::git::git_force_sync,
+            commands::search::search_files,
+            commands::search::search_fulltext,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

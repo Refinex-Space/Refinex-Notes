@@ -46,16 +46,8 @@ pub struct WorkspaceSearchIndex {
 }
 
 impl WorkspaceSearchIndex {
-    pub fn fields(&self) -> SearchSchemaFields {
-        self.fields
-    }
-
     pub fn file_candidates(&self) -> &[String] {
         &self.file_candidates
-    }
-
-    pub fn update_file_candidates(&mut self, candidates: Vec<String>) {
-        self.file_candidates = candidates;
     }
 }
 

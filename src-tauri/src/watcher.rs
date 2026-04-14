@@ -5,7 +5,10 @@ use std::time::Duration;
 
 use notify::{RecursiveMode, Watcher};
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
+
+use crate::search::indexer as search_indexer;
+use crate::state::AppState;
 
 const DEBOUNCE_WINDOW: Duration = Duration::from_millis(500);
 
@@ -74,10 +77,15 @@ fn flush_pending<R: Runtime>(app_handle: &AppHandle<R>, pending_paths: &mut BTre
         return;
     }
 
+    let paths: Vec<String> = pending_paths.iter().cloned().collect();
     let payload = FilesChangedPayload {
-        paths: pending_paths.iter().cloned().collect(),
+        paths: paths.clone(),
     };
     pending_paths.clear();
+
+    if let Err(error) = update_search_index(app_handle, &paths) {
+        eprintln!("update search index failed: {error}");
+    }
 
     if let Err(error) = app_handle.emit("files-changed", payload) {
         eprintln!("emit files-changed failed: {error}");
@@ -92,4 +100,16 @@ fn to_workspace_relative_path(workspace_path: &Path, candidate: &Path) -> Option
     } else {
         Some(value)
     }
+}
+
+fn update_search_index<R: Runtime>(app_handle: &AppHandle<R>, paths: &[String]) -> Result<(), String> {
+    let state = app_handle.state::<AppState>();
+    let workspace_path = state
+        .workspace_path
+        .lock()
+        .map_err(|_| "工作区状态锁获取失败".to_string())?
+        .clone()
+        .ok_or_else(|| "尚未打开工作区".to_string())?;
+
+    search_indexer::update_paths(&state, &workspace_path, paths)
 }
