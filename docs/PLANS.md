@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [GitHub OAuth Device Flow](exec-plans/active/2026-04-14-github-oauth-device-flow.md) — started 2026-04-14
 
 ## Completed Plans
 
