@@ -39,11 +39,11 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `gitService` 封装 Tauri Git commands 与 `git-sync-status` 事件监听，`gitStore` 提供实际可调用的 init/clone/status/history/sync actions，并有 Vitest 覆盖核心状态更新逻辑。
-- [ ] AC-2: 状态栏左侧显示实时 Git 同步状态，悬停 tooltip 呈现详细信息，点击 popover 提供“立即同步/查看历史/设置”快捷操作。
-- [ ] AC-3: 文件树从真实 `gitStore` 状态读取 Git 标记，文件名颜色按 added/modified/deleted/untracked 呈现。
-- [ ] AC-4: 右面板可在 SetupPanel 与 HistoryPanel 间切换；未初始化仓库时显示 setup 引导，已初始化且有当前文件时显示当前文件 commit 历史，并支持查看某条 commit 的只读文档内容。
-- [ ] AC-5: `npm test -- --run` 与 `npm run build` 保持通过，不劣化当前基线。
+- [x] AC-1: `gitService` 封装 Tauri Git commands 与 `git-sync-status` 事件监听，`gitStore` 提供实际可调用的 init/clone/status/history/sync actions，并有 Vitest 覆盖核心状态更新逻辑。
+- [x] AC-2: 状态栏左侧显示实时 Git 同步状态，悬停 tooltip 呈现详细信息，点击 popover 提供“立即同步/查看历史/设置”快捷操作。
+- [x] AC-3: 文件树从真实 `gitStore` 状态读取 Git 标记，文件名颜色按 added/modified/deleted/untracked 呈现。
+- [x] AC-4: 右面板可在 SetupPanel 与 HistoryPanel 间切换；未初始化仓库时显示 setup 引导，已初始化且有当前文件时显示当前文件 commit 历史，并支持查看某条 commit 的只读文档内容。
+- [x] AC-5: `npm test -- --run` 与 `npm run build` 保持通过，不劣化当前基线。
 
 ## Risk Notes
 
@@ -97,9 +97,9 @@ Deviations: `src/types/notes.ts` 在本步扩展了 `FileGitStatus` 枚举，以
 **Files:** `docs/PLANS.md`, `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/exec-plans/active/2026-04-14-phase6-git-ui.md`
 **Verification:** `npm test -- --run && npm run build && cargo test --manifest-path src-tauri/Cargo.toml`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 26/26 通过，`npm test -- --run` 90/90 通过，`npm run build` 成功（仅保留既有 chunk size warning）；控制面已更新 `docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md`。
+Deviations: SetupPanel 仍以 URL clone 为交付基线，未实现 GitHub 仓库列表；历史详情展示 patch 只读快照而非文件旧版本全文，该限制已在决策日志和 UI 文案中明确。
 
 ## Progress Log
 
@@ -109,7 +109,7 @@ Deviations:
 | 2 | ✅ | `npm test -- --run src/stores/__tests__/gitStore.test.ts` 通过，4 个 gitStore 测试通过 | Git store 已接入工作区状态、历史与同步事件 |
 | 3 | ✅ | `npm test -- --run src/components/git/__tests__/SyncStatus.test.tsx` 通过，3 个组件测试通过 | 状态栏 Git 组件与 setup 引导组件已完成 |
 | 4 | ✅ | `HistoryPanel`/`FileTree` focused tests 通过，`npm run build` 通过 | Git 右侧面板、文件树状态和应用壳接线完成 |
-| 5 | ⬜ | | |
+| 5 | ✅ | Rust 26/26、前端 90/90、构建成功；控制面文档已同步 | 全量验证通过并完成控制面更新 |
 
 ## Decision Log
 
@@ -123,8 +123,8 @@ Deviations:
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-14
 Duration: 5 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 已完成 Phase 6 的 Git 前端 UI 接线：`gitService` 与 `gitStore` 现在连接到原生 Git commands 和 `git-sync-status` 事件，状态栏显示实时同步状态并提供快捷操作，右侧面板根据仓库状态在 SetupPanel 与 HistoryPanel 间切换，文件树也开始从真实 Git 状态源着色。为了保持前后端边界稳定，本轮 SetupPanel 使用 remote URL 作为 clone 入口，历史详情展示 commit patch 的只读快照；在这些约束下，前端测试和构建均保持通过。

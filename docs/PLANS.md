@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Phase 6 Git UI](exec-plans/active/2026-04-14-phase6-git-ui.md) — started 2026-04-14
 
 ## Completed Plans
 
+- [Phase 6 Git UI](exec-plans/completed/2026-04-14-phase6-git-ui.md) — completed 2026-04-14
 - [Phase 6 Git Engine Sync](exec-plans/completed/2026-04-14-phase6-git-engine-sync.md) — completed 2026-04-14
 - [Fix GitHub Device Flow 404](exec-plans/completed/2026-04-14-fix-github-device-flow-404.md) — completed 2026-04-14
 - [GitHub App Device Flow Migration](exec-plans/completed/2026-04-14-github-app-device-flow-migration.md) — completed 2026-04-14
