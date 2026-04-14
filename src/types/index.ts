@@ -48,3 +48,4 @@ export type {
   OutlineHeading,
   ShellPanelState,
 } from "./app-shell";
+export type { SearchResult } from "./search";

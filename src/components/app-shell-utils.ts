@@ -59,3 +59,29 @@ export function findHeadingPosition(
 
   return position;
 }
+
+export function findTextPosition(doc: ProseMirrorNode, query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return null;
+  }
+
+  let position: number | null = null;
+
+  doc.descendants((node, pos) => {
+    if (!node.isText) {
+      return true;
+    }
+
+    const text = node.text?.toLowerCase() ?? "";
+    const index = text.indexOf(normalizedQuery);
+    if (index === -1) {
+      return true;
+    }
+
+    position = pos + index + 1;
+    return false;
+  });
+
+  return position;
+}

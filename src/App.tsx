@@ -25,11 +25,13 @@ import { SetupPanel } from "./components/git/SetupPanel";
 import { SyncStatus } from "./components/git/SyncStatus";
 import { FileTree } from "./components/sidebar/FileTree";
 import { OutlinePanel } from "./components/sidebar/OutlinePanel";
+import { SearchPanel } from "./components/sidebar/SearchPanel";
 import {
   buildCommandPaletteItems,
   countWords,
   createNextNotePath,
   findHeadingPosition,
+  findTextPosition,
 } from "./components/app-shell-utils";
 import {
   Dialog,
@@ -46,15 +48,18 @@ import { useEditorStore } from "./stores/editorStore";
 import { useGitStore } from "./stores/gitStore";
 import { useNoteStore } from "./stores/noteStore";
 import type { OutlineHeading } from "./types";
+import type { SearchResult } from "./types/search";
 
 function SidebarContent({
   markdown,
   onSelectHeading,
+  onSelectSearchResult,
   workspacePath,
   onOpenWorkspace,
 }: {
   markdown: string;
   onSelectHeading: (heading: OutlineHeading) => void;
+  onSelectSearchResult: (result: SearchResult, query: string) => void;
   workspacePath: string | null;
   onOpenWorkspace: () => void;
 }) {
@@ -125,7 +130,21 @@ function SidebarContent({
         </div>
       </section>
 
-      <section className="flex min-h-0 flex-1 flex-col border-b border-border/70">
+      <section className="flex min-h-0 flex-[0.92] flex-col border-b border-border/70">
+        <div className="border-b border-border/70 px-4 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
+            Search
+          </p>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto">
+          <SearchPanel
+            workspacePath={workspacePath}
+            onSelectResult={onSelectSearchResult}
+          />
+        </div>
+      </section>
+
+      <section className="flex min-h-0 flex-[1.08] flex-col border-b border-border/70">
         <div className="border-b border-border/70 px-4 py-2.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
             Files
@@ -274,6 +293,10 @@ function WorkspaceShell({
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("history");
+  const [pendingSearchJump, setPendingSearchJump] = useState<{
+    path: string;
+    query: string;
+  } | null>(null);
 
   const workspacePath = useNoteStore((state) => state.workspacePath);
   const documents = useNoteStore((state) => state.documents);
@@ -304,6 +327,26 @@ function WorkspaceShell({
   useEffect(() => {
     setActiveTab(currentFile);
   }, [currentFile, setActiveTab]);
+
+  useEffect(() => {
+    if (!pendingSearchJump || !currentDocument || currentDocument.path !== pendingSearchJump.path) {
+      return;
+    }
+
+    const view = editorViewRef.current;
+    if (!view) {
+      return;
+    }
+
+    const position = findTextPosition(view.state.doc, pendingSearchJump.query);
+    if (position !== null) {
+      const selection = TextSelection.near(view.state.doc.resolve(position));
+      view.dispatch(view.state.tr.setSelection(selection).scrollIntoView());
+      view.focus();
+    }
+
+    setPendingSearchJump(null);
+  }, [currentDocument, pendingSearchJump]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -421,6 +464,12 @@ function WorkspaceShell({
     });
   };
 
+  const handleSelectSearchResult = (result: SearchResult, query: string) => {
+    void openFile(result.path).then(() => {
+      setPendingSearchJump({ path: result.path, query });
+    });
+  };
+
   return (
     <>
       <AppLayout
@@ -429,6 +478,7 @@ function WorkspaceShell({
           <SidebarContent
             markdown={currentDocument?.content ?? ""}
             onSelectHeading={handleSelectHeading}
+            onSelectSearchResult={handleSelectSearchResult}
             workspacePath={workspacePath}
             onOpenWorkspace={handleOpenWorkspace}
           />
