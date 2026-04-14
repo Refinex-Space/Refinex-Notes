@@ -70,9 +70,9 @@ Deviations: 新类型落地后，原占位 `gitStore` 已无法通过 TypeScript
 **Files:** `src/stores/gitStore.ts`, `src/stores/__tests__/gitStore.test.ts`
 **Verification:** `npm test -- --run src/stores/__tests__/gitStore.test.ts`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `npm test -- --run src/stores/__tests__/gitStore.test.ts` 通过，覆盖工作区状态刷新、仓库未初始化降级、历史/diff 加载、同步事件刷新四类行为。
+Deviations: store 中将“读取当前工作区/当前文件”的职责直接接到 `useNoteStore.getState()`，避免再为 Git UI 引入平行的 workspace context。
 
 ### Step 3: 实现 SyncStatus 与 SetupPanel
 
@@ -106,7 +106,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `npm run build` 通过 | Git 类型模型、service 契约和 store 编译适配已完成 |
-| 2 | ⬜ | | |
+| 2 | ✅ | `npm test -- --run src/stores/__tests__/gitStore.test.ts` 通过，4 个 gitStore 测试通过 | Git store 已接入工作区状态、历史与同步事件 |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
 | 5 | ⬜ | | |
@@ -117,6 +117,7 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | SetupPanel 以 URL clone 为交付基线 | 当前无 GitHub repo list 前端/原生接口 | 在本轮追加后端 repo-list 命令 | 遵循已确认范围，先完成前端 UI 主路径与已存在原生能力接线 |
 | 第 1 步包含 `gitStore` 编译适配 | 新的 Git 状态模型导致旧占位 store 类型失效 | 将类型改动延后到 store 实现时再做 | 尽早让类型与服务契约进入稳定编译面，避免后续 UI 改动建立在失配模型之上 |
+| `gitStore` 直接读取 `noteStore` 的工作区上下文 | Git 状态与当前文件都依赖现有工作区状态 | 新建共享 workspace provider | 复用现有 Zustand 边界，减少无意义状态复制和额外 Provider 层 |
 
 ## Completion Summary
 
