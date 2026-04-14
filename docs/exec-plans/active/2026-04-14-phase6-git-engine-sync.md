@@ -54,7 +54,7 @@ Author: agent
 
 ### Step 1: 建立 Git 域模型与执行计划基线
 
-**Files:** `src-tauri/Cargo.toml`, `src-tauri/src/git/mod.rs`, `src-tauri/src/git/auth.rs`, `docs/exec-plans/active/2026-04-14-phase6-git-engine-sync.md`
+**Files:** `src-tauri/Cargo.toml`, `src-tauri/src/git/mod.rs`, `src-tauri/src/git/auth.rs`, `src-tauri/src/lib.rs`, `docs/exec-plans/active/2026-04-14-phase6-git-engine-sync.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml git::`
 
 Status: ⬜ Not started
