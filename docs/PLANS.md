@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Phase 6 Git Engine Sync](exec-plans/active/2026-04-14-phase6-git-engine-sync.md) — started 2026-04-14
 
 ## Completed Plans
 
