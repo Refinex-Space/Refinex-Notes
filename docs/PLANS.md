@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Empty Default Workspace](exec-plans/active/2026-04-14-empty-default-workspace.md) — started 2026-04-14
 
 ## Completed Plans
 
