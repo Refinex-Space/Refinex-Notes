@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [GitHub App Device Flow Migration](exec-plans/active/2026-04-14-github-app-device-flow-migration.md) — started 2026-04-14
 
 ## Completed Plans
 
