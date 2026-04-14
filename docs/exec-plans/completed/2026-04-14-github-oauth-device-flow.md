@@ -1,7 +1,7 @@
 # Execution Plan: GitHub OAuth Device Flow
 
 Created: 2026-04-14
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -30,10 +30,10 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: 首次启动在无有效 token 时展示登录界面，点击 GitHub 登录后可获得 `user_code`、展示 `verification_uri`，并在授权成功后进入主界面。
-- [ ] AC-2: `github_auth_poll` 使用 Tauri Channel 向前端发送轮询进度，授权成功后把 token 写入 `"refinex-notes" / "github-token"` 钥匙串条目。
-- [ ] AC-3: 应用重启后 `check_auth_status` 能恢复有效登录态；执行登出后删除钥匙串 token 并回到登录界面。
-- [ ] AC-4: `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 通过。
+- [x] AC-1: 首次启动在无有效 token 时展示登录界面，点击 GitHub 登录后可获得 `user_code`、展示 `verification_uri`，并在授权成功后进入主界面。
+- [x] AC-2: `github_auth_poll` 使用 Tauri Channel 向前端发送轮询进度，授权成功后把 token 写入 `"refinex-notes" / "github-token"` 钥匙串条目。
+- [x] AC-3: 应用重启后 `check_auth_status` 能恢复有效登录态；执行登出后删除钥匙串 token 并回到登录界面。
+- [x] AC-4: `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 通过。
 
 ## Risk Notes
 
@@ -78,8 +78,8 @@ Deviations:
 **Files:** `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`（如依赖或运行要求变化）
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml && npm test -- --run && npm run build && python3 scripts/check_harness.py`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 通过（6/6），`npm test -- --run` 通过（80/80），`npm run build` 通过，`python3 scripts/check_harness.py` 通过；`docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md` 已同步 GitHub OAuth / keyring / `GITHUB_CLIENT_ID` 运行要求。
 Deviations:
 
 ## Progress Log
@@ -89,7 +89,7 @@ Deviations:
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 通过（6/6） | Rust 侧 GitHub Device Flow、keyring 与浏览器打开辅助命令已落地 |
 | 2 | ✅ | `npm test -- --run src/stores/__tests__/authStore.test.ts` 通过（3/3） | 前端 service/store 已具备启动恢复、device flow 轮询和登出清空状态 |
 | 3 | ✅ | `npm run build` 通过 | 登录界面与主界面 gating 已接通，侧栏 Workspace 区新增登出入口 |
-| 4 | ⬜ | | |
+| 4 | ✅ | `cargo test` / `npm test` / `npm run build` / `check_harness` 全部通过 | 控制面已补充认证架构与运行环境要求 |
 
 ## Decision Log
 
@@ -102,6 +102,6 @@ Deviations:
 
 Completed:
 Duration: 4 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 本轮交付了 GitHub OAuth Device Flow 的原生与前端完整闭环：Rust 侧已能发起授权、按 GitHub 要求轮询并把 access token 写入系统钥匙串，同时提供启动恢复登录态与登出清理；前端已新增认证 service/store、全屏登录界面以及 `SplashScreen → LoginScreen → WorkspaceShell` gating。为减少额外依赖，浏览器打开动作采用了严格限制到 GitHub 域名的 `open_external_url` 原生命令。验证上，编译、Rust/前端测试与 Harness 校验均为最新通过；唯一剩余的是我没有在当前会话里用真实 `GITHUB_CLIENT_ID` 做一次桌面手工 OAuth smoke。
