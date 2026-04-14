@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Inline Code Editor Hardening](exec-plans/active/2026-04-14-inline-code-editor-hardening.md) — started 2026-04-14
 
 ## Completed Plans
 
+- [Inline Code Editor Hardening](exec-plans/completed/2026-04-14-inline-code-editor-hardening.md) — completed 2026-04-14
 - [Inline Code Cursor Fix](exec-plans/completed/2026-04-14-inline-code-cursor-fix.md) — completed 2026-04-14
 - [Empty Default Workspace](exec-plans/completed/2026-04-14-empty-default-workspace.md) — completed 2026-04-14
 - [Rust File Backend Workspace](exec-plans/completed/2026-04-14-rust-file-backend-workspace.md) — completed 2026-04-14
