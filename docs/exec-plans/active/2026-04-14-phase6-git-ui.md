@@ -85,7 +85,7 @@ Deviations: 为了降低 SSR 测试脆弱性，组件测试优先断言 `SyncSta
 
 ### Step 4: 集成 HistoryPanel、FileTree 和应用壳
 
-**Files:** `src/components/git/HistoryPanel.tsx`, `src/components/sidebar/FileTree.tsx`, `src/App.tsx`, `src/components/sidebar/__tests__/FileTree.test.tsx`
+**Files:** `src/components/git/HistoryPanel.tsx`, `src/components/sidebar/FileTree.tsx`, `src/App.tsx`, `src/types/notes.ts`, `src/components/sidebar/__tests__/FileTree.test.tsx`
 **Verification:** `npm test -- --run src/components/git/__tests__/HistoryPanel.test.tsx src/components/sidebar/__tests__/FileTree.test.tsx`
 
 Status: ⬜ Not started
