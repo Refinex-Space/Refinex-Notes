@@ -31,8 +31,10 @@ import {
   getNodeDirectoryPath,
   isMarkdownPath,
 } from "./sidebar-utils";
+import { useGitStore } from "../../stores/gitStore";
+import type { FileGitStatus } from "../../types/notes";
 
-function gitStatusTone(status: FileNode["gitStatus"]) {
+export function gitStatusTone(status: FileGitStatus | undefined) {
   switch (status) {
     case "added":
     case "untracked":
@@ -71,10 +73,12 @@ function FileRow({
   const createFolder = useNoteStore((state) => state.createFolder);
   const renameFile = useNoteStore((state) => state.renameFile);
   const deleteFile = useNoteStore((state) => state.deleteFile);
+  const statusByPath = useGitStore((state) => state.statusByPath);
 
   const indentation = { paddingLeft: `${0.55 + depth * 0.9}rem` };
   const isCurrent = currentFile === node.path;
   const directoryPath = getNodeDirectoryPath(node);
+  const effectiveGitStatus = statusByPath[node.path] ?? node.gitStatus;
 
   const row = node.isDir ? (
     <div>
@@ -119,7 +123,7 @@ function FileRow({
       className={[
         "flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-5 transition",
         "hover:bg-white/[0.04] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
-        isCurrent ? "bg-accent/10 text-fg" : "text-muted",
+        isCurrent ? "bg-accent/10 text-fg" : gitStatusTone(effectiveGitStatus),
       ]
         .filter(Boolean)
         .join(" ")}
@@ -134,11 +138,11 @@ function FileRow({
     >
       <FileText className="h-3.5 w-3.5 shrink-0 text-fg/55" />
       <span className="truncate">{node.name}</span>
-      {shouldRenderGitStatus(node.gitStatus) ? (
+      {shouldRenderGitStatus(effectiveGitStatus) ? (
         <Circle
           className={[
             "ml-auto h-2 w-2 shrink-0 fill-current",
-            gitStatusTone(node.gitStatus),
+            gitStatusTone(effectiveGitStatus),
           ].join(" ")}
         />
       ) : null}

@@ -3,6 +3,10 @@ export type FileGitStatus =
   | "modified"
   | "deleted"
   | "untracked"
+  | "renamed"
+  | "typechange"
+  | "conflicted"
+  | "ignored"
   | "clean";
 
 export interface FileNode {

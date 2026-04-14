@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { FileNode } from "../../../types/notes";
-import { FileTreeNodes } from "../FileTree";
+import { FileTreeNodes, gitStatusTone } from "../FileTree";
 
 describe("FileTree", () => {
   it("renders directories collapsed by default", () => {
@@ -41,5 +41,10 @@ describe("FileTree", () => {
     expect(markup).toContain("Projects");
     expect(markup).toContain('data-state="closed"');
     expect(markup).not.toContain('data-state="open"');
+  });
+
+  it("maps modified files to amber text", () => {
+    expect(gitStatusTone("modified")).toBe("text-amber-400");
+    expect(gitStatusTone("untracked")).toBe("text-emerald-400");
   });
 });

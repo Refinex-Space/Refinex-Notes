@@ -20,6 +20,9 @@ import { LoginScreen } from "./components/auth/LoginScreen";
 import { TabBar } from "./components/editor/TabBar";
 import { AppLayout } from "./components/layout/AppLayout";
 import { StatusBar } from "./components/layout/StatusBar";
+import { HistoryPanel } from "./components/git/HistoryPanel";
+import { SetupPanel } from "./components/git/SetupPanel";
+import { SyncStatus } from "./components/git/SyncStatus";
 import { FileTree } from "./components/sidebar/FileTree";
 import { OutlinePanel } from "./components/sidebar/OutlinePanel";
 import {
@@ -37,8 +40,10 @@ import {
 } from "./components/ui/dialog";
 import { RefinexEditor } from "./editor";
 import { fileService } from "./services/fileService";
+import { gitService } from "./services/gitService";
 import { useAuthStore } from "./stores/authStore";
 import { useEditorStore } from "./stores/editorStore";
+import { useGitStore } from "./stores/gitStore";
 import { useNoteStore } from "./stores/noteStore";
 import type { OutlineHeading } from "./types";
 
@@ -145,40 +150,85 @@ function SidebarContent({
   );
 }
 
-function RightPanelContent() {
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4">
-      <section className="rounded-3xl border border-border/70 bg-bg/70 p-4">
-        <div className="flex items-center gap-2">
-          <BrainCircuit className="h-4 w-4 text-accent" />
-          <p className="text-sm font-semibold text-fg">AI Panel</p>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-muted">
-          这里会接入写作建议、总结和智能续写。本阶段保留应用壳位置与信息层级。
-        </p>
-      </section>
+type RightPanelTab = "history" | "setup";
 
-      <section className="rounded-3xl border border-border/70 bg-bg/70 p-4">
+function RightPanelContent({
+  currentFile,
+  workspacePath,
+  activeTab,
+  setActiveTab,
+}: {
+  currentFile: string | null;
+  workspacePath: string | null;
+  activeTab: RightPanelTab;
+  setActiveTab: Dispatch<SetStateAction<RightPanelTab>>;
+}) {
+  const user = useAuthStore((state) => state.user);
+  const openWorkspace = useNoteStore((state) => state.openWorkspace);
+  const initRepo = useGitStore((state) => state.initRepo);
+  const cloneRepo = useGitStore((state) => state.cloneRepo);
+  const startSync = useGitStore((state) => state.startSync);
+  const syncStatus = useGitStore((state) => state.syncStatus);
+  const isRunningAction = useGitStore((state) => state.isRunningAction);
+  const errorMessage = useGitStore((state) => state.errorMessage);
+
+  const showSetup = syncStatus === "not-initialized" || activeTab === "setup";
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-border/70 px-4 py-3">
         <div className="flex items-center gap-2">
           <GitBranch className="h-4 w-4 text-accent" />
-          <p className="text-sm font-semibold text-fg">Git Panel</p>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-fg">Git Panel</p>
+            <p className="text-xs text-muted">
+              {showSetup ? "初始化或 clone 工作区仓库" : "查看当前文件的提交时间线"}
+            </p>
+          </div>
         </div>
-        <p className="mt-3 text-sm leading-6 text-muted">
-          文件树里的 Git 颜色目前使用 mock 数据；真实 diff、history 和 sync 会在后续阶段落地。
-        </p>
-      </section>
+        <div className="mt-3 inline-flex rounded-full border border-border/70 bg-white/[0.03] p-1">
+          {(["history", "setup"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              className={[
+                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                activeTab === tab
+                  ? "bg-accent/12 text-accent"
+                  : "text-muted hover:text-fg",
+              ].join(" ")}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === "history" ? "历史" : "引导"}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <section className="rounded-3xl border border-border/70 bg-accent/6 p-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-accent" />
-          <p className="text-sm font-semibold text-fg">Shell Notes</p>
-        </div>
-        <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
-          <li>1. 左右面板支持折叠与拖拽改宽</li>
-          <li>2. 标签栏、状态栏和命令面板已接入共享 store</li>
-          <li>3. 大纲点击会将编辑器滚动到对应标题</li>
-        </ul>
-      </section>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {showSetup ? (
+          <SetupPanel
+            workspacePath={workspacePath}
+            userLogin={user?.login ?? null}
+            isBusy={isRunningAction}
+            errorMessage={errorMessage}
+            onInitRepo={() => {
+              void initRepo().then(() => startSync());
+            }}
+            onCloneRepo={(url, targetPath) => {
+              void cloneRepo(url, targetPath).then(async () => {
+                if (useGitStore.getState().errorMessage) {
+                  return;
+                }
+                await openWorkspace(targetPath);
+                setActiveTab("history");
+              });
+            }}
+          />
+        ) : (
+          <HistoryPanel currentFile={currentFile} />
+        )}
+      </div>
     </div>
   );
 }
@@ -223,6 +273,7 @@ function WorkspaceShell({
   setTheme: Dispatch<SetStateAction<"light" | "dark">>;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("history");
 
   const workspacePath = useNoteStore((state) => state.workspacePath);
   const documents = useNoteStore((state) => state.documents);
@@ -241,6 +292,10 @@ function WorkspaceShell({
   const markDirty = useEditorStore((state) => state.markDirty);
   const markClean = useEditorStore((state) => state.markClean);
   const setCursorPosition = useEditorStore((state) => state.setCursorPosition);
+  const hydrateWorkspace = useGitStore((state) => state.hydrateWorkspace);
+  const startSync = useGitStore((state) => state.startSync);
+  const stopSync = useGitStore((state) => state.stopSync);
+  const handleSyncEvent = useGitStore((state) => state.handleSyncEvent);
 
   const editorViewRef = useRef<EditorView | null>(null);
 
@@ -265,6 +320,19 @@ function WorkspaceShell({
   }, [saveCurrentFile]);
 
   useEffect(() => {
+    void hydrateWorkspace(workspacePath);
+    if (!workspacePath || !gitService.isNativeAvailable()) {
+      return;
+    }
+
+    void startSync();
+
+    return () => {
+      void stopSync();
+    };
+  }, [hydrateWorkspace, startSync, stopSync, workspacePath]);
+
+  useEffect(() => {
     let disposed = false;
     let cleanup: (() => void) | undefined;
 
@@ -286,6 +354,29 @@ function WorkspaceShell({
       cleanup?.();
     };
   }, [refreshWorkspace]);
+
+  useEffect(() => {
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+
+    void gitService.onSyncStatus((payload) => {
+      if (disposed) {
+        return;
+      }
+      handleSyncEvent(payload);
+    }).then((unlisten) => {
+      if (disposed) {
+        unlisten();
+        return;
+      }
+      cleanup = unlisten;
+    });
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, [handleSyncEvent]);
 
   const commandPaletteFiles = useMemo(
     () => buildCommandPaletteItems(documents),
@@ -370,7 +461,14 @@ function WorkspaceShell({
             <EmptyEditorState />
           )
         }
-        rightPanel={<RightPanelContent />}
+        rightPanel={
+          <RightPanelContent
+            currentFile={currentFile}
+            workspacePath={workspacePath}
+            activeTab={rightPanelTab}
+            setActiveTab={setRightPanelTab}
+          />
+        }
         statusBar={
           <StatusBar
             syncLabel={syncLabel}
@@ -378,10 +476,16 @@ function WorkspaceShell({
             cursor={cursorPosition}
             wordCount={wordCount}
             language={currentDocument?.language ?? "Markdown"}
+            gitStatusSlot={
+              <SyncStatus
+                onOpenHistory={() => setRightPanelTab("history")}
+                onOpenSettings={() => setRightPanelTab("setup")}
+              />
+            }
           />
         }
         sidebarTitle="Navigator"
-        rightPanelTitle="AI / Git"
+        rightPanelTitle="Git"
       />
 
       <CommandPalette

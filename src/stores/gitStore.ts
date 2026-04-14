@@ -333,6 +333,7 @@ export const useGitStore = create<GitStore>()(
           state.history = history;
           state.isLoadingHistory = false;
           state.selectedCommitHash = history[0]?.hash ?? null;
+          state.selectedCommitDiff = null;
         });
         return history;
       } catch (error) {
