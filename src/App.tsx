@@ -281,6 +281,7 @@ function App() {
           currentDocument ? (
             <div className="h-full overflow-auto bg-bg">
               <RefinexEditor
+                key={currentDocument.path}
                 value={currentDocument.content}
                 className="min-h-full px-6 py-5"
                 onChange={(markdown) => {

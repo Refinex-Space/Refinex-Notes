@@ -55,6 +55,31 @@ function countTextblockLines(text: string) {
   return Math.max(1, text.split("\n").length);
 }
 
+function reportCursorPositionSafely(
+  state: EditorState,
+  callback: ((position: EditorCursorPosition) => void) | undefined,
+) {
+  if (!callback) {
+    return;
+  }
+
+  try {
+    callback(getCursorPosition(state));
+  } catch (error) {
+    console.error("计算编辑器光标位置失败", error);
+    callback({ line: 1, col: 1 });
+  }
+}
+
+function serializeMarkdownSafely(state: EditorState): string {
+  try {
+    return serializeMarkdown(stripTrailingParagraph(state.doc));
+  } catch (error) {
+    console.error("序列化编辑器内容失败", error);
+    return "";
+  }
+}
+
 function getCursorPositionFallback(state: EditorState): EditorCursorPosition {
   const { $from } = state.selection;
   const blockPosition = $from.depth > 0 ? $from.before($from.depth) : 0;
@@ -201,10 +226,10 @@ export function RefinexEditor({
         const result = view.state.applyTransaction(transaction);
         view.updateState(result.state);
         setOverlayVersion((current) => current + 1);
-        onCursorChangeRef.current?.(getCursorPosition(result.state));
+        reportCursorPositionSafely(result.state, onCursorChangeRef.current);
 
         if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
-          const markdown = serializeMarkdown(stripTrailingParagraph(result.state.doc));
+          const markdown = serializeMarkdownSafely(result.state);
           onChangeRef.current(markdown);
         }
       },
@@ -213,7 +238,7 @@ export function RefinexEditor({
     viewRef.current = view;
     setEditorView(view);
     onEditorViewRef.current?.(view);
-    onCursorChangeRef.current?.(getCursorPosition(view.state));
+    reportCursorPositionSafely(view.state, onCursorChangeRef.current);
 
     return () => {
       onEditorViewRef.current?.(null);
@@ -251,7 +276,7 @@ export function RefinexEditor({
     const view = viewRef.current;
     if (!view) return;
 
-    const current = serializeMarkdown(stripTrailingParagraph(view.state.doc));
+    const current = serializeMarkdownSafely(view.state);
     if (current === value) return;
 
     const doc = ensureTrailingParagraph(parseMarkdown(value));
@@ -260,7 +285,7 @@ export function RefinexEditor({
       plugins: view.state.plugins,
     });
     view.updateState(newState);
-    onCursorChangeRef.current?.(getCursorPosition(newState));
+    reportCursorPositionSafely(newState, onCursorChangeRef.current);
   }, [value]);
 
   return (
