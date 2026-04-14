@@ -69,8 +69,8 @@ Deviations:
 **Files:** `src/components/auth/LoginScreen.tsx`, `src/App.tsx`, `src/components/layout/StatusBar.tsx`（如需接入登出入口）
 **Verification:** `npm run build`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `npm run build` 通过；`src/App.tsx` 已在启动时执行 `checkAuth()` 并按 `SplashScreen → LoginScreen → WorkspaceShell` gating，`LoginScreen` 已包含 GitHub 登录按钮、验证码展示、复制/打开浏览器按钮与轮询中的进度提示。
 Deviations:
 
 ### Step 4: 运行全量验证并同步控制面
@@ -88,7 +88,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 通过（6/6） | Rust 侧 GitHub Device Flow、keyring 与浏览器打开辅助命令已落地 |
 | 2 | ✅ | `npm test -- --run src/stores/__tests__/authStore.test.ts` 通过（3/3） | 前端 service/store 已具备启动恢复、device flow 轮询和登出清空状态 |
-| 3 | ⬜ | | |
+| 3 | ✅ | `npm run build` 通过 | 登录界面与主界面 gating 已接通，侧栏 Workspace 区新增登出入口 |
 | 4 | ⬜ | | |
 
 ## Decision Log
