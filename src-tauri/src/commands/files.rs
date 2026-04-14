@@ -30,6 +30,7 @@ pub fn open_workspace(
     let file_tree = scan_directory_tree(&workspace_path, &workspace_path)?;
     let workspace_watcher =
         watcher::create_workspace_watcher(app_handle, workspace_path.clone())?;
+    stop_running_sync(&state)?;
 
     {
         let connection = state
@@ -95,7 +96,8 @@ pub fn write_file(
         fs::create_dir_all(parent).map_err(|error| format!("创建父目录失败: {error}"))?;
     }
 
-    fs::write(&target_path, content).map_err(|error| format!("写入文件失败: {error}"))
+    fs::write(&target_path, content).map_err(|error| format!("写入文件失败: {error}"))?;
+    notify_git_sync(&state)
 }
 
 #[tauri::command]
@@ -111,8 +113,9 @@ pub fn create_file(state: State<'_, AppState>, path: String) -> Result<(), Strin
         .write(true)
         .create_new(true)
         .open(&target_path)
-        .map(|_| ())
-        .map_err(|error| format!("创建文件失败: {error}"))
+        .map_err(|error| format!("创建文件失败: {error}"))?;
+
+    notify_git_sync(&state)
 }
 
 #[tauri::command]
@@ -120,7 +123,8 @@ pub fn create_dir(state: State<'_, AppState>, path: String) -> Result<(), String
     let workspace_path = current_workspace_path(&state)?;
     let target_path = resolve_workspace_path(&workspace_path, &path)?;
 
-    fs::create_dir_all(&target_path).map_err(|error| format!("创建目录失败: {error}"))
+    fs::create_dir_all(&target_path).map_err(|error| format!("创建目录失败: {error}"))?;
+    notify_git_sync(&state)
 }
 
 #[tauri::command]
@@ -132,7 +136,9 @@ pub fn delete_file(state: State<'_, AppState>, path: String) -> Result<(), Strin
         fs::remove_dir_all(&target_path).map_err(|error| format!("删除目录失败: {error}"))
     } else {
         fs::remove_file(&target_path).map_err(|error| format!("删除文件失败: {error}"))
-    }
+    }?;
+
+    notify_git_sync(&state)
 }
 
 #[tauri::command]
@@ -150,7 +156,9 @@ pub fn rename_file(
     }
 
     fs::rename(&source_path, &destination_path)
-        .map_err(|error| format!("重命名失败: {error}"))
+        .map_err(|error| format!("重命名失败: {error}"))?;
+
+    notify_git_sync(&state)
 }
 
 fn current_workspace_path(state: &State<'_, AppState>) -> Result<PathBuf, String> {
@@ -263,6 +271,35 @@ fn scan_directory_tree(root_path: &Path, workspace_path: &Path) -> Result<Vec<Fi
     });
 
     Ok(nodes)
+}
+
+fn stop_running_sync(state: &State<'_, AppState>) -> Result<(), String> {
+    let controller = {
+        let mut guard = state
+            .git_sync
+            .lock()
+            .map_err(|_| "Git 同步状态锁获取失败".to_string())?;
+        guard.take()
+    };
+
+    if let Some(controller) = controller {
+        controller.stop();
+    }
+
+    Ok(())
+}
+
+fn notify_git_sync(state: &State<'_, AppState>) -> Result<(), String> {
+    let guard = state
+        .git_sync
+        .lock()
+        .map_err(|_| "Git 同步状态锁获取失败".to_string())?;
+
+    if let Some(controller) = guard.as_ref() {
+        controller.notify_local_change()?;
+    }
+
+    Ok(())
 }
 
 fn should_ignore(name: &str) -> bool {

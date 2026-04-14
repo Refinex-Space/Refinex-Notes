@@ -4,6 +4,8 @@ use std::sync::Mutex;
 use notify::RecommendedWatcher;
 use rusqlite::Connection;
 
+use crate::git::sync::GitSyncController;
+
 #[allow(dead_code)]
 pub struct AppState {
     pub github_client_id: String,
@@ -11,6 +13,7 @@ pub struct AppState {
     pub db: Mutex<Connection>,
     pub workspace_path: Mutex<Option<PathBuf>>,
     pub watcher: Mutex<Option<RecommendedWatcher>>,
+    pub git_sync: Mutex<Option<GitSyncController>>,
 }
 
 impl AppState {
@@ -21,6 +24,7 @@ impl AppState {
             db: Mutex::new(db),
             workspace_path: Mutex::new(None),
             watcher: Mutex::new(None),
+            git_sync: Mutex::new(None),
         }
     }
 }
