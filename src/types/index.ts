@@ -1,5 +1,12 @@
-export type { UserProfile } from "./auth";
-export type { AuthStore, AuthStoreActions, AuthStoreState } from "./auth";
+export type {
+  AuthProgressEvent,
+  AuthStep,
+  AuthStore,
+  AuthStoreActions,
+  AuthStoreState,
+  DeviceCodeResponse,
+  UserProfile,
+} from "./auth";
 export type {
   FileGitStatus,
   FileNode,

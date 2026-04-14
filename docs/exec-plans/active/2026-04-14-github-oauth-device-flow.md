@@ -60,8 +60,8 @@ Deviations:
 **Files:** `src/services/authService.ts`, `src/stores/authStore.ts`, `src/types/auth.ts`, `src/hooks/useAuth.ts`, `src/stores/__tests__/authStore.test.ts`
 **Verification:** `npm test -- --run src/stores/__tests__/authStore.test.ts`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `npm test -- --run src/stores/__tests__/authStore.test.ts` 通过（3/3），`npm run build` 通过；前端已具备 `checkStatus` / `startLogin` / `pollForLogin` / `logout` / `openVerificationUri` service 封装，以及带轮询状态机的 `authStore`。
 Deviations:
 
 ### Step 3: 落地登录界面与主界面认证 gating
@@ -87,7 +87,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 通过（6/6） | Rust 侧 GitHub Device Flow、keyring 与浏览器打开辅助命令已落地 |
-| 2 | ⬜ | | |
+| 2 | ✅ | `npm test -- --run src/stores/__tests__/authStore.test.ts` 通过（3/3） | 前端 service/store 已具备启动恢复、device flow 轮询和登出清空状态 |
 | 3 | ⬜ | | |
 | 4 | ⬜ | | |
 
