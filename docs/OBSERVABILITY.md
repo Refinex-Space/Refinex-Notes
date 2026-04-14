@@ -32,14 +32,14 @@
   - `TAURI_DEV_HOST` — optional Vite host override during `tauri dev`
   - `TAURI_PLATFORM` — switches Vite build target per platform
   - `TAURI_DEBUG` — disables minification and enables sourcemaps in debug builds
-  - `GITHUB_APP_CLIENT_ID` — optional build-time source for embedding the GitHub App client ID into the native desktop binary
-  - `GITHUB_CLIENT_ID` — legacy build-time fallback for local development while migrating to `GITHUB_APP_CLIENT_ID`
+  - `GITHUB_APP_CLIENT_ID` — optional build-time override for the embedded GitHub App client ID
+  - `GITHUB_CLIENT_ID` — legacy build-time fallback kept for local compatibility
 
 ## Auth Smoke Notes
 
 - Device Flow login is only fully exercisable under `npm run tauri dev` or a bundled desktop build because the auth commands depend on Tauri IPC and the system keyring.
-- The GitHub App `client_id` is compiled into the native app at build time; end users should not be asked to configure runtime environment variables.
-- For a real local maintainer smoke test, export `GITHUB_APP_CLIENT_ID` before starting the desktop app so Cargo can embed it during the build:
+- The GitHub App `client_id` is already embedded in the native app; end users should not be asked to configure runtime environment variables.
+- Maintainers can still override the embedded value during local builds by exporting `GITHUB_APP_CLIENT_ID` before starting the desktop app:
 
 ```bash
 export GITHUB_APP_CLIENT_ID=<your-github-app-client-id>
