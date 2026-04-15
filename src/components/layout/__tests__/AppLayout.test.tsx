@@ -19,6 +19,7 @@ describe("AppLayout", () => {
     expect(markup).toContain("overflow-hidden");
     expect(markup).toContain("grid min-h-0 flex-1 overflow-hidden");
     expect(markup).toContain("min-h-0 flex-1 overflow-hidden");
+    expect(markup).toContain("px-2.5 py-1.5");
   });
 
   it("still renders editor content when the right panel starts collapsed", () => {

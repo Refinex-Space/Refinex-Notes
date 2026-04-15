@@ -235,7 +235,7 @@ export function AppLayout({
             </div>
           ) : null}
 
-          <div className="border-b border-border/70 bg-bg/80 px-3 py-2">
+          <div className="border-b border-border/70 bg-bg/80 px-2.5 py-1.5">
             {tabBar}
           </div>
           <div className="h-full min-h-0 overflow-hidden">{editor}</div>
