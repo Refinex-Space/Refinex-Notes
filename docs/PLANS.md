@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Editor Open Switch Performance](exec-plans/active/2026-04-16-editor-open-switch-performance.md) — started 2026-04-16
 - [Workspace Open Performance](exec-plans/active/2026-04-16-workspace-open-performance.md) — started 2026-04-16
 
 ## Completed Plans
