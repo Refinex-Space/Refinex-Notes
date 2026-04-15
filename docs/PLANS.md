@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Workspace Open Performance](exec-plans/active/2026-04-16-workspace-open-performance.md) — started 2026-04-16
 
 ## Completed Plans
 
+- [Workspace Open Performance](exec-plans/completed/2026-04-16-workspace-open-performance.md) — completed 2026-04-16
 - [Editor Extreme Performance](exec-plans/completed/2026-04-16-editor-extreme-performance.md) — completed 2026-04-16
 - [Editor Open Switch Performance](exec-plans/completed/2026-04-16-editor-open-switch-performance.md) — completed 2026-04-16
 - [Fix Inline Code Table Serialization](exec-plans/completed/2026-04-16-fix-inline-code-table-serialization.md) — completed 2026-04-16
