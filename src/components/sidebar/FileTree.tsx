@@ -71,7 +71,7 @@ export function FileTreeEmptyState({
     : "本地 Markdown / Git 仓库";
 
   return (
-    <div className="grid h-full min-h-0 w-full place-items-center bg-[rgb(var(--color-bg)/0.9)] px-6 py-8">
+    <div className="w-full bg-[rgb(var(--color-bg)/0.9)] px-6 py-8">
       <div className="max-w-[14rem] text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-white/[0.05] text-fg/70">
           <FolderOpenDot className="h-6 w-6" />

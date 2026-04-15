@@ -29,10 +29,15 @@ export function formatRelativeTime(timestamp: number, now = Date.now()) {
 
 export function HistoryPanel({ currentFile }: HistoryPanelProps) {
   const history = useGitStore((state) => state.history);
+  const repoHistory = useGitStore((state) => state.repoHistory);
   const isLoadingHistory = useGitStore((state) => state.isLoadingHistory);
+  const isLoadingRepoHistory = useGitStore(
+    (state) => state.isLoadingRepoHistory,
+  );
   const selectedCommitHash = useGitStore((state) => state.selectedCommitHash);
   const selectedCommitDiff = useGitStore((state) => state.selectedCommitDiff);
   const getHistory = useGitStore((state) => state.getHistory);
+  const getRepoHistory = useGitStore((state) => state.getRepoHistory);
   const selectHistoryEntry = useGitStore((state) => state.selectHistoryEntry);
   const errorMessage = useGitStore((state) => state.errorMessage);
 
@@ -42,6 +47,10 @@ export function HistoryPanel({ currentFile }: HistoryPanelProps) {
     }
     void getHistory(currentFile);
   }, [currentFile, getHistory]);
+
+  useEffect(() => {
+    void getRepoHistory();
+  }, [getRepoHistory]);
 
   useEffect(() => {
     if (!selectedCommitHash || selectedCommitDiff !== null) {
@@ -72,6 +81,38 @@ export function HistoryPanel({ currentFile }: HistoryPanelProps) {
 
       <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="min-h-0 overflow-auto border-b border-border/70 px-3 py-3">
+          <section className="mb-4 rounded-[1.2rem] border border-border/60 bg-[rgb(var(--color-bg)/0.72)] p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <GitCommitHorizontal className="h-4 w-4 text-accent" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                Repository
+              </p>
+            </div>
+            {isLoadingRepoHistory && repoHistory.length === 0 ? (
+              <p className="text-sm text-muted">正在读取仓库最近提交…</p>
+            ) : repoHistory.length === 0 ? (
+              <p className="text-sm leading-6 text-muted">
+                当前仓库还没有提交记录。
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {repoHistory.slice(0, 3).map((entry) => (
+                  <div
+                    key={`repo:${entry.hash}`}
+                    className="rounded-xl px-2 py-1.5 text-sm"
+                  >
+                    <p className="truncate font-medium text-fg">
+                      {entry.message}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {entry.author} · {formatRelativeTime(entry.date)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           {isLoadingHistory && history.length === 0 ? (
             <p className="text-sm text-muted">正在读取提交历史…</p>
           ) : history.length === 0 ? (
@@ -122,7 +163,8 @@ export function HistoryPanel({ currentFile }: HistoryPanelProps) {
             <p className="text-sm font-semibold text-fg">只读历史快照</p>
           </div>
           <p className="mb-3 text-xs leading-5 text-muted">
-            当前原生层提供的是 commit patch 预览，因此这里展示的是该提交的只读变更内容。
+            当前原生层提供的是 commit patch
+            预览，因此这里展示的是该提交的只读变更内容。
           </p>
           {errorMessage ? (
             <p className="mb-3 rounded-2xl border border-rose-300/40 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-300/15 dark:bg-rose-400/10 dark:text-rose-100">

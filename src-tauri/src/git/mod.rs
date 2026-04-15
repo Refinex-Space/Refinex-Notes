@@ -33,6 +33,8 @@ pub enum FileStatusKind {
 pub struct FileStatus {
     pub path: String,
     pub status: FileStatusKind,
+    pub staged: bool,
+    pub unstaged: bool,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -149,6 +151,23 @@ pub(crate) fn simplify_status(status: Status) -> Option<FileStatusKind> {
     None
 }
 
+pub(crate) fn classify_status_presence(status: Status) -> (bool, bool) {
+    let staged = status.is_index_new()
+        || status.is_index_modified()
+        || status.is_index_deleted()
+        || status.is_index_renamed()
+        || status.is_index_typechange();
+
+    let unstaged = status.is_wt_new()
+        || status.is_wt_modified()
+        || status.is_wt_deleted()
+        || status.is_wt_renamed()
+        || status.is_wt_typechange()
+        || status.is_conflicted();
+
+    (staged, unstaged)
+}
+
 pub fn init_repo(path: &str) -> GitResult<()> {
     let workspace_path = PathBuf::from(path);
     fs::create_dir_all(&workspace_path)
@@ -189,9 +208,12 @@ pub fn get_status(path: &str) -> GitResult<Vec<FileStatus>> {
 
     for entry in statuses.iter() {
         if let (Some(relative_path), Some(status)) = (entry.path(), simplify_status(entry.status())) {
+            let (staged, unstaged) = classify_status_presence(entry.status());
             items.push(FileStatus {
                 path: relative_path.replace('\\', "/"),
                 status,
+                staged,
+                unstaged,
             });
         }
     }
@@ -454,8 +476,9 @@ fn commit_touches_path(repo: &Repository, oid: &Oid, file_path: &str) -> GitResu
 #[cfg(test)]
 mod tests {
     use super::{
-        branch_divergence, clone_repo, commit, get_diff, get_log, get_status, init_repo,
-        push, simplify_status, stage_all, FileStatusKind, GitError, GitErrorKind, GitErrorKind as Kind, pull,
+        branch_divergence, classify_status_presence, clone_repo, commit, get_diff, get_log,
+        get_status, init_repo, pull, push, simplify_status, stage_all, FileStatusKind, GitError,
+        GitErrorKind, GitErrorKind as Kind,
     };
     use git2::{Repository, RepositoryInitOptions, Status};
     use std::fs;
@@ -475,6 +498,18 @@ mod tests {
     }
 
     #[test]
+    fn classify_status_presence_tracks_index_and_worktree_sides() {
+        let (staged, unstaged) = classify_status_presence(Status::INDEX_MODIFIED);
+        assert_eq!((staged, unstaged), (true, false));
+
+        let (staged, unstaged) = classify_status_presence(Status::WT_MODIFIED);
+        assert_eq!((staged, unstaged), (false, true));
+
+        let (staged, unstaged) = classify_status_presence(Status::INDEX_MODIFIED | Status::WT_MODIFIED);
+        assert_eq!((staged, unstaged), (true, true));
+    }
+
+    #[test]
     fn git_error_exposes_kind_and_message() {
         let error = GitError::new(GitErrorKind::InvalidState, "状态异常");
         assert_eq!(error.kind(), GitErrorKind::InvalidState);
@@ -491,6 +526,8 @@ mod tests {
         assert_eq!(statuses.len(), 1);
         assert_eq!(statuses[0].path, "note.md");
         assert_eq!(statuses[0].status, FileStatusKind::Untracked);
+        assert!(statuses[0].unstaged);
+        assert!(!statuses[0].staged);
 
         stage_all(repo_dir.path_str()).unwrap();
         let commit_hash = commit(repo_dir.path_str(), "初始提交").unwrap();

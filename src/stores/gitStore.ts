@@ -20,10 +20,12 @@ function createInitialState(): GitStoreState {
     changedFiles: [],
     statusByPath: {},
     history: [],
+    repoHistory: [],
     selectedCommitHash: null,
     selectedCommitDiff: null,
     isSyncEnabled: false,
     isLoadingHistory: false,
+    isLoadingRepoHistory: false,
     isLoadingStatus: false,
     isRunningAction: false,
     errorMessage: null,
@@ -170,6 +172,7 @@ export const useGitStore = create<GitStore>()(
           state.changedFiles = [];
           state.statusByPath = {};
           state.history = [];
+          state.repoHistory = [];
           state.selectedCommitHash = null;
           state.selectedCommitDiff = null;
           state.errorMessage = detectRepoMissing(message) ? null : message;
@@ -347,6 +350,30 @@ export const useGitStore = create<GitStore>()(
           state.history = [];
           state.selectedCommitHash = null;
           state.selectedCommitDiff = null;
+        });
+        return [];
+      }
+    },
+
+    getRepoHistory: async () => {
+      const workspacePath = ensureWorkspacePath();
+      set((state) => {
+        state.isLoadingRepoHistory = true;
+        state.errorMessage = null;
+      });
+
+      try {
+        const history = await gitService.getHistory(workspacePath, null, 12);
+        set((state) => {
+          state.repoHistory = history;
+          state.isLoadingRepoHistory = false;
+        });
+        return history;
+      } catch (error) {
+        set((state) => {
+          state.isLoadingRepoHistory = false;
+          state.errorMessage = normalizeError(error);
+          state.repoHistory = [];
         });
         return [];
       }

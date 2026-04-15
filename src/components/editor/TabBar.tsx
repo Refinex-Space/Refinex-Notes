@@ -19,7 +19,7 @@ export function TabBar() {
 
   if (openFiles.length === 0) {
     return (
-      <div className="flex h-12 items-center border-b border-border/70 px-4 text-sm text-muted">
+      <div className="flex h-12 items-center px-4 text-sm text-muted">
         暂无打开的笔记
       </div>
     );

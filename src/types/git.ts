@@ -33,6 +33,8 @@ export type GitFileStatus =
 export interface GitStatusEntry {
   path: string;
   status: Exclude<GitFileStatus, "clean">;
+  staged: boolean;
+  unstaged: boolean;
 }
 
 export interface GitHistoryEntry {
@@ -68,12 +70,14 @@ export interface GitStoreState {
   syncDetail: string | null;
   lastSyncTime: number | null;
   changedFiles: GitStatusEntry[];
+  repoHistory: GitHistoryEntry[];
   statusByPath: Record<string, GitFileStatus>;
   history: GitHistoryEntry[];
   selectedCommitHash: string | null;
   selectedCommitDiff: string | null;
   isSyncEnabled: boolean;
   isLoadingHistory: boolean;
+  isLoadingRepoHistory: boolean;
   isLoadingStatus: boolean;
   isRunningAction: boolean;
   errorMessage: string | null;
@@ -89,6 +93,7 @@ export interface GitStoreActions {
   push: () => Promise<void>;
   pull: () => Promise<void>;
   getHistory: (path: string) => Promise<GitHistoryEntry[]>;
+  getRepoHistory: () => Promise<GitHistoryEntry[]>;
   selectHistoryEntry: (hash: string | null) => Promise<void>;
   initRepo: () => Promise<void>;
   cloneRepo: (url: string, targetPath: string) => Promise<void>;

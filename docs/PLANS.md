@@ -9,6 +9,9 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Git Panel Depth](exec-plans/completed/2026-04-15-git-panel-depth.md) — archived 2026-04-15
+- [Git Panel State Redesign](exec-plans/completed/2026-04-15-git-panel-state-redesign.md) — completed 2026-04-15
+- [Editor Empty State Redesign](exec-plans/completed/2026-04-15-editor-empty-state-redesign.md) — completed 2026-04-15
 - [Workspace Switcher](exec-plans/completed/2026-04-15-workspace-switcher.md) — completed 2026-04-15
 - [macOS Titlebar Fine Tune](exec-plans/completed/2026-04-15-macos-titlebar-fine-tune.md) — completed 2026-04-15
 - [macOS Titlebar Alignment](exec-plans/completed/2026-04-15-macos-titlebar-alignment.md) — completed 2026-04-15

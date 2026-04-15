@@ -25,8 +25,8 @@ vi.mock("../../services/gitService", () => ({
 
 describe("gitStore", () => {
   const changedFiles: GitStatusEntry[] = [
-    { path: "notes/today.md", status: "modified" },
-    { path: "ideas/new.md", status: "untracked" },
+    { path: "notes/today.md", status: "modified", staged: false, unstaged: true },
+    { path: "ideas/new.md", status: "untracked", staged: false, unstaged: true },
   ];
 
   const history: GitHistoryEntry[] = [
@@ -85,6 +85,16 @@ describe("gitStore", () => {
     expect(useGitStore.getState().history).toEqual(history);
     expect(useGitStore.getState().selectedCommitHash).toBe("abc123");
     expect(useGitStore.getState().selectedCommitDiff).toContain("+new");
+  });
+
+  it("loads repository history separately from file history", async () => {
+    vi.mocked(gitService.getHistory).mockResolvedValue(history);
+
+    const result = await useGitStore.getState().getRepoHistory();
+
+    expect(result).toEqual(history);
+    expect(useGitStore.getState().repoHistory).toEqual(history);
+    expect(vi.mocked(gitService.getHistory)).toHaveBeenCalledWith("/tmp/workspace", null, 12);
   });
 
   it("handles sync events and refreshes status on synced transitions", async () => {

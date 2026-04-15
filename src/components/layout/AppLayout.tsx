@@ -1,8 +1,7 @@
 import {
+  GitBranchPlus,
   PanelLeftClose,
   PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -56,7 +55,7 @@ export function AppLayout({
   rightPanelTitle = "Assistant",
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(
     clamp(defaultSidebarWidth, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH),
   );
@@ -154,11 +153,7 @@ export function AppLayout({
               className={[titlebarIconButtonClassName, "absolute right-4 top-[0.72rem]"].join(" ")}
               onClick={() => setRightPanelCollapsed((current) => !current)}
             >
-              {rightPanelCollapsed ? (
-                <PanelRightOpen className="h-4 w-4" />
-              ) : (
-                <PanelRightClose className="h-4 w-4" />
-              )}
+              <GitBranchPlus className="h-4 w-4" />
             </button>
           </div>
         ) : (
@@ -185,11 +180,7 @@ export function AppLayout({
               className={titlebarIconButtonClassName}
               onClick={() => setRightPanelCollapsed((current) => !current)}
             >
-              {rightPanelCollapsed ? (
-                <PanelRightOpen className="h-4 w-4" />
-              ) : (
-                <PanelRightClose className="h-4 w-4" />
-              )}
+              <GitBranchPlus className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -200,28 +191,30 @@ export function AppLayout({
         className="grid min-h-0 flex-1 overflow-hidden"
         style={{ gridTemplateColumns }}
       >
-        <Collapsible open={!sidebarCollapsed} className="h-full">
-          <CollapsibleContent
-            forceMount
-            className={[
-              "h-full min-h-0 overflow-hidden border-r border-border/70 bg-[rgb(var(--color-bg)/0.9)]",
-              sidebarCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <aside className="flex h-full min-h-0 flex-col">
-              {sidebarTitle ? (
-                <div className="border-b border-border/70 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
-                    {sidebarTitle}
-                  </p>
-                </div>
-              ) : null}
-              <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
-            </aside>
-          </CollapsibleContent>
-        </Collapsible>
+        <div className="h-full min-h-0 overflow-hidden">
+          <Collapsible open={!sidebarCollapsed}>
+            <CollapsibleContent
+              forceMount
+              className={[
+                "h-full min-h-0 overflow-hidden border-r border-border/70 bg-[rgb(var(--color-bg)/0.9)]",
+                sidebarCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <aside className="flex h-full min-h-0 flex-col">
+                {sidebarTitle ? (
+                  <div className="border-b border-border/70 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+                      {sidebarTitle}
+                    </p>
+                  </div>
+                ) : null}
+                <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
+              </aside>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
 
         <section className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-bg">
           {!sidebarCollapsed ? (
@@ -245,29 +238,31 @@ export function AppLayout({
           <div className="border-b border-border/70 bg-bg/80 px-3 py-2">
             {tabBar}
           </div>
-          <div className="min-h-0 overflow-hidden">{editor}</div>
+          <div className="h-full min-h-0 overflow-hidden">{editor}</div>
         </section>
 
-        <Collapsible open={!rightPanelCollapsed} className="h-full">
-          <CollapsibleContent
-            forceMount
-            className={[
-              "h-full min-h-0 overflow-hidden border-l border-border/70 bg-bg/60",
-              rightPanelCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <aside className="flex h-full min-h-0 flex-col">
-              <div className="border-b border-border/70 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
-                  {rightPanelTitle}
-                </p>
-              </div>
-              <div className="min-h-0 flex-1 overflow-hidden">{rightPanel}</div>
-            </aside>
-          </CollapsibleContent>
-        </Collapsible>
+        <div className="h-full min-h-0 overflow-hidden">
+          <Collapsible open={!rightPanelCollapsed}>
+            <CollapsibleContent
+              forceMount
+              className={[
+                "h-full min-h-0 overflow-hidden border-l border-border/70 bg-bg/60",
+                rightPanelCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <aside className="flex h-full min-h-0 flex-col">
+                <div className="border-b border-border/70 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+                    {rightPanelTitle}
+                  </p>
+                </div>
+                <div className="min-h-0 flex-1 overflow-hidden">{rightPanel}</div>
+              </aside>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       </div>
 
       {statusBar}

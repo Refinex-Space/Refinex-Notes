@@ -32,9 +32,9 @@ describe("SetupPanel", () => {
       />,
     );
 
-    expect(markup).toContain("方案 A");
-    expect(markup).toContain("方案 B");
-    expect(markup).toContain("GitHub 已连接：refinex");
+    expect(markup).toContain("为工作区接入 Git");
+    expect(markup).toContain("初始化仓库");
+    expect(markup).toContain("已连接 GitHub · refinex");
     expect(markup).toContain("https://github.com/owner/repo.git");
   });
 });

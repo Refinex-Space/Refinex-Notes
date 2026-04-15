@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Kbd } from "@radix-ui/themes";
 import {
   AlertCircle,
   GitBranch,
@@ -12,6 +13,8 @@ import type { EditorView } from "prosemirror-view";
 
 import { CommandPalette } from "./components/CommandPalette";
 import { AccountStatus } from "./components/auth/AccountStatus";
+import { GitEmptyState } from "./components/git/GitEmptyState";
+import { GitOverviewPanel } from "./components/git/GitOverviewPanel";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { DocumentOutlineDock } from "./components/editor/DocumentOutlineDock";
 import { TabBar } from "./components/editor/TabBar";
@@ -20,7 +23,7 @@ import { StatusBar } from "./components/layout/StatusBar";
 import { HistoryPanel } from "./components/git/HistoryPanel";
 import { SetupPanel } from "./components/git/SetupPanel";
 import { SyncStatus } from "./components/git/SyncStatus";
-import { FileTree } from "./components/sidebar/FileTree";
+import { FileTree, FileTreeEmptyState } from "./components/sidebar/FileTree";
 import { SearchPanel } from "./components/sidebar/SearchPanel";
 import { WorkspaceSwitcher } from "./components/sidebar/WorkspaceSwitcher";
 import {
@@ -75,7 +78,9 @@ function SidebarContent({
   onOpenWorkspace: () => void;
   onSelectWorkspace: (path: string) => void;
   onRemoveWorkspace: (path: string) => void;
-  recentWorkspaces: ReturnType<typeof useNoteStore.getState>["recentWorkspaces"];
+  recentWorkspaces: ReturnType<
+    typeof useNoteStore.getState
+  >["recentWorkspaces"];
 }) {
   const hasFiles = useNoteStore((state) => state.files.length > 0);
   const sidebarSurfaceClassName = "bg-[rgb(var(--color-bg)/0.9)]";
@@ -111,17 +116,26 @@ function SidebarContent({
         </TooltipProvider>
       </section>
 
-      <section className={`flex min-h-0 flex-1 flex-col ${sidebarSurfaceClassName}`}>
-        {hasFiles ? (
-          <div className={`min-h-0 flex-1 overflow-hidden ${sidebarSurfaceClassName}`}>
+      {hasFiles ? (
+        <section
+          className={`flex min-h-0 flex-1 flex-col ${sidebarSurfaceClassName}`}
+        >
+          <div
+            className={`min-h-0 flex-1 overflow-hidden ${sidebarSurfaceClassName}`}
+          >
             <FileTree />
           </div>
-        ) : (
-          <div className={`min-h-0 flex-1 ${sidebarSurfaceClassName}`}>
-            <FileTree />
-          </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <section
+          className={[
+            "grid min-h-0 flex-1 place-items-center overflow-hidden",
+            sidebarSurfaceClassName,
+          ].join(" ")}
+        >
+          <FileTreeEmptyState workspacePath={workspacePath} />
+        </section>
+      )}
     </div>
   );
 }
@@ -143,45 +157,22 @@ function RightPanelContent({
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
   const initRepo = useGitStore((state) => state.initRepo);
   const cloneRepo = useGitStore((state) => state.cloneRepo);
+  const changedFiles = useGitStore((state) => state.changedFiles);
   const syncStatus = useGitStore((state) => state.syncStatus);
+  const syncDetail = useGitStore((state) => state.syncDetail);
   const isRunningAction = useGitStore((state) => state.isRunningAction);
   const errorMessage = useGitStore((state) => state.errorMessage);
 
-  const showSetup = syncStatus === "not-initialized" || activeTab === "setup";
+  const showSetup =
+    Boolean(workspacePath) &&
+    (syncStatus === "not-initialized" || activeTab === "setup");
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border/70 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4 text-accent" />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-fg">Git Panel</p>
-            <p className="text-xs text-muted">
-              {showSetup ? "初始化或 clone 工作区仓库" : "查看当前文件的提交时间线"}
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 inline-flex rounded-full border border-border/70 bg-white/[0.03] p-1">
-          {(["history", "setup"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              className={[
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                activeTab === tab
-                  ? "bg-accent/12 text-accent"
-                  : "text-muted hover:text-fg",
-              ].join(" ")}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === "history" ? "历史" : "引导"}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-hidden">
-        {showSetup ? (
+        {!workspacePath ? (
+          <GitEmptyState title="" description="" />
+        ) : showSetup ? (
           <SetupPanel
             workspacePath={workspacePath}
             userLogin={user?.login ?? null}
@@ -202,6 +193,12 @@ function RightPanelContent({
               });
             }}
           />
+        ) : !currentFile ? (
+          <GitOverviewPanel
+            changedFiles={changedFiles}
+            syncStatus={syncStatus}
+            syncDetail={syncDetail}
+          />
         ) : (
           <HistoryPanel currentFile={currentFile} />
         )}
@@ -212,14 +209,30 @@ function RightPanelContent({
 
 function EmptyEditorState() {
   return (
-    <div className="flex h-full items-center justify-center bg-bg/40">
-      <div className="max-w-md rounded-3xl border border-border/70 bg-bg/80 p-6 text-center">
-        <Wand2 className="mx-auto h-6 w-6 text-accent" />
-        <h2 className="mt-4 text-lg font-semibold text-fg">没有打开的笔记</h2>
-        <p className="mt-2 text-sm leading-6 text-muted">
-          从左侧文件树打开一篇 Markdown，或通过 Cmd/Ctrl + K 新建一篇快速笔记。
-        </p>
-      </div>
+    <div className="relative flex h-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(14,165,233,0.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0))] dark:bg-[radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(148,163,184,0.04)_100%)] dark:bg-[linear-gradient(180deg,transparent_0%,rgba(148,163,184,0.02)_100%)]" />
+
+      <section className="relative w-full max-w-xl px-8 text-center">
+        <div className="mt-8 flex items-center justify-center">
+          <div className="inline-flex items-center gap-3 rounded-full border border-border/60 bg-[rgb(var(--color-bg)/0.78)] px-4 py-2 text-xs text-muted backdrop-blur-xl">
+            <span className="inline-flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
+              工作区浏览
+            </span>
+            <span className="h-3 w-px bg-border/80" />
+            <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-fg">
+                <Kbd>Cmd</Kbd>
+                <span>/</span>
+                <Kbd>Ctrl</Kbd>
+                <span>+</span>
+                <Kbd>K</Kbd>
+              </span>
+              快速新建
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -261,9 +274,13 @@ function WorkspaceShell({
   const documents = useNoteStore((state) => state.documents);
   const currentFile = useNoteStore((state) => state.currentFile);
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
-  const hydrateRecentWorkspaces = useNoteStore((state) => state.hydrateRecentWorkspaces);
+  const hydrateRecentWorkspaces = useNoteStore(
+    (state) => state.hydrateRecentWorkspaces,
+  );
   const openFile = useNoteStore((state) => state.openFile);
-  const removeRecentWorkspace = useNoteStore((state) => state.removeRecentWorkspace);
+  const removeRecentWorkspace = useNoteStore(
+    (state) => state.removeRecentWorkspace,
+  );
   const createFile = useNoteStore((state) => state.createFile);
   const refreshWorkspace = useNoteStore((state) => state.refreshWorkspace);
   const saveCurrentFile = useNoteStore((state) => state.saveCurrentFile);
@@ -281,14 +298,18 @@ function WorkspaceShell({
 
   const editorViewRef = useRef<EditorView | null>(null);
 
-  const currentDocument = currentFile ? documents[currentFile] ?? null : null;
+  const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
 
   useEffect(() => {
     setActiveTab(currentFile);
   }, [currentFile, setActiveTab]);
 
   useEffect(() => {
-    if (!pendingSearchJump || !currentDocument || currentDocument.path !== pendingSearchJump.path) {
+    if (
+      !pendingSearchJump ||
+      !currentDocument ||
+      currentDocument.path !== pendingSearchJump.path
+    ) {
       return;
     }
 
@@ -309,7 +330,10 @@ function WorkspaceShell({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "s"
+      ) {
         return;
       }
 
@@ -333,18 +357,20 @@ function WorkspaceShell({
     let disposed = false;
     let cleanup: (() => void) | undefined;
 
-    void fileService.onFilesChanged((payload) => {
-      if (disposed) {
-        return;
-      }
-      void refreshWorkspace(payload.paths);
-    }).then((unlisten) => {
-      if (disposed) {
-        unlisten();
-        return;
-      }
-      cleanup = unlisten;
-    });
+    void fileService
+      .onFilesChanged((payload) => {
+        if (disposed) {
+          return;
+        }
+        void refreshWorkspace(payload.paths);
+      })
+      .then((unlisten) => {
+        if (disposed) {
+          unlisten();
+          return;
+        }
+        cleanup = unlisten;
+      });
 
     return () => {
       disposed = true;
@@ -356,18 +382,20 @@ function WorkspaceShell({
     let disposed = false;
     let cleanup: (() => void) | undefined;
 
-    void gitService.onSyncStatus((payload) => {
-      if (disposed) {
-        return;
-      }
-      handleSyncEvent(payload);
-    }).then((unlisten) => {
-      if (disposed) {
-        unlisten();
-        return;
-      }
-      cleanup = unlisten;
-    });
+    void gitService
+      .onSyncStatus((payload) => {
+        if (disposed) {
+          return;
+        }
+        handleSyncEvent(payload);
+      })
+      .then((unlisten) => {
+        if (disposed) {
+          unlisten();
+          return;
+        }
+        cleanup = unlisten;
+      });
 
     return () => {
       disposed = true;
@@ -383,9 +411,12 @@ function WorkspaceShell({
     () => countWords(currentDocument?.content ?? ""),
     [currentDocument?.content],
   );
-  const syncTone = currentFile && unsavedChanges.has(currentFile) ? "pending" : "synced";
+  const syncTone =
+    currentFile && unsavedChanges.has(currentFile) ? "pending" : "synced";
   const syncLabel =
-    syncTone === "pending" ? "本地改动待同步（mock）" : "Git 状态已同步（mock）";
+    syncTone === "pending"
+      ? "本地改动待同步（mock）"
+      : "Git 状态已同步（mock）";
 
   const handleSelectHeading = (heading: OutlineHeading) => {
     const view = editorViewRef.current;
@@ -516,7 +547,7 @@ function WorkspaceShell({
           />
         }
         sidebarTitle=""
-        rightPanelTitle="Git"
+        rightPanelTitle=""
       />
 
       <CommandPalette
@@ -538,14 +569,17 @@ function WorkspaceShell({
           <DialogHeader>
             <DialogTitle>应用设置（占位）</DialogTitle>
             <DialogDescription>
-              Phase 4.1 先把设置入口接到命令面板；完整设置面板会在后续阶段替换这里。
+              Phase 4.1
+              先把设置入口接到命令面板；完整设置面板会在后续阶段替换这里。
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-3xl border border-border/70 bg-bg/80 p-4 text-sm leading-6 text-muted">
             当前主题：<strong className="text-fg">{theme}</strong>
             ，当前激活标签：
             <strong className="text-fg">
-              {activeTab ? ` ${documents[activeTab]?.name ?? activeTab}` : " 无"}
+              {activeTab
+                ? ` ${documents[activeTab]?.name ?? activeTab}`
+                : " 无"}
             </strong>
             。
           </div>
