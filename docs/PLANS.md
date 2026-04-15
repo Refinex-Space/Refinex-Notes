@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Sidebar Tree Trigger Padding Fix](exec-plans/active/2026-04-16-sidebar-tree-trigger-padding-fix.md) — started 2026-04-16
 
 ## Completed Plans
 
