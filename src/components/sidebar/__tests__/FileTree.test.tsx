@@ -42,7 +42,9 @@ describe("FileTree", () => {
     expect(markup).toContain('data-state="closed"');
     expect(markup).not.toContain('data-state="open"');
     expect(markup).toContain("space-y-0.5 px-2 py-2");
-    expect(markup).toContain("rounded-lg px-2.5 py-1 text-[13px] font-medium leading-[1.1rem]");
+    expect(markup).toContain(
+      "!rounded-lg px-2.5 !py-1 !text-[13px] !font-medium !leading-[1.1rem]",
+    );
   });
 
   it("renders compact file rows", () => {

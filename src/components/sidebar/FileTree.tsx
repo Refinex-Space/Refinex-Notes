@@ -112,7 +112,7 @@ function FileRow({
         <AccordionItem value={node.path} className="border-b-0">
           <AccordionTrigger
             className={[
-              "rounded-lg px-2.5 py-1 text-[13px] font-medium leading-[1.1rem]",
+              "!rounded-lg px-2.5 !py-1 !text-[13px] !font-medium !leading-[1.1rem]",
               "text-muted hover:bg-white/[0.04] hover:text-fg data-[state=open]:bg-white/[0.05] data-[state=open]:text-fg",
               isCurrent ? "bg-accent/10 text-fg" : "",
             ]
