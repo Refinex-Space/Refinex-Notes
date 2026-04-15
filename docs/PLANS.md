@@ -6,11 +6,11 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Editor Open Switch Performance](exec-plans/active/2026-04-16-editor-open-switch-performance.md) — started 2026-04-16
 - [Workspace Open Performance](exec-plans/active/2026-04-16-workspace-open-performance.md) — started 2026-04-16
 
 ## Completed Plans
 
+- [Editor Open Switch Performance](exec-plans/completed/2026-04-16-editor-open-switch-performance.md) — completed 2026-04-16
 - [Fix Inline Code Table Serialization](exec-plans/completed/2026-04-16-fix-inline-code-table-serialization.md) — completed 2026-04-16
 - [Fix TabBar Hook And Drag Regression](exec-plans/completed/2026-04-16-fix-tabbar-hook-dnd-regression.md) — completed 2026-04-16
 - [TabBar Compact Interactions](exec-plans/completed/2026-04-16-tabbar-compact-interactions.md) — completed 2026-04-16
