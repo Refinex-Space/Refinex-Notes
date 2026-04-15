@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Fix Inline Code Table Serialization](exec-plans/active/2026-04-16-fix-inline-code-table-serialization.md) — started 2026-04-16
 
 ## Completed Plans
 
