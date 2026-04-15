@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Fix Inline Code Table Serialization](exec-plans/active/2026-04-16-fix-inline-code-table-serialization.md) — started 2026-04-16
 
 ## Completed Plans
 
+- [Fix Inline Code Table Serialization](exec-plans/completed/2026-04-16-fix-inline-code-table-serialization.md) — completed 2026-04-16
 - [Fix TabBar Hook And Drag Regression](exec-plans/completed/2026-04-16-fix-tabbar-hook-dnd-regression.md) — completed 2026-04-16
 - [TabBar Compact Interactions](exec-plans/completed/2026-04-16-tabbar-compact-interactions.md) — completed 2026-04-16
 - [Sidebar Tree Trigger Padding Fix](exec-plans/completed/2026-04-16-sidebar-tree-trigger-padding-fix.md) — completed 2026-04-16
