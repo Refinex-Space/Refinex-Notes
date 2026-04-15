@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Fix TabBar Hook And Drag Regression](exec-plans/active/2026-04-16-fix-tabbar-hook-dnd-regression.md) — started 2026-04-16
 
 ## Completed Plans
 
