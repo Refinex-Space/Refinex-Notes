@@ -319,8 +319,16 @@ export const useNoteStore = create<NoteStore>()(
     openFile: async (path) => {
       const { documents, workspacePath } = get();
       if (workspacePath) {
-        const isDirty = useEditorStore.getState().unsavedChanges.has(path);
-        if (!isDirty || !documents[path]) {
+        if (documents[path]) {
+          set((state) => {
+            state.currentFile = path;
+            state.openFiles = ensureUniquePaths([...state.openFiles, path]);
+            state.recentFiles = withRecentFile(state.recentFiles, path);
+          });
+          return;
+        }
+
+        if (!documents[path]) {
           const content = await fileService.readFile(path);
           set((state) => {
             state.documents[path] = createDocumentFromDisk(path, content);

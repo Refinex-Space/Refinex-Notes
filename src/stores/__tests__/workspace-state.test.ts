@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { fileService } from "../../services/fileService";
 import type { FileNode } from "../../types";
 import type { NoteDocument } from "../../types/notes";
 import { resetEditorStore, useEditorStore } from "../editorStore";
@@ -9,6 +10,25 @@ import {
   resetNoteStore,
   useNoteStore,
 } from "../noteStore";
+
+vi.mock("../../services/fileService", () => ({
+  fileService: {
+    isNativeAvailable: vi.fn(() => false),
+    selectWorkspace: vi.fn(),
+    openWorkspace: vi.fn(),
+    closeWorkspace: vi.fn(),
+    listRecentWorkspaces: vi.fn(),
+    removeRecentWorkspace: vi.fn(),
+    readFileTree: vi.fn(),
+    readFile: vi.fn(),
+    writeFile: vi.fn(),
+    createFile: vi.fn(),
+    createDir: vi.fn(),
+    deleteFile: vi.fn(),
+    renameFile: vi.fn(),
+    onFilesChanged: vi.fn(),
+  },
+}));
 
 function createTestDocument(
   path: string,
@@ -62,6 +82,7 @@ describe("workspace state stores", () => {
   beforeEach(() => {
     resetNoteStore();
     resetEditorStore();
+    vi.clearAllMocks();
     seedWorkspaceState();
   });
 
@@ -88,6 +109,20 @@ describe("workspace state stores", () => {
       "Inbox/Welcome.md",
       "Daily/2026-04-13.md",
     ]);
+  });
+
+  it("reopens cached workspace documents without hitting disk again", async () => {
+    useNoteStore.setState({
+      workspacePath: "/tmp/workspace",
+      currentFile: null,
+      openFiles: [],
+    });
+
+    await useNoteStore.getState().openFile("Inbox/Welcome.md");
+
+    expect(vi.mocked(fileService.readFile)).not.toHaveBeenCalled();
+    expect(useNoteStore.getState().currentFile).toBe("Inbox/Welcome.md");
+    expect(useNoteStore.getState().openFiles).toEqual(["Inbox/Welcome.md"]);
   });
 
   it("reorders tabs and supports bulk-close actions", async () => {
