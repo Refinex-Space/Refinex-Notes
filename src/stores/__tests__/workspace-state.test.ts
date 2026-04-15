@@ -90,6 +90,52 @@ describe("workspace state stores", () => {
     ]);
   });
 
+  it("reorders tabs and supports bulk-close actions", async () => {
+    await useNoteStore.getState().openFile("Daily/2026-04-13.md");
+    await useNoteStore.getState().openFile("Projects/Refinex/Roadmap.md");
+
+    useNoteStore
+      .getState()
+      .reorderOpenFiles("Projects/Refinex/Roadmap.md", 0);
+
+    expect(useNoteStore.getState().openFiles).toEqual([
+      "Projects/Refinex/Roadmap.md",
+      "Inbox/Welcome.md",
+      "Daily/2026-04-13.md",
+    ]);
+
+    await useNoteStore.getState().closeFilesToRight("Inbox/Welcome.md");
+
+    expect(useNoteStore.getState().openFiles).toEqual([
+      "Projects/Refinex/Roadmap.md",
+      "Inbox/Welcome.md",
+    ]);
+    expect(useNoteStore.getState().currentFile).toBe("Inbox/Welcome.md");
+
+    await useNoteStore.getState().openFile("Daily/2026-04-13.md");
+    await useNoteStore.getState().closeFilesToLeft("Daily/2026-04-13.md");
+
+    expect(useNoteStore.getState().openFiles).toEqual(["Daily/2026-04-13.md"]);
+    expect(useNoteStore.getState().currentFile).toBe("Daily/2026-04-13.md");
+
+    await useNoteStore.getState().openFile("Projects/Refinex/Roadmap.md");
+    await useNoteStore
+      .getState()
+      .closeOtherFiles("Projects/Refinex/Roadmap.md");
+
+    expect(useNoteStore.getState().openFiles).toEqual([
+      "Projects/Refinex/Roadmap.md",
+    ]);
+    expect(useNoteStore.getState().currentFile).toBe(
+      "Projects/Refinex/Roadmap.md",
+    );
+
+    await useNoteStore.getState().closeAllFiles();
+
+    expect(useNoteStore.getState().openFiles).toEqual([]);
+    expect(useNoteStore.getState().currentFile).toBeNull();
+  });
+
   it("creates, renames, and deletes mock folders and files", async () => {
     await useNoteStore.getState().createFolder("Projects/Archive");
     await useNoteStore.getState().createFile("Projects/Archive/Notes.md");

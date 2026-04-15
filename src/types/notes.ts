@@ -49,6 +49,11 @@ export interface NoteStoreActions {
   removeRecentWorkspace: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
   closeFile: (path: string) => Promise<void>;
+  closeAllFiles: () => Promise<void>;
+  closeOtherFiles: (path: string) => Promise<void>;
+  closeFilesToLeft: (path: string) => Promise<void>;
+  closeFilesToRight: (path: string) => Promise<void>;
+  reorderOpenFiles: (fromPath: string, toIndex: number) => void;
   createFile: (path: string) => Promise<void>;
   createFolder: (path: string) => Promise<void>;
   deleteFile: (path: string) => Promise<void>;

@@ -169,6 +169,24 @@ function renamePrefix(path: string, oldPath: string, newPath: string) {
   return `${newPath}/${path.slice(prefix.length)}`;
 }
 
+function movePathToIndex(paths: readonly string[], fromPath: string, toIndex: number) {
+  const fromIndex = paths.indexOf(fromPath);
+  if (fromIndex === -1) {
+    return [...paths];
+  }
+
+  const nextPaths = [...paths];
+  const [movedPath] = nextPaths.splice(fromIndex, 1);
+  const normalizedIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+  const safeIndex = clamp(normalizedIndex, 0, nextPaths.length);
+  nextPaths.splice(safeIndex, 0, movedPath);
+  return nextPaths;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function createMarkdownTemplate(path: string) {
   const title = getFileName(path).replace(/\.md$/i, "");
   return `# ${title}\n\n`;
@@ -348,6 +366,49 @@ export const useNoteStore = create<NoteStore>()(
           state.openFiles[0] ??
           null;
         state.currentFile = nextPath;
+      });
+    },
+    closeAllFiles: async () => {
+      set((state) => {
+        state.openFiles = [];
+        state.currentFile = null;
+      });
+    },
+    closeOtherFiles: async (path) => {
+      set((state) => {
+        if (!state.openFiles.includes(path)) {
+          return;
+        }
+
+        state.openFiles = [path];
+        state.currentFile = path;
+      });
+    },
+    closeFilesToLeft: async (path) => {
+      set((state) => {
+        const index = state.openFiles.indexOf(path);
+        if (index <= 0) {
+          return;
+        }
+
+        state.openFiles = state.openFiles.slice(index);
+        state.currentFile = path;
+      });
+    },
+    closeFilesToRight: async (path) => {
+      set((state) => {
+        const index = state.openFiles.indexOf(path);
+        if (index === -1 || index === state.openFiles.length - 1) {
+          return;
+        }
+
+        state.openFiles = state.openFiles.slice(0, index + 1);
+        state.currentFile = path;
+      });
+    },
+    reorderOpenFiles: (fromPath, toIndex) => {
+      set((state) => {
+        state.openFiles = movePathToIndex(state.openFiles, fromPath, toIndex);
       });
     },
     createFile: async (path) => {
