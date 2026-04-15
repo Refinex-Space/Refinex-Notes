@@ -14,12 +14,15 @@ type StoreState = Pick<
   NoteStore,
   | "recentWorkspaces"
   | "workspacePath"
+  | "isWorkspaceLoading"
   | "files"
   | "documents"
   | "folders"
   | "currentFile"
   | "openFiles"
   | "recentFiles"
+  | "loadingDirectories"
+  | "workspaceSnapshots"
 >;
 
 type TreeNode = FileNode & { children?: TreeNode[] };
@@ -60,6 +63,18 @@ function sortTree(nodes: TreeNode[]): FileNode[] {
     }));
 }
 
+function annotateLoadedNodes(nodes: readonly FileNode[]): FileNode[] {
+  return nodes.map((node) => {
+    const children = node.children ? annotateLoadedNodes(node.children) : node.children;
+    return {
+      ...node,
+      hasChildren: node.isDir ? (children?.length ?? 0) > 0 : false,
+      isLoaded: true,
+      children,
+    };
+  });
+}
+
 export function buildFileTree(
   folders: readonly string[],
   documents: Record<string, NoteDocument>,
@@ -89,6 +104,8 @@ export function buildFileTree(
           name: segment,
           path: currentPath,
           isDir: true,
+          hasChildren: true,
+          isLoaded: true,
           children: [],
         };
         siblings.push(node);
@@ -116,17 +133,20 @@ export function buildFileTree(
         name: document.name,
         path: document.path,
         isDir: false,
+        hasChildren: false,
+        isLoaded: true,
         gitStatus: document.gitStatus,
       });
     }
   }
 
-  return sortTree(root);
+  return annotateLoadedNodes(sortTree(root));
 }
 
 function createInitialState(): StoreState {
   return {
     workspacePath: null,
+    isWorkspaceLoading: false,
     recentWorkspaces: [],
     files: [],
     documents: {},
@@ -134,6 +154,8 @@ function createInitialState(): StoreState {
     currentFile: null,
     openFiles: [],
     recentFiles: [],
+    loadingDirectories: [],
+    workspaceSnapshots: {},
   };
 }
 
@@ -154,6 +176,128 @@ function withRecentWorkspace(
     { path, lastOpened },
     ...recentWorkspaces.filter((entry) => entry.path !== path),
   ].slice(0, 8);
+}
+
+function cloneFileNodes(nodes: readonly FileNode[]): FileNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    children: node.children ? cloneFileNodes(node.children) : node.children,
+  }));
+}
+
+function cloneDocuments(
+  documents: Record<string, NoteDocument>,
+): Record<string, NoteDocument> {
+  return Object.fromEntries(
+    Object.entries(documents).map(([path, document]) => [path, { ...document }]),
+  );
+}
+
+function captureStoreSnapshot(state: StoreState): StoreState {
+  return {
+    workspacePath: state.workspacePath,
+    isWorkspaceLoading: state.isWorkspaceLoading,
+    recentWorkspaces: state.recentWorkspaces.map((entry) => ({ ...entry })),
+    files: cloneFileNodes(state.files),
+    documents: cloneDocuments(state.documents),
+    folders: [...state.folders],
+    currentFile: state.currentFile,
+    openFiles: [...state.openFiles],
+    recentFiles: [...state.recentFiles],
+    loadingDirectories: [...state.loadingDirectories],
+    workspaceSnapshots: Object.fromEntries(
+      Object.entries(state.workspaceSnapshots).map(([path, nodes]) => [
+        path,
+        cloneFileNodes(nodes),
+      ]),
+    ),
+  };
+}
+
+function rememberWorkspaceSnapshot(state: StoreState) {
+  if (!state.workspacePath) {
+    return;
+  }
+
+  state.workspaceSnapshots[state.workspacePath] = cloneFileNodes(state.files);
+}
+
+function setWorkspaceShell(
+  state: StoreState,
+  workspacePath: string | null,
+  files: FileNode[],
+) {
+  const workspaceState = collectWorkspaceState(files);
+  state.workspacePath = workspacePath;
+  state.files = cloneFileNodes(files);
+  state.folders = workspaceState.folders;
+  state.documents = {};
+  state.currentFile = null;
+  state.openFiles = [];
+  state.recentFiles = [];
+  state.loadingDirectories = [];
+}
+
+export function mergeWorkspaceSnapshot(
+  shallowFiles: readonly FileNode[],
+  cachedFiles: readonly FileNode[],
+): FileNode[] {
+  const cachedByPath = new Map(cachedFiles.map((node) => [node.path, node]));
+
+  return shallowFiles.map((node) => {
+    const cached = cachedByPath.get(node.path);
+    if (!node.isDir || !cached?.isDir || !cached.isLoaded) {
+      return {
+        ...node,
+        children: node.children ? cloneFileNodes(node.children) : node.children,
+      };
+    }
+
+    const cachedChildren = cloneFileNodes(cached.children ?? []);
+    return {
+      ...node,
+      hasChildren: node.hasChildren || cached.hasChildren || cachedChildren.length > 0,
+      isLoaded: true,
+      children: cachedChildren,
+    };
+  });
+}
+
+export function mergeLoadedDirectory(
+  nodes: readonly FileNode[],
+  targetPath: string,
+  children: readonly FileNode[],
+): FileNode[] {
+  return nodes.map((node) => {
+    if (node.path === targetPath && node.isDir) {
+      const nextChildren = cloneFileNodes(children);
+      return {
+        ...node,
+        hasChildren: nextChildren.length > 0,
+        isLoaded: true,
+        children: nextChildren,
+      };
+    }
+
+    if (!node.children) {
+      return { ...node };
+    }
+
+    return {
+      ...node,
+      children: mergeLoadedDirectory(node.children, targetPath, children),
+    };
+  });
+}
+
+function hasNodePath(nodes: readonly FileNode[], targetPath: string): boolean {
+  return nodes.some((node) => {
+    if (node.path === targetPath) {
+      return true;
+    }
+
+    return node.children ? hasNodePath(node.children, targetPath) : false;
+  });
 }
 
 function renamePrefix(path: string, oldPath: string, newPath: string) {
@@ -293,28 +437,102 @@ export const useNoteStore = create<NoteStore>()(
       });
     },
     openWorkspace: async (path) => {
-      const files = await fileService.openWorkspace(path);
+      const previousState = captureStoreSnapshot(get());
+      const cachedSnapshot = get().workspaceSnapshots[path];
       resetEditorWorkspaceState();
 
       set((state) => {
-        applyWorkspaceTree(state, path, files);
         state.recentWorkspaces = withRecentWorkspace(state.recentWorkspaces, path);
-        state.documents = {};
-        state.currentFile = null;
-        state.openFiles = [];
-        state.recentFiles = [];
+        rememberWorkspaceSnapshot(state);
+        setWorkspaceShell(
+          state,
+          path,
+          cachedSnapshot ? cloneFileNodes(cachedSnapshot) : [],
+        );
+        state.isWorkspaceLoading = !cachedSnapshot;
       });
+
+      try {
+        const files = await fileService.openWorkspace(path);
+        set((state) => {
+          const mergedFiles = state.workspaceSnapshots[path]
+            ? mergeWorkspaceSnapshot(files, state.workspaceSnapshots[path])
+            : cloneFileNodes(files);
+          setWorkspaceShell(state, path, mergedFiles);
+          state.recentWorkspaces = withRecentWorkspace(state.recentWorkspaces, path);
+          state.workspaceSnapshots[path] = cloneFileNodes(mergedFiles);
+          state.isWorkspaceLoading = false;
+        });
+      } catch (error) {
+        set((state) => {
+          Object.assign(state, previousState);
+        });
+        throw error;
+      }
     },
     removeRecentWorkspace: async (path) => {
       if (fileService.isNativeAvailable()) {
         await fileService.removeRecentWorkspace(path);
       }
 
+      const shouldCloseWorkspace = get().workspacePath === path;
+      if (shouldCloseWorkspace && fileService.isNativeAvailable()) {
+        await fileService.closeWorkspace();
+      }
+
+      if (shouldCloseWorkspace) {
+        resetEditorWorkspaceState();
+      }
+
       set((state) => {
         state.recentWorkspaces = state.recentWorkspaces.filter(
           (entry) => entry.path !== path,
         );
+        delete state.workspaceSnapshots[path];
+        if (shouldCloseWorkspace) {
+          setWorkspaceShell(state, null, []);
+          state.isWorkspaceLoading = false;
+        }
       });
+    },
+    loadDirectory: async (path) => {
+      const { workspacePath, loadingDirectories, files } = get();
+      if (!workspacePath || loadingDirectories.includes(path)) {
+        return;
+      }
+
+      const hasTarget = hasNodePath(files, path);
+      if (!hasTarget) {
+        return;
+      }
+
+      set((state) => {
+        state.loadingDirectories = ensureUniquePaths([
+          ...state.loadingDirectories,
+          path,
+        ]);
+      });
+
+      try {
+        const children = await fileService.readFileTree(path);
+        set((state) => {
+          state.files = mergeLoadedDirectory(state.files, path, children);
+          state.folders = collectWorkspaceState(state.files).folders;
+          state.loadingDirectories = state.loadingDirectories.filter(
+            (entry) => entry !== path,
+          );
+          if (workspacePath) {
+            state.workspaceSnapshots[workspacePath] = cloneFileNodes(state.files);
+          }
+        });
+      } catch (error) {
+        set((state) => {
+          state.loadingDirectories = state.loadingDirectories.filter(
+            (entry) => entry !== path,
+          );
+        });
+        throw error;
+      }
     },
     openFile: async (path) => {
       const { documents, workspacePath } = get();

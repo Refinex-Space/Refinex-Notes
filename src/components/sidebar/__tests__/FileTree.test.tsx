@@ -11,16 +11,22 @@ describe("FileTree", () => {
         name: "Projects",
         path: "Projects",
         isDir: true,
+        hasChildren: true,
+        isLoaded: true,
         children: [
           {
             name: "Refinex",
             path: "Projects/Refinex",
             isDir: true,
+            hasChildren: true,
+            isLoaded: true,
             children: [
               {
                 name: "Roadmap.md",
                 path: "Projects/Refinex/Roadmap.md",
                 isDir: false,
+                hasChildren: false,
+                isLoaded: true,
                 gitStatus: "clean",
               },
             ],
@@ -29,6 +35,8 @@ describe("FileTree", () => {
             name: "Notes.md",
             path: "Projects/Notes.md",
             isDir: false,
+            hasChildren: false,
+            isLoaded: true,
             gitStatus: "clean",
           },
         ],
@@ -53,6 +61,8 @@ describe("FileTree", () => {
         name: "Notes.md",
         path: "Notes.md",
         isDir: false,
+        hasChildren: false,
+        isLoaded: true,
         gitStatus: "clean",
       },
     ];

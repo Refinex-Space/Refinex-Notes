@@ -16,11 +16,15 @@ describe("sidebar helpers", () => {
       name: "Roadmap.md",
       path: "Projects/Refinex/Roadmap.md",
       isDir: false,
+      hasChildren: false,
+      isLoaded: true,
     } satisfies FileNode;
     const folderNode = {
       name: "Refinex",
       path: "Projects/Refinex",
       isDir: true,
+      hasChildren: false,
+      isLoaded: true,
       children: [],
     } satisfies FileNode;
 
@@ -36,16 +40,22 @@ describe("sidebar helpers", () => {
         name: "Projects",
         path: "Projects",
         isDir: true,
+        hasChildren: true,
+        isLoaded: true,
         children: [
           {
             name: "Refinex",
             path: "Projects/Refinex",
             isDir: true,
+            hasChildren: true,
+            isLoaded: true,
             children: [
               {
                 name: "Roadmap.md",
                 path: "Projects/Refinex/Roadmap.md",
                 isDir: false,
+                hasChildren: false,
+                isLoaded: true,
               },
             ],
           },

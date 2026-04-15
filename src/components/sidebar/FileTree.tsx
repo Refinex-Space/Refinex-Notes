@@ -62,11 +62,19 @@ function shouldRenderGitStatus(status: FileNode["gitStatus"]) {
 
 export function FileTreeEmptyState({
   workspacePath,
+  isLoading = false,
 }: {
   workspacePath: string | null;
+  isLoading?: boolean;
 }) {
-  const title = workspacePath ? "工作区为空" : "打开一个工作区";
-  const caption = workspacePath
+  const title = isLoading
+    ? "正在载入工作区"
+    : workspacePath
+      ? "工作区为空"
+      : "打开一个工作区";
+  const caption = isLoading
+    ? "先显示工作区外壳，目录会按需补全"
+    : workspacePath
     ? "新建 Markdown 后会出现在这里"
     : "本地 Markdown / Git 仓库";
 
@@ -95,20 +103,35 @@ function FileRow({
   currentFile: string | null;
 }) {
   const openFile = useNoteStore((state) => state.openFile);
+  const loadDirectory = useNoteStore((state) => state.loadDirectory);
   const createFile = useNoteStore((state) => state.createFile);
   const createFolder = useNoteStore((state) => state.createFolder);
   const renameFile = useNoteStore((state) => state.renameFile);
   const deleteFile = useNoteStore((state) => state.deleteFile);
+  const loadingDirectories = useNoteStore((state) => state.loadingDirectories);
   const statusByPath = useGitStore((state) => state.statusByPath);
 
   const indentation = { paddingLeft: `${0.55 + depth * 0.9}rem` };
   const isCurrent = currentFile === node.path;
   const directoryPath = getNodeDirectoryPath(node);
   const effectiveGitStatus = statusByPath[node.path] ?? node.gitStatus;
+  const isDirectoryLoading = node.isDir && loadingDirectories.includes(node.path);
+  const canLoadDirectory = node.isDir && node.hasChildren && !node.isLoaded;
 
   const row = node.isDir ? (
     <div>
-      <Accordion type="multiple">
+      <Accordion
+        type="multiple"
+        onValueChange={(values) => {
+          if (
+            values.includes(node.path) &&
+            canLoadDirectory &&
+            !isDirectoryLoading
+          ) {
+            void loadDirectory(node.path);
+          }
+        }}
+      >
         <AccordionItem value={node.path} className="border-b-0">
           <AccordionTrigger
             className={[
@@ -130,6 +153,14 @@ function FileRow({
           </AccordionTrigger>
           <AccordionContent className="pb-0">
             <div className="space-y-0 pt-px">
+              {isDirectoryLoading ? (
+                <div
+                  className="px-2.5 py-1 text-[12px] text-muted"
+                  style={{ paddingLeft: `${1.45 + depth * 0.9}rem` }}
+                >
+                  正在载入目录…
+                </div>
+              ) : null}
               {(node.children ?? []).map((child) => (
                 <FileRow
                   key={child.path}
@@ -251,10 +282,16 @@ function FileRow({
 export function FileTree() {
   const files = useNoteStore((state) => state.files);
   const workspacePath = useNoteStore((state) => state.workspacePath);
+  const isWorkspaceLoading = useNoteStore((state) => state.isWorkspaceLoading);
   const currentFile = useNoteStore((state) => state.currentFile);
 
   if (files.length === 0) {
-    return <FileTreeEmptyState workspacePath={workspacePath} />;
+    return (
+      <FileTreeEmptyState
+        workspacePath={workspacePath}
+        isLoading={isWorkspaceLoading}
+      />
+    );
   }
 
   return (

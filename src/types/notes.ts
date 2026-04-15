@@ -13,6 +13,8 @@ export interface FileNode {
   name: string;
   path: string;
   isDir: boolean;
+  hasChildren: boolean;
+  isLoaded: boolean;
   children?: FileNode[];
   gitStatus?: FileGitStatus;
 }
@@ -34,6 +36,7 @@ export interface RecentWorkspace {
 
 export interface NoteStoreState {
   workspacePath: string | null;
+  isWorkspaceLoading: boolean;
   recentWorkspaces: RecentWorkspace[];
   files: FileNode[];
   documents: Record<string, NoteDocument>;
@@ -41,12 +44,15 @@ export interface NoteStoreState {
   currentFile: string | null;
   openFiles: string[];
   recentFiles: string[];
+  loadingDirectories: string[];
+  workspaceSnapshots: Record<string, FileNode[]>;
 }
 
 export interface NoteStoreActions {
   hydrateRecentWorkspaces: () => Promise<void>;
   openWorkspace: (path: string) => Promise<void>;
   removeRecentWorkspace: (path: string) => Promise<void>;
+  loadDirectory: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
   closeFile: (path: string) => Promise<void>;
   closeAllFiles: () => Promise<void>;
