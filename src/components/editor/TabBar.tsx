@@ -1,6 +1,6 @@
 import { FileText, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { useEditorStore } from "../../stores/editorStore";
 import { useNoteStore } from "../../stores/noteStore";
@@ -19,6 +19,14 @@ type DropPosition = "before" | "after";
 interface DropIndicator {
   path: string;
   position: DropPosition;
+}
+
+interface PointerDragState {
+  path: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  active: boolean;
 }
 
 export const TAB_RAIL_CLASS_NAME =
@@ -49,11 +57,42 @@ export function getTabActionAvailability(openFiles: readonly string[], path: str
   };
 }
 
-function resolveDropPosition(
-  event: Pick<DragEvent<HTMLElement>, "clientX" | "currentTarget">,
-): DropPosition {
-  const rect = event.currentTarget.getBoundingClientRect();
-  return event.clientX < rect.left + rect.width / 2 ? "before" : "after";
+function resolveDropPosition(clientX: number, rect: DOMRect): DropPosition {
+  return clientX < rect.left + rect.width / 2 ? "before" : "after";
+}
+
+export function getDropIndicatorFromPointer(
+  tabRefs: Record<string, HTMLDivElement | null>,
+  openFiles: readonly string[],
+  draggingPath: string,
+  clientX: number,
+  clientY: number,
+): DropIndicator | null {
+  for (const path of openFiles) {
+    if (path === draggingPath) {
+      continue;
+    }
+
+    const node = tabRefs[path];
+    if (!node) {
+      continue;
+    }
+
+    const rect = node.getBoundingClientRect();
+    const withinHorizontalBounds = clientX >= rect.left && clientX <= rect.right;
+    const withinVerticalBounds = clientY >= rect.top && clientY <= rect.bottom;
+
+    if (!withinHorizontalBounds || !withinVerticalBounds) {
+      continue;
+    }
+
+    return {
+      path,
+      position: resolveDropPosition(clientX, rect),
+    };
+  }
+
+  return null;
 }
 
 export function TabBar() {
@@ -73,7 +112,7 @@ export function TabBar() {
   const setActiveTab = useEditorStore((state) => state.setActiveTab);
 
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [draggingPath, setDraggingPath] = useState<string | null>(null);
+  const [pointerDrag, setPointerDrag] = useState<PointerDragState | null>(null);
   const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
 
   const activeValue = activeTab ?? currentFile ?? undefined;
@@ -95,14 +134,6 @@ export function TabBar() {
       inline: "nearest",
     });
   }, [activeValue]);
-
-  if (openFiles.length === 0) {
-    return (
-      <div className="flex h-9 items-center px-3 text-[13px] text-muted">
-        暂无打开的笔记
-      </div>
-    );
-  }
 
   const tabAction = async (
     action: "close" | "closeAll" | "closeOthers" | "closeLeft" | "closeRight",
@@ -136,188 +167,229 @@ export function TabBar() {
     syncActiveTab();
   };
 
-  const renderedTabs = useMemo(
-    () =>
-      openFiles.map((path) => {
-        const document = documents[path];
-        if (!document) {
-          return null;
-        }
+  const handlePointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    path: string,
+  ) => {
+    if (!hasMultipleTabs || event.button !== 0) {
+      return;
+    }
 
-        const isDirty = unsavedChanges.has(path);
-        const isActive = activeValue === path;
-        const actionAvailability = getTabActionAvailability(openFiles, path);
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-tab-close]")) {
+      return;
+    }
 
-        return (
-          <ContextMenu key={path}>
-            <ContextMenuTrigger asChild>
-              <div
-                ref={(node) => {
-                  tabRefs.current[path] = node;
-                }}
-                draggable={hasMultipleTabs}
-                className={[
-                  TAB_WRAPPER_CLASS_NAME,
-                  draggingPath === path ? "scale-[0.985] opacity-55" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onMouseDown={(event) => {
-                  if (event.button !== 1) {
-                    return;
-                  }
-                  event.preventDefault();
-                  void tabAction("close", path);
-                }}
-                onDragStart={(event) => {
-                  if (!hasMultipleTabs) {
-                    return;
-                  }
-                  event.dataTransfer.effectAllowed = "move";
-                  event.dataTransfer.setData("text/plain", path);
-                  setDraggingPath(path);
-                }}
-                onDragOver={(event) => {
-                  if (!draggingPath || draggingPath === path) {
-                    return;
-                  }
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                  setDropIndicator({
-                    path,
-                    position: resolveDropPosition(event),
-                  });
-                }}
-                onDrop={(event) => {
-                  if (!draggingPath || draggingPath === path) {
-                    return;
-                  }
-                  event.preventDefault();
-                  const targetIndex = openFiles.indexOf(path);
-                  if (targetIndex === -1) {
-                    return;
-                  }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setPointerDrag({
+      path,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      active: false,
+    });
+  };
 
-                  const position = resolveDropPosition(event);
-                  reorderOpenFiles(
-                    draggingPath,
-                    targetIndex + (position === "after" ? 1 : 0),
-                  );
-                  setDropIndicator(null);
-                  setDraggingPath(null);
-                }}
-                onDragEnd={() => {
-                  setDropIndicator(null);
-                  setDraggingPath(null);
-                }}
-              >
-                {dropIndicator?.path === path && dropIndicator.position === "before" ? (
-                  <span className="pointer-events-none absolute inset-y-1 left-0 w-0.5 rounded-full bg-accent/80" />
-                ) : null}
+  const handlePointerMove = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    path: string,
+  ) => {
+    setPointerDrag((current) => {
+      if (!current || current.path !== path || current.pointerId !== event.pointerId) {
+        return current;
+      }
 
-                <TabsTrigger
-                  value={path}
-                  className={[
-                    TAB_TRIGGER_CLASS_NAME,
-                    "hover:border-border/45 hover:bg-white/[0.05] hover:text-fg",
-                    "focus-visible:ring-accent/25",
-                    isActive ? "border-border/70 bg-white/[0.08] text-fg" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <FileText
-                      className={[
-                        "h-3.5 w-3.5 shrink-0",
-                        isActive ? "text-accent" : "text-accent/80",
-                      ].join(" ")}
-                    />
-                    <span className="truncate">{document.name}</span>
-                    {isDirty ? (
-                      <span
-                        aria-label="未保存修改"
-                        className="h-1.5 w-1.5 rounded-full bg-accent/90"
-                      />
-                    ) : null}
-                  </span>
-                </TabsTrigger>
+      const movedEnough =
+        Math.abs(event.clientX - current.startX) > 4 ||
+        Math.abs(event.clientY - current.startY) > 4;
+      const nextState = current.active || movedEnough
+        ? { ...current, active: true }
+        : current;
 
-                <button
-                  type="button"
-                  className={[
-                    "absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted/80 transition",
-                    "hover:bg-white/[0.08] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25",
-                    isActive || isDirty
-                      ? "opacity-100"
-                      : "opacity-0 group-hover/tab:opacity-100 group-focus-within/tab:opacity-100",
-                  ].join(" ")}
-                  aria-label={`关闭 ${document.name}`}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    void tabAction("close", path);
-                  }}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+      if (!nextState.active) {
+        return nextState;
+      }
 
-                {dropIndicator?.path === path && dropIndicator.position === "after" ? (
-                  <span className="pointer-events-none absolute inset-y-1 right-0 w-0.5 rounded-full bg-accent/80" />
-                ) : null}
-              </div>
-            </ContextMenuTrigger>
+      setDropIndicator(
+        getDropIndicatorFromPointer(
+          tabRefs.current,
+          openFiles,
+          current.path,
+          event.clientX,
+          event.clientY,
+        ),
+      );
+      return nextState;
+    });
+  };
 
-            <ContextMenuContent className="w-48">
-              <ContextMenuLabel>标签操作</ContextMenuLabel>
-              <ContextMenuItem onSelect={() => void tabAction("close", path)}>
-                关闭当前
-              </ContextMenuItem>
-              <ContextMenuItem
-                disabled={!actionAvailability.canCloseOthers}
-                onSelect={() => void tabAction("closeOthers", path)}
-              >
-                关闭其他
-              </ContextMenuItem>
-              <ContextMenuItem
-                disabled={!actionAvailability.canCloseLeft}
-                onSelect={() => void tabAction("closeLeft", path)}
-              >
-                关闭左侧
-              </ContextMenuItem>
-              <ContextMenuItem
-                disabled={!actionAvailability.canCloseRight}
-                onSelect={() => void tabAction("closeRight", path)}
-              >
-                关闭右侧
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                disabled={!actionAvailability.canCloseAll}
-                onSelect={() => void tabAction("closeAll", path)}
-              >
-                关闭全部
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
+  const clearPointerDrag = () => {
+    setPointerDrag(null);
+    setDropIndicator(null);
+  };
+
+  const handlePointerUp = (
+    event: ReactPointerEvent<HTMLDivElement>,
+    path: string,
+  ) => {
+    const current = pointerDrag;
+    if (!current || current.path !== path || current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (current.active && dropIndicator) {
+      const targetIndex = openFiles.indexOf(dropIndicator.path);
+      if (targetIndex !== -1) {
+        reorderOpenFiles(
+          current.path,
+          targetIndex + (dropIndicator.position === "after" ? 1 : 0),
         );
-      }),
-    [
-      activeValue,
-      closeAllFiles,
-      closeFile,
-      closeFilesToLeft,
-      closeFilesToRight,
-      closeOtherFiles,
-      documents,
-      draggingPath,
-      dropIndicator,
-      hasMultipleTabs,
-      openFiles,
-      reorderOpenFiles,
-      unsavedChanges,
-    ],
-  );
+      }
+    }
+
+    clearPointerDrag();
+  };
+
+  const renderedTabs = openFiles.map((path) => {
+    const document = documents[path];
+    if (!document) {
+      return null;
+    }
+
+    const isDirty = unsavedChanges.has(path);
+    const isActive = activeValue === path;
+    const actionAvailability = getTabActionAvailability(openFiles, path);
+
+    return (
+      <ContextMenu key={path}>
+        <ContextMenuTrigger asChild>
+          <div
+            ref={(node) => {
+              tabRefs.current[path] = node;
+            }}
+            data-tab-path={path}
+            className={[
+              TAB_WRAPPER_CLASS_NAME,
+              pointerDrag?.path === path && pointerDrag.active ? "scale-[0.985] opacity-55" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onMouseDown={(event) => {
+              if (event.button !== 1) {
+                return;
+              }
+              event.preventDefault();
+              void tabAction("close", path);
+            }}
+            onPointerDown={(event) => handlePointerDown(event, path)}
+            onPointerMove={(event) => handlePointerMove(event, path)}
+            onPointerUp={(event) => handlePointerUp(event, path)}
+            onPointerCancel={clearPointerDrag}
+          >
+            {dropIndicator?.path === path && dropIndicator.position === "before" ? (
+              <span className="pointer-events-none absolute inset-y-1 left-0 w-0.5 rounded-full bg-accent/80" />
+            ) : null}
+
+            <TabsTrigger
+              value={path}
+              className={[
+                TAB_TRIGGER_CLASS_NAME,
+                "hover:border-border/45 hover:bg-white/[0.05] hover:text-fg",
+                "focus-visible:ring-accent/25",
+                isActive ? "border-border/70 bg-white/[0.08] text-fg" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <span className="flex min-w-0 items-center gap-1.5">
+                <FileText
+                  className={[
+                    "h-3.5 w-3.5 shrink-0",
+                    isActive ? "text-accent" : "text-accent/80",
+                  ].join(" ")}
+                />
+                <span className="truncate">{document.name}</span>
+                {isDirty ? (
+                  <span
+                    aria-label="未保存修改"
+                    className="h-1.5 w-1.5 rounded-full bg-accent/90"
+                  />
+                ) : null}
+              </span>
+            </TabsTrigger>
+
+            <button
+              type="button"
+              data-tab-close="true"
+              className={[
+                "absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-muted/80 transition",
+                "hover:bg-white/[0.08] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25",
+                isActive || isDirty
+                  ? "opacity-100"
+                  : "opacity-0 group-hover/tab:opacity-100 group-focus-within/tab:opacity-100",
+              ].join(" ")}
+              aria-label={`关闭 ${document.name}`}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void tabAction("close", path);
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+
+            {dropIndicator?.path === path && dropIndicator.position === "after" ? (
+              <span className="pointer-events-none absolute inset-y-1 right-0 w-0.5 rounded-full bg-accent/80" />
+            ) : null}
+          </div>
+        </ContextMenuTrigger>
+
+        <ContextMenuContent className="w-48">
+          <ContextMenuLabel>标签操作</ContextMenuLabel>
+          <ContextMenuItem onSelect={() => void tabAction("close", path)}>
+            关闭当前
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={!actionAvailability.canCloseOthers}
+            onSelect={() => void tabAction("closeOthers", path)}
+          >
+            关闭其他
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={!actionAvailability.canCloseLeft}
+            onSelect={() => void tabAction("closeLeft", path)}
+          >
+            关闭左侧
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={!actionAvailability.canCloseRight}
+            onSelect={() => void tabAction("closeRight", path)}
+          >
+            关闭右侧
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            disabled={!actionAvailability.canCloseAll}
+            onSelect={() => void tabAction("closeAll", path)}
+          >
+            关闭全部
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  });
+
+  if (openFiles.length === 0) {
+    return (
+      <div className="flex h-9 items-center px-3 text-[13px] text-muted">
+        暂无打开的笔记
+      </div>
+    );
+  }
 
   return (
     <Tabs

@@ -4,6 +4,7 @@ import {
   TAB_RAIL_CLASS_NAME,
   TAB_TRIGGER_CLASS_NAME,
   TAB_WRAPPER_CLASS_NAME,
+  getDropIndicatorFromPointer,
   getTabActionAvailability,
 } from "../TabBar";
 
@@ -36,6 +37,59 @@ describe("TabBar", () => {
       canCloseOthers: false,
       canCloseLeft: false,
       canCloseRight: false,
+    });
+  });
+
+  it("derives pointer drop indicators without native draggable state", () => {
+    const refs = {
+      "Inbox/Welcome.md": {
+        getBoundingClientRect: () =>
+          ({
+            left: 0,
+            right: 100,
+            top: 0,
+            bottom: 32,
+            width: 100,
+            height: 32,
+          }) as DOMRect,
+      },
+      "Projects/Roadmap.md": {
+        getBoundingClientRect: () =>
+          ({
+            left: 100,
+            right: 220,
+            top: 0,
+            bottom: 32,
+            width: 120,
+            height: 32,
+          }) as DOMRect,
+      },
+    } as unknown as Record<string, HTMLDivElement | null>;
+
+    expect(
+      getDropIndicatorFromPointer(
+        refs,
+        ["Inbox/Welcome.md", "Projects/Roadmap.md"],
+        "Inbox/Welcome.md",
+        120,
+        16,
+      ),
+    ).toEqual({
+      path: "Projects/Roadmap.md",
+      position: "before",
+    });
+
+    expect(
+      getDropIndicatorFromPointer(
+        refs,
+        ["Inbox/Welcome.md", "Projects/Roadmap.md"],
+        "Inbox/Welcome.md",
+        200,
+        16,
+      ),
+    ).toEqual({
+      path: "Projects/Roadmap.md",
+      position: "after",
     });
   });
 });
