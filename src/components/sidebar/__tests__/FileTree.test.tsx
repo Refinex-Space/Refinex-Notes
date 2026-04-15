@@ -41,6 +41,26 @@ describe("FileTree", () => {
     expect(markup).toContain("Projects");
     expect(markup).toContain('data-state="closed"');
     expect(markup).not.toContain('data-state="open"');
+    expect(markup).toContain("space-y-0.5 px-2 py-2");
+    expect(markup).toContain("rounded-lg px-2.5 py-1 text-[13px] font-medium leading-[1.1rem]");
+  });
+
+  it("renders compact file rows", () => {
+    const files: FileNode[] = [
+      {
+        name: "Notes.md",
+        path: "Notes.md",
+        isDir: false,
+        gitStatus: "clean",
+      },
+    ];
+    const markup = renderToStaticMarkup(
+      <FileTreeNodes files={files} currentFile={null} />,
+    );
+
+    expect(markup).toContain(
+      "flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left text-[13px] leading-[1.1rem] transition",
+    );
   });
 
   it("maps modified files to amber text", () => {

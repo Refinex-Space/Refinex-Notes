@@ -112,7 +112,7 @@ function FileRow({
         <AccordionItem value={node.path} className="border-b-0">
           <AccordionTrigger
             className={[
-              "rounded-lg px-2.5 py-1.5 text-[13px] font-medium leading-5",
+              "rounded-lg px-2.5 py-1 text-[13px] font-medium leading-[1.1rem]",
               "text-muted hover:bg-white/[0.04] hover:text-fg data-[state=open]:bg-white/[0.05] data-[state=open]:text-fg",
               isCurrent ? "bg-accent/10 text-fg" : "",
             ]
@@ -129,7 +129,7 @@ function FileRow({
             </span>
           </AccordionTrigger>
           <AccordionContent className="pb-0">
-            <div className="space-y-px pt-0.5">
+            <div className="space-y-0 pt-px">
               {(node.children ?? []).map((child) => (
                 <FileRow
                   key={child.path}
@@ -147,7 +147,7 @@ function FileRow({
     <button
       type="button"
       className={[
-        "flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] leading-5 transition",
+        "flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left text-[13px] leading-[1.1rem] transition",
         "hover:bg-white/[0.04] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         isCurrent ? "bg-accent/10 text-fg" : gitStatusTone(effectiveGitStatus),
       ]
@@ -272,7 +272,7 @@ export function FileTreeNodes({
   currentFile: string | null;
 }) {
   return (
-    <div className="space-y-px px-2 py-2">
+    <div className="space-y-0.5 px-2 py-2">
       {files.map((node) => (
         <FileRow
           key={node.path}
