@@ -3,6 +3,7 @@ import {
   Circle,
   FileText,
   FolderClosed,
+  FolderOpenDot,
   FolderOpen,
   FolderPlus,
   Pencil,
@@ -57,6 +58,31 @@ async function copyPath(path: string) {
 
 function shouldRenderGitStatus(status: FileNode["gitStatus"]) {
   return status !== undefined && status !== "clean";
+}
+
+export function FileTreeEmptyState({
+  workspacePath,
+}: {
+  workspacePath: string | null;
+}) {
+  const title = workspacePath ? "工作区为空" : "打开一个工作区";
+  const caption = workspacePath
+    ? "新建 Markdown 后会出现在这里"
+    : "本地 Markdown / Git 仓库";
+
+  return (
+    <div className="grid h-full min-h-0 w-full place-items-center bg-[rgb(var(--color-bg)/0.9)] px-6 py-8">
+      <div className="max-w-[14rem] text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-white/[0.05] text-fg/70">
+          <FolderOpenDot className="h-6 w-6" />
+        </div>
+        <p className="mt-5 text-sm font-semibold tracking-tight text-fg">
+          {title}
+        </p>
+        <p className="mt-2 text-xs leading-6 text-muted">{caption}</p>
+      </div>
+    </div>
+  );
 }
 
 function FileRow({
@@ -155,7 +181,10 @@ function FileRow({
       <ContextMenuContent className="w-56">
         <ContextMenuItem
           onSelect={() => {
-            const nextPath = window.prompt("新建文件路径", getDefaultCreateFilePath(node));
+            const nextPath = window.prompt(
+              "新建文件路径",
+              getDefaultCreateFilePath(node),
+            );
             if (!nextPath) {
               return;
             }
@@ -167,7 +196,10 @@ function FileRow({
         </ContextMenuItem>
         <ContextMenuItem
           onSelect={() => {
-            const nextPath = window.prompt("新建文件夹路径", getDefaultCreateFolderPath(node));
+            const nextPath = window.prompt(
+              "新建文件夹路径",
+              getDefaultCreateFolderPath(node),
+            );
             if (!nextPath) {
               return;
             }
@@ -222,16 +254,14 @@ export function FileTree() {
   const currentFile = useNoteStore((state) => state.currentFile);
 
   if (files.length === 0) {
-    return (
-      <div className="p-4 text-sm text-muted">
-        {workspacePath
-          ? "当前工作区中没有可显示的文件。"
-          : "还没有选择工作区，点击上方按钮打开本地文件夹。"}
-      </div>
-    );
+    return <FileTreeEmptyState workspacePath={workspacePath} />;
   }
 
-  return <FileTreeNodes files={files} currentFile={currentFile} />;
+  return (
+    <div className="h-full overflow-auto bg-[rgb(var(--color-bg)/0.9)]">
+      <FileTreeNodes files={files} currentFile={currentFile} />
+    </div>
+  );
 }
 
 export function FileTreeNodes({

@@ -16,7 +16,7 @@ This module does NOT own: native file I/O, Git operations, OAuth flows, search i
 - Global client state is centralized in `src/stores/`, with shared state models defined in `src/types/` and surfaced through thin hooks like `src/hooks/useAuth.ts`.
 - Store implementations use Zustand; use plain `create` when the state includes `Set`-based shell metadata, and keep `immer` only where it adds value without extra global setup.
 - `src/services/*.ts` are the intended integration seam for Tauri commands and currently contain explicit unimplemented stubs.
-- `src/App.tsx` now composes the Phase 4.1 workspace shell: `AppLayout`, `FileTree`, `TabBar`, `OutlinePanel`, `StatusBar`, `CommandPalette`, and the existing `RefinexEditor` bridge around mock workspace state.
+- `src/App.tsx` now composes the workspace shell around `AppLayout`, a sidebar workspace switcher + file tree, `TabBar`, `StatusBar`, `CommandPalette`, the existing `RefinexEditor` bridge around workspace state, and a document-area floating outline dock instead of a sidebar outline section.
 
 ## Testing
 

@@ -36,13 +36,21 @@ describe("SearchPanel helpers", () => {
 });
 
 describe("SearchPanel", () => {
-  it("renders the popup search trigger when workspace is not open", () => {
+  it("renders a custom search trigger when provided", () => {
     const markup = renderToStaticMarkup(
-      <SearchPanel workspacePath={null} onSelectResult={vi.fn()} />,
+      <SearchPanel
+        workspacePath={null}
+        onSelectResult={vi.fn()}
+        tooltipLabel="搜索项目"
+        trigger={
+          <button type="button" aria-label="搜索项目">
+            trigger
+          </button>
+        }
+      />,
     );
 
-    expect(markup).toContain("搜索项目");
-    expect(markup).toContain("文件名模糊检索与全文搜索");
-    expect(markup).toContain("打开");
+    expect(markup).toContain("aria-label=\"搜索项目\"");
+    expect(markup).toContain("trigger");
   });
 });

@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  ArrowRight,
   FileSearch,
   Search as SearchIcon,
   Sparkles,
@@ -16,12 +15,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 const SEARCH_DEBOUNCE_MS = 120;
 
 export interface SearchPanelProps {
   workspacePath: string | null;
   onSelectResult: (result: SearchResult, query: string) => void;
+  trigger?: ReactNode;
+  tooltipLabel?: string;
 }
 
 export function mergeSearchResults(
@@ -90,7 +97,12 @@ export function highlightTokens(text: string, query: string) {
   return segments.filter((segment) => segment.value.length > 0);
 }
 
-export function SearchPanel({ workspacePath, onSelectResult }: SearchPanelProps) {
+export function SearchPanel({
+  workspacePath,
+  onSelectResult,
+  trigger,
+  tooltipLabel = "搜索项目",
+}: SearchPanelProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -178,30 +190,20 @@ export function SearchPanel({ workspacePath, onSelectResult }: SearchPanelProps)
         }
       }}
     >
-      <div className="px-4 py-4">
-        <DialogTrigger asChild>
-          <button
-            type="button"
-            className="group flex w-full items-center justify-between rounded-[1.4rem] border border-border/70 bg-white/75 px-3 py-3 text-left shadow-[0_10px_30px_rgba(148,163,184,0.14)] transition hover:border-accent/35 hover:bg-white dark:bg-white/[0.04] dark:shadow-none"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="rounded-full border border-border/70 bg-bg/80 p-2 text-accent">
-                <SearchIcon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-fg">搜索项目</p>
-                <p className="truncate text-xs text-muted">
-                  文件名模糊检索与全文搜索
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted transition group-hover:text-accent">
-              <span>打开</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </div>
-          </button>
-        </DialogTrigger>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              {trigger ?? (
+                <button type="button" aria-label={tooltipLabel}>
+                  {tooltipLabel}
+                </button>
+              )}
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{tooltipLabel}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <DialogContent className="max-w-3xl overflow-hidden p-0">
         <div className="bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.98))] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">

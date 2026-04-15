@@ -1,7 +1,7 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import type { FileNode } from "../types/notes";
+import type { FileNode, RecentWorkspace } from "../types/notes";
 
 export interface FilesChangedPayload {
   paths: string[];
@@ -34,6 +34,14 @@ export const fileService = {
 
   async openWorkspace(path: string) {
     return invoke<FileNode[]>("open_workspace", { path });
+  },
+
+  async listRecentWorkspaces() {
+    return invoke<RecentWorkspace[]>("list_recent_workspaces");
+  },
+
+  async removeRecentWorkspace(path: string) {
+    return invoke<void>("remove_recent_workspace", { path });
   },
 
   async readFileTree(path: string) {

@@ -27,8 +27,14 @@ export interface NoteDocument {
   isMarkdown: boolean;
 }
 
+export interface RecentWorkspace {
+  path: string;
+  lastOpened: number;
+}
+
 export interface NoteStoreState {
   workspacePath: string | null;
+  recentWorkspaces: RecentWorkspace[];
   files: FileNode[];
   documents: Record<string, NoteDocument>;
   folders: string[];
@@ -38,7 +44,9 @@ export interface NoteStoreState {
 }
 
 export interface NoteStoreActions {
+  hydrateRecentWorkspaces: () => Promise<void>;
   openWorkspace: (path: string) => Promise<void>;
+  removeRecentWorkspace: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
   closeFile: (path: string) => Promise<void>;
   createFile: (path: string) => Promise<void>;

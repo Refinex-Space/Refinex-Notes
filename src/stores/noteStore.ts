@@ -2,11 +2,17 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { fileService } from "../services/fileService";
-import type { FileNode, NoteDocument, NoteStore } from "../types/notes";
+import type {
+  FileNode,
+  NoteDocument,
+  NoteStore,
+  RecentWorkspace,
+} from "../types/notes";
 import { useEditorStore } from "./editorStore";
 
 type StoreState = Pick<
   NoteStore,
+  | "recentWorkspaces"
   | "workspacePath"
   | "files"
   | "documents"
@@ -121,6 +127,7 @@ export function buildFileTree(
 function createInitialState(): StoreState {
   return {
     workspacePath: null,
+    recentWorkspaces: [],
     files: [],
     documents: {},
     folders: [],
@@ -136,6 +143,17 @@ function ensureUniquePaths(paths: readonly string[]) {
 
 function withRecentFile(recentFiles: readonly string[], path: string) {
   return [path, ...recentFiles.filter((entry) => entry !== path)].slice(0, 8);
+}
+
+function withRecentWorkspace(
+  recentWorkspaces: readonly RecentWorkspace[],
+  path: string,
+  lastOpened = Math.floor(Date.now() / 1000),
+) {
+  return [
+    { path, lastOpened },
+    ...recentWorkspaces.filter((entry) => entry.path !== path),
+  ].slice(0, 8);
 }
 
 function renamePrefix(path: string, oldPath: string, newPath: string) {
@@ -246,16 +264,38 @@ export function resetNoteStore() {
 export const useNoteStore = create<NoteStore>()(
   immer((set, get) => ({
     ...createInitialState(),
+    hydrateRecentWorkspaces: async () => {
+      if (!fileService.isNativeAvailable()) {
+        return;
+      }
+
+      const recentWorkspaces = await fileService.listRecentWorkspaces();
+      set((state) => {
+        state.recentWorkspaces = recentWorkspaces;
+      });
+    },
     openWorkspace: async (path) => {
       const files = await fileService.openWorkspace(path);
       resetEditorWorkspaceState();
 
       set((state) => {
         applyWorkspaceTree(state, path, files);
+        state.recentWorkspaces = withRecentWorkspace(state.recentWorkspaces, path);
         state.documents = {};
         state.currentFile = null;
         state.openFiles = [];
         state.recentFiles = [];
+      });
+    },
+    removeRecentWorkspace: async (path) => {
+      if (fileService.isNativeAvailable()) {
+        await fileService.removeRecentWorkspace(path);
+      }
+
+      set((state) => {
+        state.recentWorkspaces = state.recentWorkspaces.filter(
+          (entry) => entry.path !== path,
+        );
       });
     },
     openFile: async (path) => {

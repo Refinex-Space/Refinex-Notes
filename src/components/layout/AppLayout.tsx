@@ -29,12 +29,22 @@ export interface AppLayoutProps {
   rightPanelTitle?: string;
 }
 
+export function isMacLikePlatform(platform = "", userAgent = "") {
+  const platformLabel = platform.toLowerCase();
+  const userAgentLabel = userAgent.toLowerCase();
+
+  return (
+    platformLabel.includes("mac") ||
+    userAgentLabel.includes("mac os") ||
+    userAgentLabel.includes("darwin")
+  );
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
 export function AppLayout({
-  title = "Refinex Notes",
   sidebar,
   tabBar,
   editor,
@@ -102,58 +112,99 @@ export function AppLayout({
 
   const gridTemplateColumns = useMemo(() => {
     const sidebarTrack = sidebarCollapsed ? "0px" : `${sidebarWidth}px`;
-    const sidebarHandleTrack = sidebarCollapsed ? "0px" : "10px";
-    const rightHandleTrack = rightPanelCollapsed ? "0px" : "10px";
     const rightTrack = rightPanelCollapsed ? "0px" : `${rightPanelWidth}px`;
 
-    return `${sidebarTrack} ${sidebarHandleTrack} minmax(0, 1fr) ${rightHandleTrack} ${rightTrack}`;
+    return `${sidebarTrack} minmax(0, 1fr) ${rightTrack}`;
   }, [rightPanelCollapsed, rightPanelWidth, sidebarCollapsed, sidebarWidth]);
+
+  const needsMacInset = useMemo(() => {
+    if (typeof navigator === "undefined") {
+      return false;
+    }
+
+    return isMacLikePlatform(navigator.platform, navigator.userAgent);
+  }, []);
+
+  const titlebarIconButtonClassName = [
+    "inline-flex h-5 w-5 items-center justify-center p-0 text-muted transition",
+    "hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
+  ].join(" ");
 
   return (
     <div className="flex h-screen min-h-screen overflow-hidden flex-col bg-bg text-fg">
-      <header className="flex h-12 items-center justify-between border-b border-border/70 bg-bg/90 px-4 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-bg/70 text-muted transition hover:border-accent/50 hover:text-fg"
-            onClick={() => setSidebarCollapsed((current) => !current)}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </button>
-          <div data-tauri-drag-region className="space-y-0.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
-              Phase 4.1
-            </p>
-            <h1 className="text-sm font-semibold text-fg">{title}</h1>
-          </div>
-        </div>
+      <header className="border-b border-border/70 bg-bg/90 backdrop-blur">
+        {needsMacInset ? (
+          <div data-tauri-drag-region className="relative h-10 px-4">
+            <button
+              type="button"
+              aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+              className={[titlebarIconButtonClassName, "absolute left-[6.9rem] top-[0.72rem]"].join(" ")}
+              onClick={() => setSidebarCollapsed((current) => !current)}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
 
-        <button
-          type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-bg/70 text-muted transition hover:border-accent/50 hover:text-fg"
-          onClick={() => setRightPanelCollapsed((current) => !current)}
-        >
-          {rightPanelCollapsed ? (
-            <PanelRightOpen className="h-4 w-4" />
-          ) : (
-            <PanelRightClose className="h-4 w-4" />
-          )}
-        </button>
+            <button
+              type="button"
+              aria-label={rightPanelCollapsed ? "展开右侧面板" : "折叠右侧面板"}
+              className={[titlebarIconButtonClassName, "absolute right-4 top-[0.72rem]"].join(" ")}
+              onClick={() => setRightPanelCollapsed((current) => !current)}
+            >
+              {rightPanelCollapsed ? (
+                <PanelRightOpen className="h-4 w-4" />
+              ) : (
+                <PanelRightClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        ) : (
+          <div
+            data-tauri-drag-region
+            className="grid h-12 grid-cols-[auto_1fr_auto] items-center px-4"
+          >
+            <button
+              type="button"
+              aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+              className={titlebarIconButtonClassName}
+              onClick={() => setSidebarCollapsed((current) => !current)}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose className="h-4 w-4" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              aria-label={rightPanelCollapsed ? "展开右侧面板" : "折叠右侧面板"}
+              className={titlebarIconButtonClassName}
+              onClick={() => setRightPanelCollapsed((current) => !current)}
+            >
+              {rightPanelCollapsed ? (
+                <PanelRightOpen className="h-4 w-4" />
+              ) : (
+                <PanelRightClose className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        )}
+
       </header>
 
       <div
         className="grid min-h-0 flex-1 overflow-hidden"
         style={{ gridTemplateColumns }}
       >
-        <Collapsible open={!sidebarCollapsed}>
+        <Collapsible open={!sidebarCollapsed} className="h-full">
           <CollapsibleContent
             forceMount
             className={[
-              "min-h-0 overflow-hidden border-r border-border/70 bg-bg/60",
+              "h-full min-h-0 overflow-hidden border-r border-border/70 bg-[rgb(var(--color-bg)/0.9)]",
               sidebarCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
             ]
               .filter(Boolean)
@@ -167,33 +218,41 @@ export function AppLayout({
                   </p>
                 </div>
               ) : null}
-              <div className="min-h-0 flex-1 overflow-auto">{sidebar}</div>
+              <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
             </aside>
           </CollapsibleContent>
         </Collapsible>
 
-        <div
-          className={sidebarCollapsed ? "hidden" : "cursor-col-resize bg-border/40"}
-          onPointerDown={() => setActiveDrag("sidebar")}
-        />
+        <section className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-bg">
+          {!sidebarCollapsed ? (
+            <div
+              className="absolute inset-y-0 left-0 z-10 w-[10px] -translate-x-1/2 cursor-col-resize"
+              onPointerDown={() => setActiveDrag("sidebar")}
+            >
+              <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/55" />
+            </div>
+          ) : null}
 
-        <section className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-bg">
+          {!rightPanelCollapsed ? (
+            <div
+              className="absolute inset-y-0 right-0 z-10 w-[10px] translate-x-1/2 cursor-col-resize"
+              onPointerDown={() => setActiveDrag("right-panel")}
+            >
+              <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border/55" />
+            </div>
+          ) : null}
+
           <div className="border-b border-border/70 bg-bg/80 px-3 py-2">
             {tabBar}
           </div>
           <div className="min-h-0 overflow-hidden">{editor}</div>
         </section>
 
-        <div
-          className={rightPanelCollapsed ? "hidden" : "cursor-col-resize bg-border/40"}
-          onPointerDown={() => setActiveDrag("right-panel")}
-        />
-
-        <Collapsible open={!rightPanelCollapsed}>
+        <Collapsible open={!rightPanelCollapsed} className="h-full">
           <CollapsibleContent
             forceMount
             className={[
-              "min-h-0 overflow-hidden border-l border-border/70 bg-bg/60",
+              "h-full min-h-0 overflow-hidden border-l border-border/70 bg-bg/60",
               rightPanelCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
             ]
               .filter(Boolean)
@@ -205,7 +264,7 @@ export function AppLayout({
                   {rightPanelTitle}
                 </p>
               </div>
-              <div className="min-h-0 flex-1 overflow-auto">{rightPanel}</div>
+              <div className="min-h-0 flex-1 overflow-hidden">{rightPanel}</div>
             </aside>
           </CollapsibleContent>
         </Collapsible>

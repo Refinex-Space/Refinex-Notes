@@ -21,6 +21,13 @@ pub struct FileNode {
     pub children: Option<Vec<FileNode>>,
 }
 
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentWorkspaceEntry {
+    pub path: String,
+    pub last_opened: i64,
+}
+
 #[tauri::command]
 pub fn open_workspace(
     app_handle: AppHandle,
@@ -60,6 +67,37 @@ pub fn open_workspace(
     search_indexer::rebuild_workspace_index(&state, &workspace_path)?;
 
     Ok(file_tree)
+}
+
+#[tauri::command]
+pub fn list_recent_workspaces(state: State<'_, AppState>) -> Result<Vec<RecentWorkspaceEntry>, String> {
+    let connection = state
+        .db
+        .lock()
+        .map_err(|_| "数据库锁获取失败".to_string())?;
+
+    db::list_recent_workspaces(&connection).map(|entries| {
+        entries
+            .into_iter()
+            .map(|entry| RecentWorkspaceEntry {
+                path: entry.path,
+                last_opened: entry.last_opened,
+            })
+            .collect()
+    })
+}
+
+#[tauri::command]
+pub fn remove_recent_workspace(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<(), String> {
+    let connection = state
+        .db
+        .lock()
+        .map_err(|_| "数据库锁获取失败".to_string())?;
+
+    db::remove_recent_workspace(&connection, &path)
 }
 
 #[tauri::command]

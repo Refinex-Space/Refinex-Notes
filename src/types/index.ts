@@ -11,6 +11,7 @@ export type {
   FileGitStatus,
   FileNode,
   NoteDocument,
+  RecentWorkspace,
   NoteStore,
   NoteStoreActions,
   NoteStoreState,

@@ -9,6 +9,14 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Workspace Switcher](exec-plans/completed/2026-04-15-workspace-switcher.md) — completed 2026-04-15
+- [macOS Titlebar Fine Tune](exec-plans/completed/2026-04-15-macos-titlebar-fine-tune.md) — completed 2026-04-15
+- [macOS Titlebar Alignment](exec-plans/completed/2026-04-15-macos-titlebar-alignment.md) — completed 2026-04-15
+- [macOS Overlay Titlebar](exec-plans/completed/2026-04-15-macos-overlay-titlebar.md) — completed 2026-04-15
+- [Titlebar Sidebar Toggle](exec-plans/completed/2026-04-15-titlebar-sidebar-toggle.md) — completed 2026-04-15
+- [Sidebar Noise Reduction](exec-plans/completed/2026-04-15-sidebar-noise-reduction.md) — completed 2026-04-15
+- [Floating Outline Dock](exec-plans/completed/2026-04-15-floating-outline-dock.md) — completed 2026-04-15
+- [Sidebar Action Icons](exec-plans/completed/2026-04-15-sidebar-action-icons.md) — completed 2026-04-15
 - [Fix Git Sync Runtime Panic](exec-plans/completed/2026-04-15-fix-git-sync-runtime-panic.md) — completed 2026-04-15
 - [Phase 6 Search](exec-plans/completed/2026-04-15-phase6-search.md) — completed 2026-04-15
 - [Phase 6 Git UI](exec-plans/completed/2026-04-14-phase6-git-ui.md) — completed 2026-04-14

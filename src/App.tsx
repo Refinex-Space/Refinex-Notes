@@ -3,15 +3,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   GitBranch,
-  LogOut,
   RefreshCcw,
+  Search as SearchIcon,
   Wand2,
 } from "lucide-react";
 import { TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
 import { CommandPalette } from "./components/CommandPalette";
+import { AccountStatus } from "./components/auth/AccountStatus";
 import { LoginScreen } from "./components/auth/LoginScreen";
+import { DocumentOutlineDock } from "./components/editor/DocumentOutlineDock";
 import { TabBar } from "./components/editor/TabBar";
 import { AppLayout } from "./components/layout/AppLayout";
 import { StatusBar } from "./components/layout/StatusBar";
@@ -19,8 +21,8 @@ import { HistoryPanel } from "./components/git/HistoryPanel";
 import { SetupPanel } from "./components/git/SetupPanel";
 import { SyncStatus } from "./components/git/SyncStatus";
 import { FileTree } from "./components/sidebar/FileTree";
-import { OutlinePanel } from "./components/sidebar/OutlinePanel";
 import { SearchPanel } from "./components/sidebar/SearchPanel";
+import { WorkspaceSwitcher } from "./components/sidebar/WorkspaceSwitcher";
 import {
   buildCommandPaletteItems,
   countWords,
@@ -36,6 +38,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./components/ui/tooltip";
 import { RefinexEditor } from "./editor";
 import { fileService } from "./services/fileService";
 import { gitService } from "./services/gitService";
@@ -47,79 +55,72 @@ import { useNoteStore } from "./stores/noteStore";
 import type { OutlineHeading } from "./types";
 import type { SearchResult } from "./types/search";
 
+const sidebarActionButtonClassName = [
+  "inline-flex h-9 w-9 items-center justify-center",
+  "bg-transparent text-muted transition",
+  "hover:text-fg",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
+].join(" ");
+
 function SidebarContent({
-  markdown,
-  onSelectHeading,
   onSelectSearchResult,
   workspacePath,
   onOpenWorkspace,
+  onSelectWorkspace,
+  onRemoveWorkspace,
+  recentWorkspaces,
 }: {
-  markdown: string;
-  onSelectHeading: (heading: OutlineHeading) => void;
   onSelectSearchResult: (result: SearchResult, query: string) => void;
   workspacePath: string | null;
   onOpenWorkspace: () => void;
+  onSelectWorkspace: (path: string) => void;
+  onRemoveWorkspace: (path: string) => void;
+  recentWorkspaces: ReturnType<typeof useNoteStore.getState>["recentWorkspaces"];
 }) {
-  const workspaceLabel = workspacePath?.split(/[\\/]/).filter(Boolean).at(-1) ?? null;
-  const authenticatedUser = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
+  const hasFiles = useNoteStore((state) => state.files.length > 0);
+  const sidebarSurfaceClassName = "bg-[rgb(var(--color-bg)/0.9)]";
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.98))] dark:bg-[linear-gradient(180deg,rgba(8,14,29,0.98),rgba(4,9,21,0.98))]">
-      <section className="shrink-0 border-b border-border/70 px-4 py-4">
-        <button
-          type="button"
-          className="inline-flex w-full items-center justify-center rounded-2xl border border-border/70 bg-white px-3 py-2.5 text-sm font-semibold text-fg transition hover:border-accent/35 hover:bg-accent/8 hover:text-accent dark:bg-white/[0.04]"
-          onClick={onOpenWorkspace}
-        >
-          打开项目
-        </button>
-        <p className="mt-3 truncate text-xs text-muted">
-          {workspaceLabel ? `当前项目：${workspaceLabel}` : "尚未打开本地工作区"}
-        </p>
-        {authenticatedUser ? (
-          <button
-            type="button"
-            className="mt-3 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted transition hover:text-rose-200"
-            onClick={() => {
-              void logout();
-            }}
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            退出 GitHub
-          </button>
-        ) : null}
+    <div className={`flex h-full min-h-0 flex-col ${sidebarSurfaceClassName}`}>
+      <section className="shrink-0 border-b border-border/70 px-3 py-3">
+        <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <WorkspaceSwitcher
+              workspacePath={workspacePath}
+              recentWorkspaces={recentWorkspaces}
+              onOpenWorkspace={onOpenWorkspace}
+              onSelectWorkspace={onSelectWorkspace}
+              onRemoveWorkspace={onRemoveWorkspace}
+            />
+
+            <SearchPanel
+              workspacePath={workspacePath}
+              onSelectResult={onSelectSearchResult}
+              tooltipLabel="搜索项目"
+              trigger={
+                <button
+                  type="button"
+                  aria-label="搜索项目"
+                  className={sidebarActionButtonClassName}
+                >
+                  <SearchIcon className="h-4 w-4" />
+                </button>
+              }
+            />
+          </div>
+        </TooltipProvider>
       </section>
 
-      <section className="flex min-h-0 flex-[0.92] flex-col border-b border-border/70">
-        <div className="min-h-0 flex-1 overflow-auto">
-          <SearchPanel
-            workspacePath={workspacePath}
-            onSelectResult={onSelectSearchResult}
-          />
-        </div>
-      </section>
-
-      <section className="flex min-h-0 flex-[1.08] flex-col border-b border-border/70">
-        <div className="border-b border-border/70 px-4 py-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
-            Files
-          </p>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto">
-          <FileTree />
-        </div>
-      </section>
-
-      <section className="flex min-h-0 flex-1 flex-col">
-        <div className="border-b border-border/70 px-4 py-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted/90">
-            Outline
-          </p>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto">
-          <OutlinePanel markdown={markdown} onSelectHeading={onSelectHeading} />
-        </div>
+      <section className={`flex min-h-0 flex-1 flex-col ${sidebarSurfaceClassName}`}>
+        {hasFiles ? (
+          <div className={`min-h-0 flex-1 overflow-hidden ${sidebarSurfaceClassName}`}>
+            <FileTree />
+          </div>
+        ) : (
+          <div className={`min-h-0 flex-1 ${sidebarSurfaceClassName}`}>
+            <FileTree />
+          </div>
+        )}
       </section>
     </div>
   );
@@ -256,10 +257,13 @@ function WorkspaceShell({
   } | null>(null);
 
   const workspacePath = useNoteStore((state) => state.workspacePath);
+  const recentWorkspaces = useNoteStore((state) => state.recentWorkspaces);
   const documents = useNoteStore((state) => state.documents);
   const currentFile = useNoteStore((state) => state.currentFile);
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
+  const hydrateRecentWorkspaces = useNoteStore((state) => state.hydrateRecentWorkspaces);
   const openFile = useNoteStore((state) => state.openFile);
+  const removeRecentWorkspace = useNoteStore((state) => state.removeRecentWorkspace);
   const createFile = useNoteStore((state) => state.createFile);
   const refreshWorkspace = useNoteStore((state) => state.refreshWorkspace);
   const saveCurrentFile = useNoteStore((state) => state.saveCurrentFile);
@@ -316,6 +320,10 @@ function WorkspaceShell({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [saveCurrentFile]);
+
+  useEffect(() => {
+    void hydrateRecentWorkspaces();
+  }, [hydrateRecentWorkspaces]);
 
   useEffect(() => {
     void hydrateWorkspace(workspacePath);
@@ -410,6 +418,12 @@ function WorkspaceShell({
     });
   };
 
+  const handleSelectWorkspace = (path: string) => {
+    void openWorkspace(path).catch(async () => {
+      await removeRecentWorkspace(path);
+    });
+  };
+
   const handleSelectSearchResult = (result: SearchResult, query: string) => {
     void openFile(result.path).then(() => {
       setPendingSearchJump({ path: result.path, query });
@@ -429,38 +443,46 @@ function WorkspaceShell({
   return (
     <>
       <AppLayout
-        title="Refinex Notes Workspace"
         sidebar={
           <SidebarContent
-            markdown={currentDocument?.content ?? ""}
-            onSelectHeading={handleSelectHeading}
             onSelectSearchResult={handleSelectSearchResult}
             workspacePath={workspacePath}
             onOpenWorkspace={handleOpenWorkspace}
+            onSelectWorkspace={handleSelectWorkspace}
+            onRemoveWorkspace={(path) => {
+              void removeRecentWorkspace(path);
+            }}
+            recentWorkspaces={recentWorkspaces}
           />
         }
         tabBar={<TabBar />}
         editor={
           currentDocument ? (
-            <div className="h-full min-h-0 overflow-auto bg-bg">
-              <RefinexEditor
-                key={currentDocument.path}
-                value={currentDocument.content}
-                className="min-h-full px-6 py-5"
-                onChange={(markdown) => {
-                  updateFileContent(currentDocument.path, markdown);
+            <div className="relative h-full min-h-0 bg-bg">
+              <div className="h-full overflow-auto">
+                <RefinexEditor
+                  key={currentDocument.path}
+                  value={currentDocument.content}
+                  className="min-h-full px-6 py-5"
+                  onChange={(markdown) => {
+                    updateFileContent(currentDocument.path, markdown);
 
-                  if (markdown === currentDocument.savedContent) {
-                    markClean(currentDocument.path);
-                    return;
-                  }
+                    if (markdown === currentDocument.savedContent) {
+                      markClean(currentDocument.path);
+                      return;
+                    }
 
-                  markDirty(currentDocument.path);
-                }}
-                onCursorChange={setCursorPosition}
-                onEditorView={(view) => {
-                  editorViewRef.current = view;
-                }}
+                    markDirty(currentDocument.path);
+                  }}
+                  onCursorChange={setCursorPosition}
+                  onEditorView={(view) => {
+                    editorViewRef.current = view;
+                  }}
+                />
+              </div>
+              <DocumentOutlineDock
+                markdown={currentDocument.content}
+                onSelectHeading={handleSelectHeading}
               />
             </div>
           ) : (
@@ -483,10 +505,13 @@ function WorkspaceShell({
             wordCount={wordCount}
             language={currentDocument?.language ?? "Markdown"}
             gitStatusSlot={
-              <SyncStatus
-                onOpenHistory={() => setRightPanelTab("history")}
-                onOpenSettings={() => setRightPanelTab("setup")}
-              />
+              <div className="flex items-center gap-2">
+                <AccountStatus />
+                <SyncStatus
+                  onOpenHistory={() => setRightPanelTab("history")}
+                  onOpenSettings={() => setRightPanelTab("setup")}
+                />
+              </div>
             }
           />
         }

@@ -4,6 +4,12 @@ use std::path::{Path, PathBuf};
 use rusqlite::Connection;
 use tauri::{AppHandle, Manager, Runtime};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecentWorkspaceRecord {
+    pub path: String,
+    pub last_opened: i64,
+}
+
 const INIT_SQL: &str = r#"
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
@@ -49,6 +55,41 @@ pub fn remember_workspace(connection: &Connection, workspace_path: &Path) -> Res
     Ok(())
 }
 
+pub fn list_recent_workspaces(connection: &Connection) -> Result<Vec<RecentWorkspaceRecord>, String> {
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT path, last_opened
+            FROM recent_workspaces
+            ORDER BY last_opened DESC, path ASC
+            "#,
+        )
+        .map_err(|error| format!("读取最近工作区失败: {error}"))?;
+
+    let rows = statement
+        .query_map([], |row| {
+            Ok(RecentWorkspaceRecord {
+                path: row.get(0)?,
+                last_opened: row.get(1)?,
+            })
+        })
+        .map_err(|error| format!("查询最近工作区失败: {error}"))?;
+
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("收集最近工作区失败: {error}"))
+}
+
+pub fn remove_recent_workspace(connection: &Connection, workspace_path: &str) -> Result<(), String> {
+    connection
+        .execute(
+            "DELETE FROM recent_workspaces WHERE path = ?1",
+            [workspace_path],
+        )
+        .map_err(|error| format!("移除最近工作区失败: {error}"))?;
+
+    Ok(())
+}
+
 pub fn resolve_database_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
     let home_dir = app
         .path()
@@ -72,7 +113,9 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
 mod tests {
     use rusqlite::Connection;
 
-    use super::{initialize_schema, remember_workspace};
+    use super::{
+        initialize_schema, list_recent_workspaces, remember_workspace, remove_recent_workspace,
+    };
 
     #[test]
     fn initialize_schema_creates_expected_tables() {
@@ -108,5 +151,25 @@ mod tests {
             .unwrap();
 
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn list_and_remove_recent_workspaces_follow_recent_order() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        remember_workspace(&connection, std::path::Path::new("/tmp/workspace-a")).unwrap();
+        remember_workspace(&connection, std::path::Path::new("/tmp/workspace-b")).unwrap();
+
+        let listed = list_recent_workspaces(&connection).unwrap();
+        assert_eq!(listed.len(), 2);
+        assert!(listed.iter().any(|entry| entry.path == "/tmp/workspace-a"));
+        assert!(listed.iter().any(|entry| entry.path == "/tmp/workspace-b"));
+
+        remove_recent_workspace(&connection, "/tmp/workspace-b").unwrap();
+
+        let listed = list_recent_workspaces(&connection).unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].path, "/tmp/workspace-a");
     }
 }

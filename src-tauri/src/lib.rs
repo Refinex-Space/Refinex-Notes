@@ -36,7 +36,6 @@ pub fn run() {
             let database = db::init_database(&app.handle())?;
 
             app.manage(AppState::new(github_client_id, database));
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -46,6 +45,8 @@ pub fn run() {
             commands::auth::github_logout,
             commands::auth::open_external_url,
             commands::files::open_workspace,
+            commands::files::list_recent_workspaces,
+            commands::files::remove_recent_workspace,
             commands::files::read_file_tree,
             commands::files::read_file,
             commands::files::write_file,
