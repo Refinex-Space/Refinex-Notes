@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { EditorState, TextSelection } from "prosemirror-state";
 
 import { parseMarkdown } from "../parser";
-import { getCursorPosition, shouldSyncExternalValue } from "../RefinexEditor";
+import {
+  getCursorPosition,
+  shouldRefreshOverlay,
+  shouldSyncExternalValue,
+} from "../RefinexEditor";
 
 describe("RefinexEditor shell bridge helpers", () => {
   it("maps the current selection to line and column", () => {
@@ -53,5 +57,12 @@ Line two
         "# Updated",
       ),
     ).toBe(true);
+  });
+
+  it("refreshes overlay only for selection-affecting visible states", () => {
+    expect(shouldRefreshOverlay(false, false, false)).toBe(false);
+    expect(shouldRefreshOverlay(true, false, false)).toBe(true);
+    expect(shouldRefreshOverlay(false, true, false)).toBe(true);
+    expect(shouldRefreshOverlay(false, false, true)).toBe(true);
   });
 });

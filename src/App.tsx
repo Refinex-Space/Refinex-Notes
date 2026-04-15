@@ -47,7 +47,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./components/ui/tooltip";
-import { RefinexEditor } from "./editor";
+import { RefinexEditor, serializeEditorState } from "./editor";
 import { fileService } from "./services/fileService";
 import { gitService } from "./services/gitService";
 import { searchService } from "./services/searchService";
@@ -297,6 +297,7 @@ function WorkspaceShell({
   const handleSyncEvent = useGitStore((state) => state.handleSyncEvent);
 
   const editorViewRef = useRef<EditorView | null>(null);
+  const editorScrollRef = useRef<HTMLDivElement | null>(null);
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
 
@@ -338,12 +339,29 @@ function WorkspaceShell({
       }
 
       event.preventDefault();
+      if (editorViewRef.current && currentFile) {
+        const markdown = serializeEditorState(editorViewRef.current.state);
+        updateFileContent(currentFile, markdown);
+
+        if (currentDocument && markdown === currentDocument.savedContent) {
+          markClean(currentFile);
+        } else {
+          markDirty(currentFile);
+        }
+      }
       void saveCurrentFile();
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [saveCurrentFile]);
+  }, [
+    currentDocument,
+    currentFile,
+    markClean,
+    markDirty,
+    saveCurrentFile,
+    updateFileContent,
+  ]);
 
   useEffect(() => {
     void hydrateRecentWorkspaces();
@@ -490,7 +508,7 @@ function WorkspaceShell({
         editor={
           currentDocument ? (
             <div className="relative h-full min-h-0 bg-bg">
-              <div className="h-full overflow-auto">
+              <div ref={editorScrollRef} className="h-full overflow-auto">
                 <RefinexEditor
                   documentPath={currentDocument.path}
                   value={currentDocument.content}
@@ -513,6 +531,8 @@ function WorkspaceShell({
               </div>
               <DocumentOutlineDock
                 markdown={currentDocument.content}
+                editorViewRef={editorViewRef}
+                scrollContainerRef={editorScrollRef}
                 onSelectHeading={handleSelectHeading}
               />
             </div>

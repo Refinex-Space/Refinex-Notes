@@ -54,8 +54,38 @@ export interface RefinexEditorProps {
   onEditorView?: (view: EditorView | null) => void;
 }
 
+const MARKDOWN_FLUSH_DELAY_MS = 120;
 const PARSED_DOCUMENT_CACHE_LIMIT = 8;
 const parsedDocumentCache = new Map<string, ProseMirrorNode>();
+
+type IdleHandle = number | ReturnType<typeof globalThis.setTimeout>;
+
+function requestIdleFlush(callback: () => void) {
+  if ("requestIdleCallback" in window) {
+    return {
+      kind: "idle" as const,
+      id: window.requestIdleCallback(callback, { timeout: MARKDOWN_FLUSH_DELAY_MS }),
+    };
+  }
+
+  return {
+    kind: "timeout" as const,
+    id: globalThis.setTimeout(callback, MARKDOWN_FLUSH_DELAY_MS),
+  };
+}
+
+function cancelIdleFlush(handle: { kind: "idle" | "timeout"; id: IdleHandle } | null) {
+  if (!handle) {
+    return;
+  }
+
+  if (handle.kind === "idle" && "cancelIdleCallback" in window) {
+    window.cancelIdleCallback(handle.id as number);
+    return;
+  }
+
+  globalThis.clearTimeout(handle.id);
+}
 
 function getParsedDocumentCacheKey(
   documentPath: string | undefined,
@@ -110,6 +140,14 @@ export function shouldSyncExternalValue(
   );
 }
 
+export function shouldRefreshOverlay(
+  selectionSet: boolean,
+  storedMarksSet: boolean,
+  hasVisibleSelection: boolean,
+) {
+  return selectionSet || storedMarksSet || hasVisibleSelection;
+}
+
 function countTextblockLines(text: string) {
   return Math.max(1, text.split("\n").length);
 }
@@ -137,6 +175,10 @@ function serializeMarkdownSafely(state: EditorState): string {
     console.error("序列化编辑器内容失败", error);
     return "";
   }
+}
+
+export function serializeEditorState(state: EditorState): string {
+  return serializeMarkdownSafely(state);
 }
 
 function getCursorPositionFallback(state: EditorState): EditorCursorPosition {
@@ -204,9 +246,14 @@ export function RefinexEditor({
   const readOnlyRef = useRef(readOnly);
   const onCursorChangeRef = useRef(onCursorChange);
   const onEditorViewRef = useRef(onEditorView);
-  const activeDocumentPathRef = useRef(documentPath);
+  const viewDocumentPathRef = useRef(documentPath);
   const lastAppliedValueRef = useRef(value);
   const lastAppliedDocumentPathRef = useRef(documentPath);
+  const pendingMarkdownHandleRef = useRef<{
+    kind: "idle" | "timeout";
+    id: IdleHandle;
+  } | null>(null);
+  const pendingMarkdownRef = useRef(false);
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
   const slashMenuChangeRef = useRef(
     (_request: SlashMenuRequest | null) => {},
@@ -223,7 +270,6 @@ export function RefinexEditor({
   readOnlyRef.current = readOnly;
   onCursorChangeRef.current = onCursorChange;
   onEditorViewRef.current = onEditorView;
-  activeDocumentPathRef.current = documentPath;
   openLinkPopoverRef.current = (view) => {
     const request = getLinkEditorRequest(view.state);
     if (!request) {
@@ -238,6 +284,36 @@ export function RefinexEditor({
   };
   slashMenuChangeRef.current = (request) => {
     setSlashMenuRequest(request);
+  };
+
+  const flushPendingMarkdown = (state: EditorState) => {
+    if (!pendingMarkdownRef.current || !onChangeRef.current) {
+      cancelIdleFlush(pendingMarkdownHandleRef.current);
+      pendingMarkdownHandleRef.current = null;
+      pendingMarkdownRef.current = false;
+      return;
+    }
+
+    cancelIdleFlush(pendingMarkdownHandleRef.current);
+    pendingMarkdownHandleRef.current = null;
+    pendingMarkdownRef.current = false;
+
+    const markdown = serializeMarkdownSafely(state);
+    lastAppliedValueRef.current = markdown;
+    lastAppliedDocumentPathRef.current = viewDocumentPathRef.current;
+    onChangeRef.current(markdown);
+  };
+
+  const scheduleMarkdownFlush = () => {
+    pendingMarkdownRef.current = true;
+    cancelIdleFlush(pendingMarkdownHandleRef.current);
+    pendingMarkdownHandleRef.current = requestIdleFlush(() => {
+      const view = viewRef.current;
+      if (!view) {
+        return;
+      }
+      flushPendingMarkdown(view.state);
+    });
   };
 
   // Initialize EditorView once on mount
@@ -289,24 +365,32 @@ export function RefinexEditor({
       dispatchTransaction(transaction) {
         const result = view.state.applyTransaction(transaction);
         view.updateState(result.state);
-        setOverlayVersion((current) => current + 1);
+        const needsOverlayRefresh = result.transactions.some((nextTransaction) =>
+          shouldRefreshOverlay(
+            nextTransaction.selectionSet,
+            nextTransaction.storedMarksSet,
+            !result.state.selection.empty,
+          ),
+        );
+        if (needsOverlayRefresh) {
+          setOverlayVersion((current) => current + 1);
+        }
         reportCursorPositionSafely(result.state, onCursorChangeRef.current);
 
         if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
-          const markdown = serializeMarkdownSafely(result.state);
-          lastAppliedValueRef.current = markdown;
-          lastAppliedDocumentPathRef.current = activeDocumentPathRef.current;
-          onChangeRef.current(markdown);
+          scheduleMarkdownFlush();
         }
       },
     });
 
     viewRef.current = view;
+    viewDocumentPathRef.current = documentPath;
     setEditorView(view);
     onEditorViewRef.current?.(view);
     reportCursorPositionSafely(view.state, onCursorChangeRef.current);
 
     return () => {
+      flushPendingMarkdown(view.state);
       onEditorViewRef.current?.(null);
       view.destroy();
       viewRef.current = null;
@@ -353,12 +437,26 @@ export function RefinexEditor({
       return;
     }
 
+    flushPendingMarkdown(view.state);
+
+    if (
+      !shouldSyncExternalValue(
+        lastAppliedDocumentPathRef.current,
+        lastAppliedValueRef.current,
+        documentPath,
+        value,
+      )
+    ) {
+      return;
+    }
+
     const doc = getParsedDocument(documentPath, value);
     const newState = EditorState.create({
       doc,
       plugins: view.state.plugins,
     });
     view.updateState(newState);
+    viewDocumentPathRef.current = documentPath;
     lastAppliedValueRef.current = value;
     lastAppliedDocumentPathRef.current = documentPath;
     setOverlayVersion((current) => current + 1);

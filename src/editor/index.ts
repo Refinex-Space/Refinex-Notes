@@ -1,4 +1,7 @@
-export { RefinexEditor } from "./RefinexEditor";
+export {
+  RefinexEditor,
+  serializeEditorState,
+} from "./RefinexEditor";
 export type { RefinexEditorProps } from "./RefinexEditor";
 export { refinexInputRules } from "./plugins/input-rules";
 export { inlineSyncPlugin, refinexInlineSyncKey } from "./plugins/inline-sync";
