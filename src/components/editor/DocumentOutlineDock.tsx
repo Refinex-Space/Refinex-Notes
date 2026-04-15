@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import type { MutableRefObject } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import type { EditorView } from "prosemirror-view";
 
 import type { OutlineHeading } from "../../types";
 import { extractOutlineHeadings } from "../sidebar/sidebar-utils";
@@ -8,6 +10,8 @@ const MAX_RAIL_ITEMS = 24;
 export interface DocumentOutlineDockProps {
   markdown?: string;
   onSelectHeading?: (heading: OutlineHeading) => void;
+  editorViewRef?: MutableRefObject<EditorView | null>;
+  scrollContainerRef?: MutableRefObject<HTMLDivElement | null>;
 }
 
 export function buildOutlineRailItems(headings: OutlineHeading[]) {
@@ -34,23 +38,132 @@ function railWidthClass(level: number) {
   }
 }
 
+export function collectVisibleHeadingRailItems(
+  editorView: EditorView | null,
+  scrollContainer: HTMLDivElement | null,
+): OutlineHeading[] {
+  if (!editorView || !scrollContainer) {
+    return [];
+  }
+
+  const viewport = scrollContainer.getBoundingClientRect();
+  const headingNodes = Array.from(
+    editorView.dom.querySelectorAll("h1, h2, h3, h4, h5, h6"),
+  );
+
+  return headingNodes
+    .map((node, index) => {
+      const rect = node.getBoundingClientRect();
+      const isVisible = rect.bottom >= viewport.top && rect.top <= viewport.bottom;
+      if (!isVisible) {
+        return null;
+      }
+
+      const level = Number(node.tagName.slice(1));
+      const text = node.textContent?.trim() ?? "";
+      if (!text) {
+        return null;
+      }
+
+      return {
+        id: `visible-${index + 1}:${text}`,
+        text,
+        level,
+        line: index + 1,
+      } satisfies OutlineHeading;
+    })
+    .filter((heading): heading is OutlineHeading => heading !== null);
+}
+
 export function DocumentOutlineDock({
   markdown,
   onSelectHeading,
+  editorViewRef,
+  scrollContainerRef,
 }: DocumentOutlineDockProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [visibleRailItems, setVisibleRailItems] = useState<OutlineHeading[]>([]);
+  const deferredMarkdown = useDeferredValue(markdown ?? "");
+  const shouldRenderFullOutline =
+    expanded || !editorViewRef || !scrollContainerRef;
   const headings = useMemo(
-    () => extractOutlineHeadings(markdown ?? ""),
-    [markdown],
+    () =>
+      shouldRenderFullOutline ? extractOutlineHeadings(deferredMarkdown) : [],
+    [deferredMarkdown, shouldRenderFullOutline],
   );
-  const railItems = useMemo(() => buildOutlineRailItems(headings), [headings]);
+  const railItems = useMemo(
+    () =>
+      buildOutlineRailItems(
+        shouldRenderFullOutline ? headings : visibleRailItems,
+      ),
+    [headings, shouldRenderFullOutline, visibleRailItems],
+  );
 
-  if (headings.length === 0) {
+  useEffect(() => {
+    if (shouldRenderFullOutline) {
+      return;
+    }
+
+    const scrollContainer = scrollContainerRef?.current ?? null;
+    const view = editorViewRef?.current ?? null;
+    if (!scrollContainer || !view) {
+      return;
+    }
+
+    let frame = 0;
+    const updateVisibleRail = () => {
+      frame = 0;
+      setVisibleRailItems(
+        collectVisibleHeadingRailItems(view, scrollContainer),
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (frame !== 0) {
+        return;
+      }
+      frame = window.requestAnimationFrame(updateVisibleRail);
+    };
+
+    scheduleUpdate();
+    scrollContainer.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      if (frame !== 0) {
+        window.cancelAnimationFrame(frame);
+      }
+      scrollContainer.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [deferredMarkdown, editorViewRef, scrollContainerRef, shouldRenderFullOutline]);
+
+  if (shouldRenderFullOutline && headings.length === 0) {
+    return null;
+  }
+
+  if (!shouldRenderFullOutline && visibleRailItems.length === 0) {
     return null;
   }
 
   return (
     <div className="pointer-events-none absolute inset-y-0 right-3 z-20 hidden items-center lg:flex">
-      <div className="group/dock pointer-events-auto relative flex items-center justify-end">
+      <div
+        className="group/dock pointer-events-auto relative flex items-center justify-end"
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+        onFocusCapture={() => setExpanded(true)}
+        onBlurCapture={(event) => {
+          const nextTarget = event.relatedTarget;
+          if (
+            nextTarget instanceof HTMLElement &&
+            event.currentTarget.contains(nextTarget)
+          ) {
+            return;
+          }
+          setExpanded(false);
+        }}
+      >
         <button
           type="button"
           aria-label="阅读指引"
@@ -62,6 +175,7 @@ export function DocumentOutlineDock({
             "dark:text-white/18  dark:hover:text-white/45",
           ].join(" ")}
         >
+          <span className="sr-only">当前文档标题导航</span>
           {railItems.map((heading) => (
             <span
               key={heading.id}

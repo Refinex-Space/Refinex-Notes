@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildOutlineRailItems,
+  collectVisibleHeadingRailItems,
   DocumentOutlineDock,
 } from "../DocumentOutlineDock";
 
@@ -48,5 +49,41 @@ describe("buildOutlineRailItems", () => {
 
     expect(railItems.length).toBeLessThanOrEqual(24);
     expect(railItems[0]?.id).toBe("1:heading-1");
+  });
+});
+
+describe("collectVisibleHeadingRailItems", () => {
+  it("collects only headings intersecting the visible viewport", () => {
+    const editorView = {
+      dom: {
+        querySelectorAll: () => [
+          {
+            tagName: "H1",
+            textContent: "One",
+            getBoundingClientRect: () => ({ top: 10, bottom: 40 }),
+          },
+          {
+            tagName: "H2",
+            textContent: "Two",
+            getBoundingClientRect: () => ({ top: 120, bottom: 160 }),
+          },
+        ],
+      },
+    } as unknown as import("prosemirror-view").EditorView;
+
+    const scrollContainer = {
+      getBoundingClientRect: () => ({ top: 0, bottom: 100 }),
+    } as unknown as HTMLDivElement;
+
+    expect(
+      collectVisibleHeadingRailItems(editorView, scrollContainer),
+    ).toEqual([
+      {
+        id: "visible-1:One",
+        text: "One",
+        level: 1,
+        line: 1,
+      },
+    ]);
   });
 });
