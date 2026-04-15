@@ -33,10 +33,10 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: 顶部 Tab 轨道视觉高度和标签内边距明显收紧，激活态与 hover 保持低噪音，正文仍是主视觉。
-- [ ] AC-2: Tab 支持拖拽排序，并在拖拽目标处提供清晰但克制的占位/插入反馈。
-- [ ] AC-3: 右键某个 Tab 时可选择关闭全部、关闭其他、关闭左侧、关闭右侧，并正确更新当前打开文件状态。
-- [ ] AC-4: 与本任务相关的测试和构建继续通过；若全量 `npm test` 失败，失败原因必须明确归因到工作树中与本任务无关的现有改动。
+- [x] AC-1: 顶部 Tab 轨道视觉高度和标签内边距明显收紧，激活态与 hover 保持低噪音，正文仍是主视觉。
+- [x] AC-2: Tab 支持拖拽排序，并在拖拽目标处提供清晰但克制的占位/插入反馈。
+- [x] AC-3: 右键某个 Tab 时可选择关闭全部、关闭其他、关闭左侧、关闭右侧，并正确更新当前打开文件状态。
+- [x] AC-4: 与本任务相关的测试和构建继续通过；若全量 `npm test` 失败，失败原因必须明确归因到工作树中与本任务无关的现有改动。
 
 ## Risk Notes
 
@@ -63,8 +63,8 @@ Deviations:
 **Files:** `src/types/notes.ts`, `src/stores/noteStore.ts`, `src/stores/__tests__/workspace-state.test.ts`
 **Verification:** store 测试覆盖拖拽排序与批量关闭场景
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: 新增 `closeAllFiles`、`closeOtherFiles`、`closeFilesToLeft`、`closeFilesToRight`、`reorderOpenFiles` 五个动作；`workspace-state.test.ts` 新增 tab 排序与批量关闭断言并通过。
 Deviations:
 
 ### Step 3: 重构紧凑 Tab 轨道与交互
@@ -72,17 +72,17 @@ Deviations:
 **Files:** `src/components/editor/TabBar.tsx`, `src/components/ui/tabs.tsx`, `src/components/layout/AppLayout.tsx`, `src/components/layout/__tests__/AppLayout.test.tsx`, `src/components/editor/__tests__/TabBar.test.tsx`
 **Verification:** Tab 静态渲染与布局测试通过，代码具备拖拽反馈与右键菜单入口
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `TabBar.tsx` 已加入紧凑 rail/trigger class、拖拽前后插入指示、`scrollIntoView` 平滑切换和 Radix context menu；`tabs.tsx` 与 `AppLayout.tsx` 收紧了顶部轨道密度；新增 `TabBar.test.tsx` 对紧凑样式常量与菜单可用性进行断言。
+Deviations: `TabBar` 组件测试改为纯函数/样式常量断言，而不是 `renderToStaticMarkup`；原因是 Zustand store 组件在 SSR 测试下读取的是服务端快照，无法稳定反映测试中注入的状态。
 
 ### Step 4: 完成相关验证并归档
 
 **Files:** `docs/exec-plans/active/2026-04-16-tabbar-compact-interactions.md`, `docs/PLANS.md`
 **Verification:** 相关 Vitest 用例与 `npm run build`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `npx vitest run src/stores/__tests__/workspace-state.test.ts src/components/layout/__tests__/AppLayout.test.tsx src/components/editor/__tests__/TabBar.test.tsx` 通过，结果为 3 个测试文件、11 个断言全部通过；`npm run build` 通过；全量 `npm test` 失败仍只落在 `src/components/editor/__tests__/DocumentOutlineDock.test.tsx`，断言期望 `当前文档标题导航`，与本次 TabBar 变更无关。
 Deviations:
 
 ## Progress Log
@@ -90,9 +90,9 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | 计划文件与 `docs/PLANS.md` 已更新 | 方向锁定为 A4 / B3 / C2 / D1 |
-| 2 | ⬜ |  |  |
-| 3 | ⬜ |  |  |
-| 4 | ⬜ |  |  |
+| 2 | ✅ | store 新增排序与批量关闭动作，相关测试通过 | 右键批量关闭以命中的 tab 为中心 |
+| 3 | ✅ | Tab 轨道、拖拽反馈、右键菜单与顶部容器密度已重构 | 组件测试改用纯函数/样式常量断言 |
+| 4 | ✅ | 相关测试 11/11 通过，构建通过 | 全量测试仍被无关 `DocumentOutlineDock` 改动阻塞 |
 
 ## Decision Log
 
@@ -100,11 +100,13 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | 采用技术型、密集、轻动效的紧凑标签轨道 | 用户明确要求低视觉冲突与更紧凑 | 浏览器式高强调标签、IDE 极弱边界 | 当前产品更适合低噪音、高密度工作区控件 |
 | 拖拽排序使用原生 DnD | 仅需桌面环境下的 Tab 轨道排序 | 引入第三方拖拽库 | 原生方案足够，依赖和风险更低 |
+| 右键批量关闭以后命中的 tab 作为当前 tab | 上下文菜单是围绕被命中的标签触发 | 保持原当前 tab 不变 | 更符合编辑器/浏览器里“对该标签执行批量动作”的心智模型 |
+| `TabBar` 测试不走 SSR store 渲染 | Zustand store 在 `renderToStaticMarkup` 下读取服务端快照 | 引入新的测试渲染依赖 | 纯函数和样式常量断言足以覆盖本次新增逻辑，依赖最少 |
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-16
 Duration: 4 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 本次重构把顶部标签栏收紧为更低噪音的工作轨道：全局 tabs 基础样式和容器 padding 下调，单个 tab 改为更小的高度、较弱的激活态与更轻的关闭 affordance；交互上补齐了原生拖拽排序、平滑滚动到当前 tab，以及右键关闭当前/其他/左侧/右侧/全部。排序和批量关闭能力下沉到 `noteStore`，并由相关测试覆盖。技术验证显示相关测试与构建通过；全量前端测试仍被用户工作树中与本任务无关的 `DocumentOutlineDock` 断言漂移打断。

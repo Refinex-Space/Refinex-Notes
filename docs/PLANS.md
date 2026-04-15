@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [TabBar Compact Interactions](exec-plans/active/2026-04-16-tabbar-compact-interactions.md) — started 2026-04-16
 
 ## Completed Plans
 
+- [TabBar Compact Interactions](exec-plans/completed/2026-04-16-tabbar-compact-interactions.md) — completed 2026-04-16
 - [Sidebar Tree Trigger Padding Fix](exec-plans/completed/2026-04-16-sidebar-tree-trigger-padding-fix.md) — completed 2026-04-16
 - [Sidebar Tree Density](exec-plans/completed/2026-04-16-sidebar-tree-density.md) — completed 2026-04-16
 - [Git Panel Depth](exec-plans/completed/2026-04-15-git-panel-depth.md) — archived 2026-04-15
