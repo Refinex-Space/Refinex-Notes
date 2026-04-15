@@ -1,14 +1,7 @@
-import {
-  GitBranchPlus,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from "lucide-react";
+import { GitBranchPlus, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-} from "../ui/collapsible";
+import { Collapsible, CollapsibleContent } from "../ui/collapsible";
 
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 360;
@@ -62,9 +55,9 @@ export function AppLayout({
   const [rightPanelWidth, setRightPanelWidth] = useState(
     clamp(defaultRightPanelWidth, MIN_RIGHT_PANEL_WIDTH, MAX_RIGHT_PANEL_WIDTH),
   );
-  const [activeDrag, setActiveDrag] = useState<"sidebar" | "right-panel" | null>(
-    null,
-  );
+  const [activeDrag, setActiveDrag] = useState<
+    "sidebar" | "right-panel" | null
+  >(null);
 
   useEffect(() => {
     if (!activeDrag) {
@@ -137,7 +130,10 @@ export function AppLayout({
             <button
               type="button"
               aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-              className={[titlebarIconButtonClassName, "absolute left-[6.9rem] top-[0.72rem]"].join(" ")}
+              className={[
+                titlebarIconButtonClassName,
+                "absolute left-[6.9rem] top-[0.72rem]",
+              ].join(" ")}
               onClick={() => setSidebarCollapsed((current) => !current)}
             >
               {sidebarCollapsed ? (
@@ -150,7 +146,10 @@ export function AppLayout({
             <button
               type="button"
               aria-label={rightPanelCollapsed ? "展开右侧面板" : "折叠右侧面板"}
-              className={[titlebarIconButtonClassName, "absolute right-4 top-[0.72rem]"].join(" ")}
+              className={[
+                titlebarIconButtonClassName,
+                "absolute right-4 top-[0.72rem]",
+              ].join(" ")}
               onClick={() => setRightPanelCollapsed((current) => !current)}
             >
               <GitBranchPlus className="h-4 w-4" />
@@ -184,7 +183,6 @@ export function AppLayout({
             </button>
           </div>
         )}
-
       </header>
 
       <div
@@ -197,7 +195,9 @@ export function AppLayout({
               forceMount
               className={[
                 "h-full min-h-0 overflow-hidden border-r border-border/70 bg-[rgb(var(--color-bg)/0.9)]",
-                sidebarCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
+                sidebarCollapsed
+                  ? "pointer-events-none opacity-0"
+                  : "opacity-100",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -235,9 +235,7 @@ export function AppLayout({
             </div>
           ) : null}
 
-          <div className="border-b border-border/70 bg-bg/80 px-2.5 py-1.5">
-            {tabBar}
-          </div>
+          <div className="px-2.5 py-1.5">{tabBar}</div>
           <div className="h-full min-h-0 overflow-hidden">{editor}</div>
         </section>
 
@@ -247,7 +245,9 @@ export function AppLayout({
               forceMount
               className={[
                 "h-full min-h-0 overflow-hidden border-l border-border/70 bg-bg/60",
-                rightPanelCollapsed ? "pointer-events-none opacity-0" : "opacity-100",
+                rightPanelCollapsed
+                  ? "pointer-events-none opacity-0"
+                  : "opacity-100",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -258,7 +258,9 @@ export function AppLayout({
                     {rightPanelTitle}
                   </p>
                 </div>
-                <div className="min-h-0 flex-1 overflow-hidden">{rightPanel}</div>
+                <div className="min-h-0 flex-1 overflow-hidden">
+                  {rightPanel}
+                </div>
               </aside>
             </CollapsibleContent>
           </Collapsible>
