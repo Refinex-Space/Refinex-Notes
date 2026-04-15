@@ -6,10 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Fix TabBar Hook And Drag Regression](exec-plans/active/2026-04-16-fix-tabbar-hook-dnd-regression.md) — started 2026-04-16
 
 ## Completed Plans
 
+- [Fix TabBar Hook And Drag Regression](exec-plans/completed/2026-04-16-fix-tabbar-hook-dnd-regression.md) — completed 2026-04-16
 - [TabBar Compact Interactions](exec-plans/completed/2026-04-16-tabbar-compact-interactions.md) — completed 2026-04-16
 - [Sidebar Tree Trigger Padding Fix](exec-plans/completed/2026-04-16-sidebar-tree-trigger-padding-fix.md) — completed 2026-04-16
 - [Sidebar Tree Density](exec-plans/completed/2026-04-16-sidebar-tree-density.md) — completed 2026-04-16

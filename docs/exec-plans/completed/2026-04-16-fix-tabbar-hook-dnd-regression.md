@@ -55,8 +55,8 @@ Conclusion: CONFIRMED
 **Files:** `src/components/editor/TabBar.tsx`
 **Verification:** 相关测试与构建通过，代码不再包含 `draggable=` / `onDragStart`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `TabBar.tsx` 已移除 `useMemo` 条件执行路径，标签渲染改为普通表达式；原生 `draggable` / `onDragStart` / `dataTransfer` 逻辑已替换为 pointer 事件排序。
 Deviations:
 
 #### Step 2: 更新回归测试
@@ -64,17 +64,17 @@ Deviations:
 **Files:** `src/components/editor/__tests__/TabBar.test.tsx`
 **Verification:** 测试覆盖新的 pointer 排序辅助逻辑或相关回归锚点
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `TabBar.test.tsx` 新增 `getDropIndicatorFromPointer` 断言，验证无需 native draggable 即可计算 before/after 插入位置。
 Deviations:
 
 ## Verification
 
-- [ ] Related tests pass
-- [ ] `npm run build` passes
-- [ ] Full test suite has no new failures
-- [ ] Diff reviewed — only fix-related changes present
-- [ ] Pre-existing `DocumentOutlineDock` failure unchanged
+- [x] Related tests pass
+- [x] `npm run build` passes
+- [x] Full test suite has no new failures
+- [x] Diff reviewed — only fix-related changes present
+- [x] Pre-existing `DocumentOutlineDock` failure unchanged
 
 ## Progress Log
 
@@ -82,16 +82,16 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | Reproduce | ✅ | 控制台日志与源码位置吻合 | 阻塞级回归 |
 | Root cause | ✅ | `useMemo` 条件执行 + `draggable` 原生 DnD | 两个问题都已确认 |
-| Fix | ⬜ |  |  |
-| Verify | ⬜ |  |  |
-| Regression | ⬜ |  |  |
+| Fix | ✅ | `TabBar.tsx` 改为 pointer 排序并消除条件 Hook | 不再依赖 Tauri start_dragging 权限 |
+| Verify | ✅ | 相关测试 12/12 通过，`npm run build` 通过 | 全量 `npm test` 仅剩 `DocumentOutlineDock` 既有失败 |
+| Regression | ✅ | `TabBar.test.tsx` 新增 pointer drop helper 测试 | 锁定去除 native draggable 的核心逻辑 |
 
 ## Completion Summary
 
-Completed:
-Root cause:
-Fix:
-Regression test:
-All verification criteria: PASS / FAIL
+Completed: 2026-04-16
+Root cause: `TabBar` 在条件 return 之后执行 `useMemo`，且拖拽排序错误地使用了 Tauri 环境下不适配的原生 HTML5 DnD。
+Fix: 将标签渲染改为无条件路径，移除 native draggable，改用 pointer 事件和几何命中判断实现排序。
+Regression test: `src/components/editor/__tests__/TabBar.test.tsx`
+All verification criteria: PASS
 
-Summary:
+Summary: 本次修复解决了 `TabBar` 的两个运行时回归。首先移除了条件 return 后的 `useMemo`，恢复 Hook 顺序稳定性，从而消除 React 的 hook mismatch。其次撤掉了原生 `draggable` / `dragstart` 实现，改为 pointer 驱动的轻量排序逻辑，避免再触发 Tauri 的 `window.start_dragging` 权限错误。相关测试与构建都通过，全量前端测试没有新增失败，仍仅受工作树中与本任务无关的 `DocumentOutlineDock` 断言漂移影响。
