@@ -492,7 +492,7 @@ function WorkspaceShell({
             <div className="relative h-full min-h-0 bg-bg">
               <div className="h-full overflow-auto">
                 <RefinexEditor
-                  key={currentDocument.path}
+                  documentPath={currentDocument.path}
                   value={currentDocument.content}
                   className="min-h-full px-6 py-5"
                   onChange={(markdown) => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import type { Node as ProseMirrorNode } from "prosemirror-model";
 import { history } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { baseKeymap } from "prosemirror-commands";
@@ -37,6 +38,8 @@ export interface EditorCursorPosition {
 }
 
 export interface RefinexEditorProps {
+  /** 当前文档路径，用于缓存和切换判断 */
+  documentPath?: string;
   /** Markdown 内容（受控） */
   value: string;
   /** 内容变更时回调，参数为序列化后的 Markdown 字符串 */
@@ -49,6 +52,62 @@ export interface RefinexEditorProps {
   onCursorChange?: (position: EditorCursorPosition) => void;
   /** EditorView 生命周期回调 */
   onEditorView?: (view: EditorView | null) => void;
+}
+
+const PARSED_DOCUMENT_CACHE_LIMIT = 8;
+const parsedDocumentCache = new Map<string, ProseMirrorNode>();
+
+function getParsedDocumentCacheKey(
+  documentPath: string | undefined,
+  value: string,
+) {
+  return `${documentPath ?? "__anonymous__"}\u0000${value}`;
+}
+
+function rememberParsedDocument(
+  cacheKey: string,
+  doc: ProseMirrorNode,
+) {
+  if (parsedDocumentCache.has(cacheKey)) {
+    parsedDocumentCache.delete(cacheKey);
+  }
+  parsedDocumentCache.set(cacheKey, doc);
+
+  while (parsedDocumentCache.size > PARSED_DOCUMENT_CACHE_LIMIT) {
+    const oldestKey = parsedDocumentCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    parsedDocumentCache.delete(oldestKey);
+  }
+}
+
+function getParsedDocument(
+  documentPath: string | undefined,
+  value: string,
+) {
+  const cacheKey = getParsedDocumentCacheKey(documentPath, value);
+  const cached = parsedDocumentCache.get(cacheKey);
+  if (cached) {
+    parsedDocumentCache.delete(cacheKey);
+    parsedDocumentCache.set(cacheKey, cached);
+    return cached;
+  }
+
+  const doc = ensureTrailingParagraph(parseMarkdown(value));
+  rememberParsedDocument(cacheKey, doc);
+  return doc;
+}
+
+export function shouldSyncExternalValue(
+  previousDocumentPath: string | undefined,
+  previousValue: string,
+  nextDocumentPath: string | undefined,
+  nextValue: string,
+) {
+  return (
+    previousDocumentPath !== nextDocumentPath || previousValue !== nextValue
+  );
 }
 
 function countTextblockLines(text: string) {
@@ -131,6 +190,7 @@ export function getCursorPosition(state: EditorState): EditorCursorPosition {
 }
 
 export function RefinexEditor({
+  documentPath,
   value,
   onChange,
   readOnly = false,
@@ -144,6 +204,9 @@ export function RefinexEditor({
   const readOnlyRef = useRef(readOnly);
   const onCursorChangeRef = useRef(onCursorChange);
   const onEditorViewRef = useRef(onEditorView);
+  const activeDocumentPathRef = useRef(documentPath);
+  const lastAppliedValueRef = useRef(value);
+  const lastAppliedDocumentPathRef = useRef(documentPath);
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
   const slashMenuChangeRef = useRef(
     (_request: SlashMenuRequest | null) => {},
@@ -160,6 +223,7 @@ export function RefinexEditor({
   readOnlyRef.current = readOnly;
   onCursorChangeRef.current = onCursorChange;
   onEditorViewRef.current = onEditorView;
+  activeDocumentPathRef.current = documentPath;
   openLinkPopoverRef.current = (view) => {
     const request = getLinkEditorRequest(view.state);
     if (!request) {
@@ -181,7 +245,7 @@ export function RefinexEditor({
     const mount = mountRef.current;
     if (!mount) return;
 
-    const doc = ensureTrailingParagraph(parseMarkdown(value));
+    const doc = getParsedDocument(documentPath, value);
 
     const state = EditorState.create({
       doc,
@@ -230,6 +294,8 @@ export function RefinexEditor({
 
         if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
           const markdown = serializeMarkdownSafely(result.state);
+          lastAppliedValueRef.current = markdown;
+          lastAppliedDocumentPathRef.current = activeDocumentPathRef.current;
           onChangeRef.current(markdown);
         }
       },
@@ -276,17 +342,30 @@ export function RefinexEditor({
     const view = viewRef.current;
     if (!view) return;
 
-    const current = serializeMarkdownSafely(view.state);
-    if (current === value) return;
+    if (
+      !shouldSyncExternalValue(
+        lastAppliedDocumentPathRef.current,
+        lastAppliedValueRef.current,
+        documentPath,
+        value,
+      )
+    ) {
+      return;
+    }
 
-    const doc = ensureTrailingParagraph(parseMarkdown(value));
+    const doc = getParsedDocument(documentPath, value);
     const newState = EditorState.create({
       doc,
       plugins: view.state.plugins,
     });
     view.updateState(newState);
+    lastAppliedValueRef.current = value;
+    lastAppliedDocumentPathRef.current = documentPath;
+    setOverlayVersion((current) => current + 1);
+    setLinkPopoverRequest(null);
+    setSlashMenuRequest(null);
     reportCursorPositionSafely(newState, onCursorChangeRef.current);
-  }, [value]);
+  }, [documentPath, value]);
 
   return (
     <div className={className} data-refinex-editor-shell>

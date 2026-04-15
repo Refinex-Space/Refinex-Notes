@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EditorState, TextSelection } from "prosemirror-state";
 
 import { parseMarkdown } from "../parser";
-import { getCursorPosition } from "../RefinexEditor";
+import { getCursorPosition, shouldSyncExternalValue } from "../RefinexEditor";
 
 describe("RefinexEditor shell bridge helpers", () => {
   it("maps the current selection to line and column", () => {
@@ -24,5 +24,34 @@ Line two
     const state = EditorState.create({ doc });
 
     expect(getCursorPosition(state)).toEqual({ line: 1, col: 1 });
+  });
+
+  it("skips external sync only when document identity and value are unchanged", () => {
+    expect(
+      shouldSyncExternalValue(
+        "Inbox/Welcome.md",
+        "# Welcome",
+        "Inbox/Welcome.md",
+        "# Welcome",
+      ),
+    ).toBe(false);
+
+    expect(
+      shouldSyncExternalValue(
+        "Inbox/Welcome.md",
+        "# Welcome",
+        "Inbox/Guide.md",
+        "# Welcome",
+      ),
+    ).toBe(true);
+
+    expect(
+      shouldSyncExternalValue(
+        "Inbox/Welcome.md",
+        "# Welcome",
+        "Inbox/Welcome.md",
+        "# Updated",
+      ),
+    ).toBe(true);
   });
 });
