@@ -196,7 +196,8 @@ const markSerializers = {
       parent: ProseMirrorNode,
       index: number,
     ) {
-      return backticksFor(parent.child(index), 1);
+      const textIndex = Math.max(0, index - 1);
+      return backticksFor(parent.child(textIndex), 1);
     },
     escape: false,
   } as const,

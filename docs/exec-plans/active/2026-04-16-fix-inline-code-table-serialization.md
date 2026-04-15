@@ -46,8 +46,8 @@ Conclusion: CONFIRMED
 **Files:** `src/editor/serializer.ts`
 **Verification:** 相关测试与构建通过，`code.close()` 不再访问 `parent.child(index)`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `code.close()` 已改为读取 `Math.max(0, index - 1)` 对应的文本 child，避免关闭阶段访问越界索引。
 Deviations:
 
 #### Step 2: 添加表格单元格 inline code 回归测试
@@ -55,17 +55,17 @@ Deviations:
 **Files:** `src/editor/__tests__/roundtrip.test.ts`
 **Verification:** 新测试通过，并能覆盖此前越界场景
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `roundtrip.test.ts` 新增 `GFM table cell with inline code does not throw`，覆盖 `| \`SIZED\` |` 的最小失败输入。
 Deviations:
 
 ## Verification
 
-- [ ] Related editor tests pass
-- [ ] `npm run build` passes
-- [ ] Full test suite has no new failures
-- [ ] Diff reviewed — only fix-related changes present
-- [ ] Pre-existing `DocumentOutlineDock` failure unchanged
+- [x] Related editor tests pass
+- [x] `npm run build` passes
+- [x] Full test suite has no new failures
+- [x] Diff reviewed — only fix-related changes present
+- [x] Pre-existing `DocumentOutlineDock` failure unchanged
 
 ## Progress Log
 
@@ -73,16 +73,16 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | Reproduce | ✅ | 用户日志 + serializer 索引分析 | 已锁定到 `code.close()` |
 | Root cause | ✅ | close 阶段 child 索引越界 | 表格单元格单 child 最容易触发 |
-| Fix | ⬜ |  |  |
-| Verify | ⬜ |  |  |
-| Regression | ⬜ |  |  |
+| Fix | ✅ | `serializer.ts` close 索引已修正 | 最小改动，不改调用方 |
+| Verify | ✅ | 编辑器相关测试 34/34 通过，`npm run build` 通过 | 全量 `npm test` 仅剩 `DocumentOutlineDock` 既有失败 |
+| Regression | ✅ | roundtrip 新增表格 inline code 用例 | 锁住 `SIZED` 单 cell 场景 |
 
 ## Completion Summary
 
-Completed:
-Root cause:
-Fix:
-Regression test:
-All verification criteria: PASS / FAIL
+Completed: 2026-04-16
+Root cause: `code` mark serializer 的 close 阶段错误地读取了 `parent.child(index)`，在表格单元格只有一个 inline code child 时访问越界。
+Fix: 将 close 路径改为读取 `index - 1` 对应的最后一个文本 child，并保持其他序列化逻辑不变。
+Regression test: `src/editor/__tests__/roundtrip.test.ts`
+All verification criteria: PASS
 
-Summary:
+Summary: 本次修复针对一个非常窄但会直接清空编辑器输出的序列化回归。问题出在自定义 `code` mark serializer 的 close 路径使用了错误的 child 索引；对普通段落内 inline code 不一定会暴露，但在表格单元格只包含一个 code 文本时会稳定触发越界。修复后，表格内 `\`SIZED\`` 这类内容可以正常 roundtrip，编辑器相关测试和构建都保持通过；全量前端测试没有新增失败，仍只受工作树中与本任务无关的 `DocumentOutlineDock` 断言漂移影响。

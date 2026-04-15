@@ -161,6 +161,16 @@ describe("Markdown ↔ ProseMirror round-trip", () => {
     expect(result).toContain("| x");
   });
 
+  it("GFM table cell with inline code does not throw", () => {
+    const input = `| Name |
+| --- |
+| \`SIZED\` |
+`;
+    expect(() => roundtrip(input)).not.toThrow();
+    const result = normalize(roundtrip(input));
+    expect(result).toContain("`SIZED`");
+  });
+
   it("task list preserves checked state", () => {
     const input = `- [x] done
 - [ ] todo
