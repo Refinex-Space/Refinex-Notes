@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [TabBar Compact Interactions](exec-plans/active/2026-04-16-tabbar-compact-interactions.md) — started 2026-04-16
 
 ## Completed Plans
 
