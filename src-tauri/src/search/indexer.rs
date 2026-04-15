@@ -66,6 +66,21 @@ pub fn with_search_index<T>(
     callback(search_index)
 }
 
+pub fn with_optional_search_index<T>(
+    state: &State<'_, AppState>,
+    callback: impl FnOnce(&WorkspaceSearchIndex) -> Result<T, String>,
+) -> Result<Option<T>, String> {
+    let guard = state
+        .search_index
+        .lock()
+        .map_err(|_| "搜索索引状态锁获取失败".to_string())?;
+
+    match guard.as_ref() {
+        Some(search_index) => callback(search_index).map(Some),
+        None => Ok(None),
+    }
+}
+
 fn needs_rebuild(workspace_path: &Path, relative_path: &str) -> bool {
     if relative_path.trim().is_empty() {
         return true;

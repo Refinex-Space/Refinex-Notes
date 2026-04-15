@@ -3,12 +3,14 @@ use std::sync::Mutex;
 
 use notify::RecommendedWatcher;
 use rusqlite::Connection;
+use tauri::AppHandle;
 
 use crate::git::sync::GitSyncController;
 use crate::search::WorkspaceSearchIndex;
 
 #[allow(dead_code)]
 pub struct AppState {
+    pub app_handle: AppHandle,
     pub github_client_id: String,
     pub pending_device_code: Mutex<Option<String>>,
     pub db: Mutex<Connection>,
@@ -19,8 +21,9 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(github_client_id: String, db: Connection) -> Self {
+    pub fn new(app_handle: AppHandle, github_client_id: String, db: Connection) -> Self {
         Self {
+            app_handle,
             github_client_id,
             pending_device_code: Mutex::new(None),
             db: Mutex::new(db),

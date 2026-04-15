@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::db;
 use crate::search::indexer as search_indexer;
@@ -17,6 +17,8 @@ pub struct FileNode {
     pub name: String,
     pub path: String,
     pub is_dir: bool,
+    pub has_children: bool,
+    pub is_loaded: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub children: Option<Vec<FileNode>>,
 }
@@ -35,7 +37,7 @@ pub fn open_workspace(
     path: String,
 ) -> Result<Vec<FileNode>, String> {
     let workspace_path = canonicalize_workspace_path(&path)?;
-    let file_tree = scan_directory_tree(&workspace_path, &workspace_path)?;
+    let file_tree = scan_directory_tree_with_depth(&workspace_path, &workspace_path, Some(1))?;
     let workspace_watcher =
         watcher::create_workspace_watcher(app_handle, workspace_path.clone())?;
     stop_running_sync(&state)?;
@@ -64,9 +66,48 @@ pub fn open_workspace(
         *watcher_guard = Some(workspace_watcher);
     }
 
-    search_indexer::rebuild_workspace_index(&state, &workspace_path)?;
+    {
+        let mut search_guard = state
+            .search_index
+            .lock()
+            .map_err(|_| "搜索索引状态锁获取失败".to_string())?;
+        *search_guard = None;
+    }
+
+    schedule_workspace_index_rebuild(&state, workspace_path.clone())?;
 
     Ok(file_tree)
+}
+
+#[tauri::command]
+pub fn close_workspace(state: State<'_, AppState>) -> Result<(), String> {
+    stop_running_sync(&state)?;
+
+    {
+        let mut workspace_guard = state
+            .workspace_path
+            .lock()
+            .map_err(|_| "工作区状态锁获取失败".to_string())?;
+        *workspace_guard = None;
+    }
+
+    {
+        let mut watcher_guard = state
+            .watcher
+            .lock()
+            .map_err(|_| "监听器状态锁获取失败".to_string())?;
+        *watcher_guard = None;
+    }
+
+    {
+        let mut search_guard = state
+            .search_index
+            .lock()
+            .map_err(|_| "搜索索引状态锁获取失败".to_string())?;
+        *search_guard = None;
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -271,6 +312,14 @@ fn normalize_workspace_child_path(workspace_path: &Path, candidate: &Path) -> Re
 }
 
 fn scan_directory_tree(root_path: &Path, workspace_path: &Path) -> Result<Vec<FileNode>, String> {
+    scan_directory_tree_with_depth(root_path, workspace_path, None)
+}
+
+fn scan_directory_tree_with_depth(
+    root_path: &Path,
+    workspace_path: &Path,
+    max_depth: Option<usize>,
+) -> Result<Vec<FileNode>, String> {
     let mut nodes = Vec::new();
     let entries = fs::read_dir(root_path).map_err(|error| format!("读取目录失败: {error}"))?;
 
@@ -288,18 +337,29 @@ fn scan_directory_tree(root_path: &Path, workspace_path: &Path) -> Result<Vec<Fi
 
         let relative_path = to_relative_path(workspace_path, &path)?;
         if metadata.is_dir() {
-            let children = scan_directory_tree(&path, workspace_path)?;
+            let next_depth = max_depth.and_then(|depth| depth.checked_sub(1));
+            let (children, is_loaded, has_children) = if matches!(max_depth, Some(0 | 1)) {
+                (None, false, directory_has_visible_children(&path)?)
+            } else {
+                let children = scan_directory_tree_with_depth(&path, workspace_path, next_depth)?;
+                let has_children = !children.is_empty();
+                (Some(children), true, has_children)
+            };
             nodes.push(FileNode {
                 name,
                 path: relative_path,
                 is_dir: true,
-                children: Some(children),
+                has_children,
+                is_loaded,
+                children,
             });
         } else {
             nodes.push(FileNode {
                 name,
                 path: relative_path,
                 is_dir: false,
+                has_children: false,
+                is_loaded: true,
                 children: None,
             });
         }
@@ -312,6 +372,37 @@ fn scan_directory_tree(root_path: &Path, workspace_path: &Path) -> Result<Vec<Fi
     });
 
     Ok(nodes)
+}
+
+fn directory_has_visible_children(path: &Path) -> Result<bool, String> {
+    let entries = fs::read_dir(path).map_err(|error| format!("读取目录失败: {error}"))?;
+    for entry in entries {
+        let entry = entry.map_err(|error| format!("读取目录项失败: {error}"))?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !should_ignore(&name) {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn schedule_workspace_index_rebuild(
+    state: &State<'_, AppState>,
+    workspace_path: PathBuf,
+) -> Result<(), String> {
+    let app_handle = state.app_handle.clone();
+    std::thread::spawn(move || {
+        let state = app_handle.state::<AppState>();
+        if let Err(error) = search_indexer::rebuild_workspace_index(&state, &workspace_path) {
+            eprintln!("background workspace index rebuild failed: {error}");
+            return;
+        }
+
+        let _ = app_handle.emit("workspace-index-ready", ());
+    });
+
+    Ok(())
 }
 
 fn stop_running_sync(state: &State<'_, AppState>) -> Result<(), String> {
@@ -357,7 +448,7 @@ fn to_relative_path(workspace_path: &Path, path: &Path) -> Result<String, String
 
 #[cfg(test)]
 mod tests {
-    use super::{scan_directory_tree, FileNode};
+    use super::{scan_directory_tree, scan_directory_tree_with_depth, FileNode};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -398,6 +489,40 @@ mod tests {
         assert_eq!(
             flattened,
             vec!["Notes", "Notes/Sub", "Notes/Sub/beta.md", "Notes/alpha.md"]
+        );
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn shallow_scan_returns_only_first_level_and_marks_directories_unloaded() {
+        let root = temp_dir();
+        fs::create_dir_all(root.join("Notes/Sub")).unwrap();
+        fs::write(root.join("Notes/Sub/beta.md"), "# beta").unwrap();
+        fs::write(root.join("alpha.md"), "# alpha").unwrap();
+
+        let tree = scan_directory_tree_with_depth(&root, &root, Some(1)).unwrap();
+
+        assert_eq!(
+            tree,
+            vec![
+                FileNode {
+                    name: "Notes".to_string(),
+                    path: "Notes".to_string(),
+                    is_dir: true,
+                    has_children: true,
+                    is_loaded: false,
+                    children: None,
+                },
+                FileNode {
+                    name: "alpha.md".to_string(),
+                    path: "alpha.md".to_string(),
+                    is_dir: false,
+                    has_children: false,
+                    is_loaded: true,
+                    children: None,
+                },
+            ]
         );
 
         fs::remove_dir_all(root).unwrap();

@@ -36,6 +36,10 @@ export const fileService = {
     return invoke<FileNode[]>("open_workspace", { path });
   },
 
+  async closeWorkspace() {
+    return invoke<void>("close_workspace");
+  },
+
   async listRecentWorkspaces() {
     return invoke<RecentWorkspace[]>("list_recent_workspaces");
   },
