@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Manual Editor Hydration](exec-plans/active/2026-04-16-manual-editor-hydration.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Manual Editor Hydration](exec-plans/completed/2026-04-16-manual-editor-hydration.md) — completed 2026-04-16
 - [Instant Preview Editor Hydration](exec-plans/completed/2026-04-16-instant-preview-editor-hydration.md) — completed 2026-04-16
 - [Workspace Content Cache Prefetch](exec-plans/completed/2026-04-16-workspace-content-cache-prefetch.md) — completed 2026-04-16
 - [Async Read Lazy CodeBlock](exec-plans/completed/2026-04-16-async-read-lazy-codeblock.md) — completed 2026-04-16
