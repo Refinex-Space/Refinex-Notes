@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Editor Persisted Loading Profiling](exec-plans/active/2026-04-16-editor-persisted-loading-profiling.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Editor Persisted Loading Profiling](exec-plans/completed/2026-04-16-editor-persisted-loading-profiling.md) — completed 2026-04-16
 - [Document Open Perf Logging](exec-plans/completed/2026-04-16-document-open-perf-logging.md) — completed 2026-04-16
 - [Document Open Switch Latency](exec-plans/completed/2026-04-16-document-open-switch-latency.md) — completed 2026-04-16
 - [Workspace Open Performance](exec-plans/completed/2026-04-16-workspace-open-performance.md) — completed 2026-04-16
