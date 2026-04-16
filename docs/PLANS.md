@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Editor Persisted Loading Profiling](exec-plans/active/2026-04-16-editor-persisted-loading-profiling.md) — started 2026-04-16
+
 
 ## Completed Plans
 
