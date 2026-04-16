@@ -1,7 +1,7 @@
 # Execution Plan: Editor Persisted Loading Profiling
 
 Created: 2026-04-16
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -12,9 +12,10 @@ Author: agent
 
 **In scope:**
 - `src/App.tsx`
+- `src/main.tsx`
 - `src/editor/RefinexEditor.tsx`
 - `src/utils/documentPerf.ts`
-- `docs/exec-plans/active/2026-04-16-editor-persisted-loading-profiling.md`
+- `docs/exec-plans/completed/2026-04-16-editor-persisted-loading-profiling.md`
 - `docs/PLANS.md`
 
 **Out of scope:**
@@ -50,18 +51,18 @@ Author: agent
 **Files:** `docs/exec-plans/active/2026-04-16-editor-persisted-loading-profiling.md`, `docs/PLANS.md`
 **Verification:** 计划文件存在且 `docs/PLANS.md` Active Plans 已登记
 
-Status: 🔄 In progress
-Evidence: 计划文件已创建，`docs/PLANS.md` 已登记 Active Plans 条目。
+Status: ✅ Done
+Evidence: 计划文件已创建并已归档，`docs/PLANS.md` 已完成状态同步。
 Deviations:
 
 ### Step 2: 保活 editor 并补充细粒度 editor profiling
 
-**Files:** `src/App.tsx`, `src/editor/RefinexEditor.tsx`, `src/utils/documentPerf.ts`
+**Files:** `src/App.tsx`, `src/main.tsx`, `src/editor/RefinexEditor.tsx`
 **Verification:** 切文档 loading 时 editor 不因 UI 分支卸载，控制台可见更细粒度的 editor 日志
 
 Status: ✅ Done
-Evidence: `App.tsx` 现在会在切换到未加载文档时保留上一份已渲染文档承载 `RefinexEditor`，只加 loading 遮罩并临时切成只读；`RefinexEditor.tsx` 已新增 `editor.mount.statePrepared`、`editor.mount.end`、`editor.externalSync.statePrepared`、`editor.externalSync.end`、`editor.flush.end` 等更细粒度日志，并记录 parse / createState / updateState 的耗时与 cache hit 信息；`app.currentDocument.ready` 现在会在存在活动 trace 时正确收尾。
-Deviations: 没有修改 `src/utils/documentPerf.ts`，而是复用现有 trace 工具，在 `App.tsx` 收尾 trace；这样可以减少对现有日志基础设施的扰动。
+Evidence: `App.tsx` 现在会为每个已加载且已打开的文档保留独立 `RefinexEditor` 实例，当前活跃文档只切换显示，不再强制让单个共享 `EditorView` 对不同文档反复 `updateState`；切换到未加载文档时仍保留上一份已渲染文档作为宿主并叠加 loading 遮罩。`src/main.tsx` 在 `DEV` 下不再包裹 `React.StrictMode`，移除了开发期双挂载对编辑器 profiling 和体感的放大。`RefinexEditor.tsx` 的细粒度 profiling 继续保留，用于验证剩余热点。
+Deviations: 最终没有继续修改 `src/utils/documentPerf.ts`，因为现有 trace 工具已足够支撑这一轮 session 池验证；本轮把 `src/main.tsx` 纳入实际修改范围，用于去掉 dev 双挂载噪音。
 
 ### Step 3: 完成验证并归档
 
@@ -77,7 +78,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | 计划文件与 `docs/PLANS.md` 已更新 |  |
-| 2 | ✅ | editor 保活与细粒度 profiling 已落地 | 复用现有 perf util，未新增 util API |
+| 2 | ✅ | editor session 池与 dev 去 StrictMode 已落地 | 切回已打开文档不再依赖共享 `updateState` |
 | 3 | ✅ | 全量测试与构建通过 |  |
 
 ## Decision Log
@@ -86,6 +87,8 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | 先保活 editor 再继续猜测热点 | 当前日志显示慢点已在 editor 侧 | 继续只加外围日志 | 先去掉最明显的卸载/重挂载成本，再看剩余热点 |
 | 用 `renderedDocument` 保留上一份已渲染内容 | loading 时仍需要一个稳定的 editor 宿主 | 维持独立 loading 分支、创建空 editor | 保留旧文档 + 遮罩对现有架构侵入最小，也能避免切换时卸载 editor |
+| 按已打开文档保留独立 editor 实例 | 共享 `EditorView` 在跨文档 `updateState` 上稳定耗时约 2.2s | 继续在单实例上微调 cache / parse / flush | 热点已经明确在 `updateState`，必须绕开这条路径 |
+| DEV 下关闭 `StrictMode` | 当前 profiling 和体感被双挂载放大 | 保留默认 StrictMode | 这是开发期路径，先去噪能更快判断真实优化效果 |
 
 ## Completion Summary
 
@@ -93,4 +96,4 @@ Completed: 2026-04-16
 Duration: 3 steps
 All acceptance criteria: PASS
 
-Summary: 本次工作根据上一轮日志直接收敛到 editor 侧。`App.tsx` 不再在“旧文档 -> 新文档 loading”阶段切掉整棵编辑器树，而是保留上一份已渲染文档作为 editor 宿主，仅叠加只读 loading 遮罩，从而避免切换时的额外卸载/重挂载成本。与此同时，`RefinexEditor.tsx` 把 mount 与 external sync 路径拆成了 `statePrepared`、`mount.end`、`flush.end`、`externalSync.end` 等更细粒度的日志，并明确输出 parse / createState / updateState 耗时与 cache hit 信息；`app.currentDocument.ready` 也会在存在活动 trace 时正确收尾，避免旧 trace 污染下一次切换分析。
+Summary: 这轮深度优化不再停留在日志层，而是直接改了 editor 切换模型。应用现在会为每个已加载且已打开的文档保留独立 `RefinexEditor` 实例，切回已打开文档时只切换可见实例，不再让单个共享 `EditorView` 对两份大文档做整篇 `updateState`；对于新文档首次加载，旧文档实例仍保留在原地并加 loading 遮罩，避免切换期卸载/重建 editor。与此同时，`src/main.tsx` 在开发环境关闭了 `React.StrictMode`，移除了双挂载导致的 profiling 噪音和体感放大。最终全量测试和构建均保持通过，为下一轮真实体感验证和日志对比建立了干净基线。
