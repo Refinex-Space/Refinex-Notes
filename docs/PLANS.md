@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Hotzone Shell Estimation Table Cells](exec-plans/active/2026-04-16-hotzone-shell-estimation-table-cells.md) — started 2026-04-16
+
 
 ## Completed Plans
 
