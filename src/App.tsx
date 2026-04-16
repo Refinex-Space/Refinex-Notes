@@ -266,19 +266,15 @@ function LoadingEditorState({ path }: { path: string }) {
 
 function InstantDocumentPreview({
   path,
-  markdown,
   onActivate,
-  autoHydrationDelayMs,
 }: {
   path: string;
-  markdown: string;
   onActivate: () => void;
-  autoHydrationDelayMs: number;
 }) {
   return (
     <button
       type="button"
-      className="group relative block h-full w-full overflow-auto bg-bg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+      className="group relative block h-full w-full overflow-hidden bg-[radial-gradient(circle_at_50%_36%,rgba(14,165,233,0.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.5),rgba(255,255,255,0))] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 dark:bg-[radial-gradient(circle_at_50%_36%,rgba(34,211,238,0.08),transparent_20%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0))]"
       onClick={onActivate}
       onKeyDown={(event) => {
         if (event.key !== "Enter" && event.key !== " ") {
@@ -288,18 +284,24 @@ function InstantDocumentPreview({
         onActivate();
       }}
     >
-      <div className="sticky top-0 z-10 border-b border-border/70 bg-[rgb(var(--color-bg)/0.92)] px-6 py-3 backdrop-blur">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-          Instant Preview
-        </p>
-        <p className="mt-1 text-xs text-muted">{path}</p>
-        <p className="mt-2 text-[12px] text-fg/80">
-          正在准备编辑器，约 {Math.round(autoHydrationDelayMs / 100) / 10}s 后自动进入编辑
-        </p>
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(148,163,184,0.05)_100%)] dark:bg-[linear-gradient(180deg,transparent_0%,rgba(148,163,184,0.02)_100%)]" />
+      <div className="relative flex h-full items-center justify-center px-8">
+        <section className="w-full max-w-sm rounded-[1.8rem] border border-border/70 bg-[rgb(var(--color-bg)/0.92)] px-8 py-7 text-center shadow-[0_24px_90px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+          <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-50 text-cyan-600 dark:border-cyan-300/18 dark:bg-cyan-400/10 dark:text-cyan-100">
+            <RefreshCcw className="h-5 w-5 animate-spin" />
+          </div>
+          <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">
+            Editor Warmup
+          </p>
+          <h2 className="mt-3 text-lg font-semibold tracking-tight text-fg">
+            正在进入编辑模式
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            稍后会自动完成渲染
+          </p>
+          <p className="mt-4 truncate text-xs text-muted/90">{path}</p>
+        </section>
       </div>
-      <pre className="min-h-full whitespace-pre-wrap break-words px-6 py-5 font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] text-[13px] leading-7 text-fg">
-        {markdown}
-      </pre>
     </button>
   );
 }
@@ -760,8 +762,6 @@ function WorkspaceShell({
                 {!isActiveEditorHydrated && currentDocument ? (
                   <InstantDocumentPreview
                     path={currentDocument.path}
-                    markdown={currentDocument.content}
-                    autoHydrationDelayMs={AUTO_EDITOR_HYDRATION_DELAY_MS}
                     onActivate={() => {
                       if (pendingHydrationTimerRef.current) {
                         globalThis.clearTimeout(pendingHydrationTimerRef.current);
