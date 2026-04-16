@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Workspace Content Cache Prefetch](exec-plans/active/2026-04-16-workspace-content-cache-prefetch.md) — started 2026-04-16
+
 
 ## Completed Plans
 
