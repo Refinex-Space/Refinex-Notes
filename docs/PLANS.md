@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Document Open Perf Logging](exec-plans/active/2026-04-16-document-open-perf-logging.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Document Open Perf Logging](exec-plans/completed/2026-04-16-document-open-perf-logging.md) — completed 2026-04-16
 - [Document Open Switch Latency](exec-plans/completed/2026-04-16-document-open-switch-latency.md) — completed 2026-04-16
 - [Workspace Open Performance](exec-plans/completed/2026-04-16-workspace-open-performance.md) — completed 2026-04-16
 - [Editor Extreme Performance](exec-plans/completed/2026-04-16-editor-extreme-performance.md) — completed 2026-04-16
