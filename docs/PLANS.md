@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Hotzone UI Container Views](exec-plans/active/2026-04-16-hotzone-ui-container-views.md) — started 2026-04-16
+
 
 ## Completed Plans
 
