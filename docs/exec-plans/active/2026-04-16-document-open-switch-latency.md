@@ -12,6 +12,7 @@ Author: agent
 
 **In scope:**
 - `src/stores/noteStore.ts`
+- `src/types/notes.ts`
 - `src/App.tsx`
 - `src/editor/RefinexEditor.tsx`
 - `src/stores/__tests__/workspace-state.test.ts`
@@ -57,7 +58,7 @@ Deviations:
 
 ### Step 2: 让文档点击立即切换并复用进行中的读取任务
 
-**Files:** `src/stores/noteStore.ts`, `src/App.tsx`, `src/stores/__tests__/workspace-state.test.ts`
+**Files:** `src/stores/noteStore.ts`, `src/types/notes.ts`, `src/App.tsx`, `src/stores/__tests__/workspace-state.test.ts`
 **Verification:** store 测试覆盖“立即切换 currentFile”和“重复打开只触发一次 readFile”
 
 Status: ⬜ Not started
@@ -97,6 +98,8 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | 先优化“点击后才开始等 IO”的路径 | 用户体感首先卡在点击无反馈 | 先继续做工作区或搜索优化 | 当前症状直接命中 `openFile()` 主路径 |
 | 在 store 层管理 pending 读取任务 | 避免 UI 层自管重复请求 | 在组件层做防抖/节流 | 重复打开问题属于状态层责任，放在 store 更稳妥 |
+
+Additional plan update: Step 2 需要同时修改 `src/types/notes.ts`，为“文档正在打开”状态补充显式类型字段，避免 UI 与 store 之间依赖隐式约定。
 
 ## Completion Summary
 
