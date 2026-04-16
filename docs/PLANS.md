@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Workspace Content Cache Prefetch](exec-plans/active/2026-04-16-workspace-content-cache-prefetch.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Workspace Content Cache Prefetch](exec-plans/completed/2026-04-16-workspace-content-cache-prefetch.md) — completed 2026-04-16
 - [Async Read Lazy CodeBlock](exec-plans/completed/2026-04-16-async-read-lazy-codeblock.md) — completed 2026-04-16
 - [Editor Persisted Loading Profiling](exec-plans/completed/2026-04-16-editor-persisted-loading-profiling.md) — completed 2026-04-16
 - [Document Open Perf Logging](exec-plans/completed/2026-04-16-document-open-perf-logging.md) — completed 2026-04-16
