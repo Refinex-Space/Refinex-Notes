@@ -53,7 +53,7 @@ Author: agent
 **Verification:** 计划文件存在且 `docs/PLANS.md` Active Plans 已登记
 
 Status: 🔄 In progress
-Evidence:
+Evidence: 计划文件已创建，`docs/PLANS.md` 已登记 Active Plans 条目。
 Deviations:
 
 ### Step 2: 让文档点击立即切换并复用进行中的读取任务
@@ -61,8 +61,8 @@ Deviations:
 **Files:** `src/stores/noteStore.ts`, `src/types/notes.ts`, `src/App.tsx`, `src/stores/__tests__/workspace-state.test.ts`
 **Verification:** store 测试覆盖“立即切换 currentFile”和“重复打开只触发一次 readFile”
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `openFile()` 现在会先更新 `currentFile` / `openFiles` / `openingFiles`，未加载文档可立即进入目标加载态；同一路径重复打开会复用 store 内的进行中读盘 promise；`workspace-state.test.ts` 新增“立即切换”和“单次 readFile”回归测试并通过。
 Deviations:
 
 ### Step 3: 收敛编辑器切换时的 flush / parse 成本
@@ -87,8 +87,8 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | 计划文件正在创建并登记 |  |
-| 2 | ⬜ |  |  |
+| 1 | ✅ | 计划文件与 `docs/PLANS.md` 已更新 |  |
+| 2 | ✅ | 定向测试通过，点击路径已先切到目标文档 | 增加了 `openingFiles` 显式状态 |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
 
