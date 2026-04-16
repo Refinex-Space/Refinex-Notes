@@ -3,6 +3,7 @@ import type { NodeView } from "prosemirror-view";
 import type { Decoration } from "prosemirror-view";
 
 import {
+  estimateViewportShellMetrics,
   isViewportBlockVisible,
   summarizeViewportText,
 } from "../plugins/viewport-blocks";
@@ -55,9 +56,11 @@ export function describeViewportTextBlockShell(node: ProseMirrorNode) {
 
 export function createViewportTextBlockShell(node: ProseMirrorNode) {
   const description = describeViewportTextBlockShell(node);
+  const metrics = estimateViewportShellMetrics(node);
   const shell = document.createElement("div");
   shell.className = description.className;
   shell.dataset.nodeType = description.nodeType;
+  shell.style.minHeight = `${metrics.minHeightRem}rem`;
   if (description.headingLevel) {
     shell.dataset.headingLevel = description.headingLevel;
   }
@@ -114,6 +117,7 @@ export class ViewportTextBlockView implements NodeView {
 
     if (!this.isVisibleMode) {
       this.dom.textContent = summarizeNodeText(node);
+      this.dom.style.minHeight = `${estimateViewportShellMetrics(node).minHeightRem}rem`;
       if (node.type.name === "heading") {
         this.dom.setAttribute("data-heading-level", String(node.attrs.level as number));
       }

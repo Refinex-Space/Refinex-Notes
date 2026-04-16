@@ -1,7 +1,11 @@
 import type { Node as ProseMirrorNode } from "prosemirror-model";
 import type { Decoration, NodeView } from "prosemirror-view";
 
-import { isViewportBlockVisible, summarizeViewportText } from "../plugins/viewport-blocks";
+import {
+  estimateViewportShellMetrics,
+  isViewportBlockVisible,
+  summarizeViewportText,
+} from "../plugins/viewport-blocks";
 
 function getViewportContainerTag(node: ProseMirrorNode) {
   switch (node.type.name) {
@@ -65,6 +69,7 @@ export class ViewportContainerBlockView implements NodeView {
     shell.className = `refinex-viewport-container-shell is-${node.type.name}`;
     shell.dataset.nodeType = node.type.name;
     shell.textContent = buildContainerShellSummary(node);
+    shell.style.minHeight = `${estimateViewportShellMetrics(node).minHeightRem}rem`;
     this.dom = shell;
   }
 
@@ -82,6 +87,7 @@ export class ViewportContainerBlockView implements NodeView {
     this.node = node;
     if (!this.isVisibleMode) {
       this.dom.textContent = buildContainerShellSummary(node);
+      this.dom.style.minHeight = `${estimateViewportShellMetrics(node).minHeightRem}rem`;
     }
 
     return true;

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseMarkdown } from "../parser";
 import {
+  estimateViewportShellMetrics,
   isViewportBlockVisible,
   isViewportSkeletonNode,
   summarizeViewportText,
@@ -48,6 +49,28 @@ describe("viewport blocks helpers", () => {
     ];
     expect(isViewportBlockVisible(decorations)).toBe(true);
     expect(isViewportBlockVisible([])).toBe(false);
+  });
+
+  it("estimates stable shell heights for different block kinds", () => {
+    const doc = parseMarkdown(
+      "# Heading\n\nParagraph with enough content to wrap across more than one visual line in a shell.\n\n| A | B |\n| --- | --- |\n| long cell content | value |",
+    );
+    const heading = doc.firstChild;
+    const paragraph = doc.child(1);
+    const table = doc.child(2);
+    const row = table.firstChild;
+    const cell = row?.firstChild;
+
+    if (!heading || !paragraph || !table || !row || !cell) {
+      throw new Error("expected heading, paragraph, table, row, cell");
+    }
+
+    expect(estimateViewportShellMetrics(heading).minHeightRem).toBeGreaterThan(2);
+    expect(estimateViewportShellMetrics(paragraph).estimatedLines).toBeGreaterThan(1);
+    expect(estimateViewportShellMetrics(table).minHeightRem).toBeGreaterThan(
+      estimateViewportShellMetrics(row).minHeightRem,
+    );
+    expect(estimateViewportShellMetrics(cell).minHeightRem).toBeGreaterThan(1.5);
   });
 
   it("creates lightweight shells for collapsed text blocks", () => {

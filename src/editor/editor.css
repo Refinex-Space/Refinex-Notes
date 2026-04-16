@@ -272,6 +272,11 @@
   min-height: 2.4rem;
 }
 
+.refinex-viewport-container-shell {
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
 /* ============================================================
    Horizontal rule
    ============================================================ */
@@ -546,6 +551,22 @@
 .dark .refinex-viewport-table-row-shell td {
   color: #94a3b8;
   background: rgba(148, 163, 184, 0.12);
+}
+
+.refinex-viewport-table-cell-shell {
+  padding: 0.45rem 0.65rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(148, 163, 184, 0.04);
+}
+
+.dark .refinex-viewport-table-cell-shell {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.08);
 }
 
 .dark .ProseMirror hr {

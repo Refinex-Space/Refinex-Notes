@@ -1,5 +1,5 @@
-import type { Node as ProseMirrorNode } from "prosemirror-model";
-import { Plugin, PluginKey } from "prosemirror-state";
+import type { Node as ProseMirrorNode, ResolvedPos } from "prosemirror-model";
+import { Plugin, PluginKey, type EditorState } from "prosemirror-state";
 import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
 
 export const refinexViewportBlocksKey = new PluginKey<readonly number[]>(
@@ -19,6 +19,8 @@ const VIEWPORT_BLOCK_TYPES = new Set([
   "task_list_item",
   "table",
   "table_row",
+  "table_header",
+  "table_cell",
 ]);
 
 function scheduleFrame(callback: () => void) {
@@ -42,6 +44,53 @@ export function summarizeViewportText(text: string, maxLength = 120) {
   return normalized.length > maxLength
     ? `${normalized.slice(0, maxLength)}...`
     : normalized;
+}
+
+export function estimateViewportShellMetrics(
+  node: Pick<ProseMirrorNode, "type" | "textContent" | "childCount">,
+) {
+  const textLength = node.textContent.trim().length;
+  const baseCharsPerLine =
+    node.type.name === "heading"
+      ? 46
+      : node.type.name === "table_cell" || node.type.name === "table_header"
+        ? 28
+        : 72;
+  const estimatedLines = Math.max(1, Math.ceil(Math.max(1, textLength) / baseCharsPerLine));
+
+  switch (node.type.name) {
+    case "heading":
+      return { estimatedLines, minHeightRem: Math.max(2.4, 1.45 + estimatedLines * 1.25) };
+    case "blockquote":
+      return { estimatedLines, minHeightRem: Math.max(2.6, 1.6 + estimatedLines * 1.05) };
+    case "bullet_list":
+    case "ordered_list":
+      return {
+        estimatedLines: Math.max(1, node.childCount),
+        minHeightRem: Math.max(2.8, 1.3 + node.childCount * 1.9),
+      };
+    case "table":
+      return {
+        estimatedLines: Math.max(1, node.childCount),
+        minHeightRem: Math.max(3.2, 1.2 + node.childCount * 2.15),
+      };
+    case "table_row":
+      return {
+        estimatedLines: Math.max(1, node.childCount),
+        minHeightRem: Math.max(2.2, 1.2 + node.childCount * 0.45),
+      };
+    case "table_cell":
+    case "table_header":
+      return {
+        estimatedLines,
+        minHeightRem: Math.max(2, 1.2 + estimatedLines * 0.95),
+      };
+    default:
+      return {
+        estimatedLines,
+        minHeightRem: Math.max(2.2, 1.15 + estimatedLines * 0.95),
+      };
+  }
 }
 
 export function isViewportBlockVisible(decorations: readonly Decoration[]) {
@@ -80,16 +129,25 @@ export function collectViewportHeadingItems(view: EditorView) {
     .filter((heading) => heading.text.length > 0);
 }
 
-function findSelectionViewportBlockPos(view: EditorView) {
-  const { $head } = view.state.selection;
+function findSelectionViewportAncestorPositions($head: ResolvedPos) {
+  const positions: number[] = [];
 
   for (let depth = $head.depth; depth > 0; depth -= 1) {
     if (isViewportSkeletonNode($head.node(depth))) {
-      return $head.before(depth);
+      positions.push($head.before(depth));
     }
   }
 
-  return null;
+  return positions.reverse();
+}
+
+function findNearestSkeletonPos(state: EditorState) {
+  const positions = findSelectionViewportAncestorPositions(state.selection.$head);
+  return positions.at(-1) ?? null;
+}
+
+function collectSelectionHotzonePositions(state: EditorState) {
+  return findSelectionViewportAncestorPositions(state.selection.$head);
 }
 
 function arePositionListsEqual(left: readonly number[], right: readonly number[]) {
@@ -110,7 +168,8 @@ function collectVisibleViewportBlockPositions(
   const viewportBottom = scrollContainer
     ? scrollContainer.getBoundingClientRect().bottom + VIEWPORT_BLOCK_MARGIN_PX
     : window.innerHeight + VIEWPORT_BLOCK_MARGIN_PX;
-  const selectionPos = findSelectionViewportBlockPos(view);
+  const selectionPositions = collectSelectionHotzonePositions(view.state);
+  const selectionPos = findNearestSkeletonPos(view.state);
   const visiblePositions = new Set<number>();
   const orderedPositions: number[] = [];
 
@@ -121,7 +180,7 @@ function collectVisibleViewportBlockPositions(
 
     orderedPositions.push(pos);
 
-    if (selectionPos === pos) {
+    if (selectionPositions.includes(pos)) {
       visiblePositions.add(pos);
       return false;
     }
@@ -217,7 +276,7 @@ export function viewportBlocksPlugin() {
   return new Plugin<readonly number[]>({
     key: refinexViewportBlocksKey,
     state: {
-      init: () => [],
+      init: (_config, state) => collectSelectionHotzonePositions(state),
       apply(tr, value) {
         return (tr.getMeta(refinexViewportBlocksKey) as readonly number[] | undefined) ?? value;
       },
