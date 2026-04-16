@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Viewport Table Rows](exec-plans/active/2026-04-16-viewport-table-rows.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Viewport Table Rows](exec-plans/completed/2026-04-16-viewport-table-rows.md) — completed 2026-04-16
 - [Hotzone UI Container Views](exec-plans/completed/2026-04-16-hotzone-ui-container-views.md) — completed 2026-04-16
 - [Viewport TextBlock Skeleton](exec-plans/completed/2026-04-16-viewport-textblock-skeleton.md) — completed 2026-04-16
 - [Viewport CodeBlock NodeViews](exec-plans/completed/2026-04-16-viewport-codeblock-nodeviews.md) — completed 2026-04-16
