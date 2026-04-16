@@ -44,6 +44,7 @@ export interface NoteStoreState {
   currentFile: string | null;
   openFiles: string[];
   recentFiles: string[];
+  openingFiles: string[];
   loadingDirectories: string[];
   workspaceSnapshots: Record<string, FileNode[]>;
 }

@@ -237,6 +237,23 @@ function EmptyEditorState() {
   );
 }
 
+function LoadingEditorState({ path }: { path: string }) {
+  return (
+    <div className="relative flex h-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_40%,rgba(14,165,233,0.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0))] dark:bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,0.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(148,163,184,0.04)_100%)] dark:bg-[linear-gradient(180deg,transparent_0%,rgba(148,163,184,0.02)_100%)]" />
+      <section className="relative w-full max-w-xl px-8 text-center">
+        <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-50 text-cyan-600 dark:border-cyan-300/18 dark:bg-cyan-400/10 dark:text-cyan-100">
+          <RefreshCcw className="h-6 w-6 animate-spin" />
+        </div>
+        <h2 className="mt-5 text-lg font-semibold tracking-tight text-fg">
+          正在打开文档
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted">{path}</p>
+      </section>
+    </div>
+  );
+}
+
 function SplashScreen() {
   return (
     <main className="flex h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.12),transparent_38%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#e2e8f0_100%)] px-6 text-fg dark:bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_38%),linear-gradient(180deg,#071120_0%,#050a17_55%,#03060f_100%)]">
@@ -273,6 +290,7 @@ function WorkspaceShell({
   const recentWorkspaces = useNoteStore((state) => state.recentWorkspaces);
   const documents = useNoteStore((state) => state.documents);
   const currentFile = useNoteStore((state) => state.currentFile);
+  const openingFiles = useNoteStore((state) => state.openingFiles);
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
   const hydrateRecentWorkspaces = useNoteStore(
     (state) => state.hydrateRecentWorkspaces,
@@ -300,6 +318,9 @@ function WorkspaceShell({
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
+  const isCurrentFileOpening = Boolean(
+    currentFile && !currentDocument && openingFiles.includes(currentFile),
+  );
 
   useEffect(() => {
     setActiveTab(currentFile);
@@ -536,6 +557,8 @@ function WorkspaceShell({
                 onSelectHeading={handleSelectHeading}
               />
             </div>
+          ) : isCurrentFileOpening && currentFile ? (
+            <LoadingEditorState path={currentFile} />
           ) : (
             <EmptyEditorState />
           )

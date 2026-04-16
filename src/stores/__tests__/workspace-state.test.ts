@@ -65,6 +65,7 @@ function seedWorkspaceState() {
     currentFile: "Inbox/Welcome.md",
     openFiles: ["Inbox/Welcome.md"],
     recentFiles: ["Inbox/Welcome.md"],
+    openingFiles: [],
   });
 }
 
@@ -123,6 +124,72 @@ describe("workspace state stores", () => {
     expect(vi.mocked(fileService.readFile)).not.toHaveBeenCalled();
     expect(useNoteStore.getState().currentFile).toBe("Inbox/Welcome.md");
     expect(useNoteStore.getState().openFiles).toEqual(["Inbox/Welcome.md"]);
+  });
+
+  it("switches to the target file immediately while the workspace read is still pending", async () => {
+    let resolveRead!: (content: string) => void;
+    vi.mocked(fileService.readFile).mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+
+    useNoteStore.setState({
+      workspacePath: "/tmp/workspace",
+      documents: {},
+      currentFile: null,
+      openFiles: [],
+      recentFiles: [],
+      openingFiles: [],
+    });
+
+    const openPromise = useNoteStore.getState().openFile("Inbox/Welcome.md");
+
+    expect(useNoteStore.getState().currentFile).toBe("Inbox/Welcome.md");
+    expect(useNoteStore.getState().openFiles).toEqual(["Inbox/Welcome.md"]);
+    expect(useNoteStore.getState().openingFiles).toEqual(["Inbox/Welcome.md"]);
+
+    resolveRead("# Welcome");
+    await openPromise;
+
+    expect(useNoteStore.getState().documents["Inbox/Welcome.md"]?.content).toBe(
+      "# Welcome",
+    );
+    expect(useNoteStore.getState().openingFiles).toEqual([]);
+  });
+
+  it("reuses the in-flight workspace read for repeated opens of the same path", async () => {
+    let resolveRead!: (content: string) => void;
+    vi.mocked(fileService.readFile).mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+
+    useNoteStore.setState({
+      workspacePath: "/tmp/workspace",
+      documents: {},
+      currentFile: null,
+      openFiles: [],
+      recentFiles: [],
+      openingFiles: [],
+    });
+
+    const firstOpen = useNoteStore.getState().openFile("Inbox/Welcome.md");
+    const secondOpen = useNoteStore.getState().openFile("Inbox/Welcome.md");
+
+    expect(fileService.readFile).toHaveBeenCalledTimes(1);
+    expect(useNoteStore.getState().openingFiles).toEqual(["Inbox/Welcome.md"]);
+
+    resolveRead("# Welcome");
+    await Promise.all([firstOpen, secondOpen]);
+
+    expect(useNoteStore.getState().documents["Inbox/Welcome.md"]?.content).toBe(
+      "# Welcome",
+    );
+    expect(useNoteStore.getState().openingFiles).toEqual([]);
   });
 
   it("reorders tabs and supports bulk-close actions", async () => {

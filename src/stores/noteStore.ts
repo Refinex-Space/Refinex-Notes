@@ -21,11 +21,14 @@ type StoreState = Pick<
   | "currentFile"
   | "openFiles"
   | "recentFiles"
+  | "openingFiles"
   | "loadingDirectories"
   | "workspaceSnapshots"
 >;
 
 type TreeNode = FileNode & { children?: TreeNode[] };
+
+const pendingDocumentReads = new Map<string, Promise<string>>();
 
 function cloneDocument(document: NoteDocument): NoteDocument {
   return { ...document };
@@ -154,6 +157,7 @@ function createInitialState(): StoreState {
     currentFile: null,
     openFiles: [],
     recentFiles: [],
+    openingFiles: [],
     loadingDirectories: [],
     workspaceSnapshots: {},
   };
@@ -204,6 +208,7 @@ function captureStoreSnapshot(state: StoreState): StoreState {
     currentFile: state.currentFile,
     openFiles: [...state.openFiles],
     recentFiles: [...state.recentFiles],
+    openingFiles: [...state.openingFiles],
     loadingDirectories: [...state.loadingDirectories],
     workspaceSnapshots: Object.fromEntries(
       Object.entries(state.workspaceSnapshots).map(([path, nodes]) => [
@@ -235,6 +240,7 @@ function setWorkspaceShell(
   state.currentFile = null;
   state.openFiles = [];
   state.recentFiles = [];
+  state.openingFiles = [];
   state.loadingDirectories = [];
 }
 
@@ -336,6 +342,24 @@ function createMarkdownTemplate(path: string) {
   return `# ${title}\n\n`;
 }
 
+function getPendingDocumentReadKey(workspacePath: string, path: string) {
+  return `${workspacePath}\u0000${path}`;
+}
+
+function readDocumentOnce(workspacePath: string, path: string) {
+  const key = getPendingDocumentReadKey(workspacePath, path);
+  const pendingRead = pendingDocumentReads.get(key);
+  if (pendingRead) {
+    return pendingRead;
+  }
+
+  const nextRead = fileService.readFile(path).finally(() => {
+    pendingDocumentReads.delete(key);
+  });
+  pendingDocumentReads.set(key, nextRead);
+  return nextRead;
+}
+
 function isDirectoryPath(path: string, state: StoreState) {
   return (
     state.folders.includes(path) ||
@@ -392,6 +416,7 @@ function applyWorkspaceTree(state: StoreState, workspacePath: string, files: Fil
   );
   state.openFiles = state.openFiles.filter((path) => existingFiles.has(path));
   state.recentFiles = state.recentFiles.filter((path) => existingFiles.has(path));
+  state.openingFiles = state.openingFiles.filter((path) => existingFiles.has(path));
 
   if (state.currentFile && !existingFiles.has(state.currentFile)) {
     state.currentFile = state.openFiles[0] ?? null;
@@ -542,26 +567,46 @@ export const useNoteStore = create<NoteStore>()(
             state.currentFile = path;
             state.openFiles = ensureUniquePaths([...state.openFiles, path]);
             state.recentFiles = withRecentFile(state.recentFiles, path);
+            state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
           });
           return;
         }
 
-        if (!documents[path]) {
-          const content = await fileService.readFile(path);
-          set((state) => {
-            state.documents[path] = createDocumentFromDisk(path, content);
-          });
-          useEditorStore.getState().markClean(path);
-        }
-
         set((state) => {
-          if (!state.documents[path]) {
-            return;
-          }
           state.currentFile = path;
           state.openFiles = ensureUniquePaths([...state.openFiles, path]);
           state.recentFiles = withRecentFile(state.recentFiles, path);
+          state.openingFiles = ensureUniquePaths([...state.openingFiles, path]);
         });
+
+        try {
+          const content = await readDocumentOnce(workspacePath, path);
+          set((state) => {
+            state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
+            if (state.workspacePath !== workspacePath) {
+              return;
+            }
+
+            state.documents[path] = createDocumentFromDisk(path, content);
+          });
+          useEditorStore.getState().markClean(path);
+        } catch (error) {
+          set((state) => {
+            state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
+            if (state.workspacePath !== workspacePath) {
+              return;
+            }
+
+            delete state.documents[path];
+            state.openFiles = state.openFiles.filter((entry) => entry !== path);
+            state.recentFiles = state.recentFiles.filter((entry) => entry !== path);
+            if (state.currentFile === path) {
+              state.currentFile =
+                state.openFiles[state.openFiles.length - 1] ?? null;
+            }
+          });
+          throw error;
+        }
         return;
       }
 
@@ -572,6 +617,7 @@ export const useNoteStore = create<NoteStore>()(
         state.currentFile = path;
         state.openFiles = ensureUniquePaths([...state.openFiles, path]);
         state.recentFiles = withRecentFile(state.recentFiles, path);
+        state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
       });
     },
     closeFile: async (path) => {
@@ -645,11 +691,12 @@ export const useNoteStore = create<NoteStore>()(
 
         set((state) => {
           applyWorkspaceTree(state, workspacePath, files);
-          state.documents[path] = createDocumentFromDisk(path, "");
-          state.currentFile = path;
-          state.openFiles = ensureUniquePaths([...state.openFiles, path]);
-          state.recentFiles = withRecentFile(state.recentFiles, path);
-        });
+        state.documents[path] = createDocumentFromDisk(path, "");
+        state.currentFile = path;
+        state.openFiles = ensureUniquePaths([...state.openFiles, path]);
+        state.recentFiles = withRecentFile(state.recentFiles, path);
+        state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
+      });
         useEditorStore.getState().markClean(path);
         return;
       }
@@ -716,6 +763,9 @@ export const useNoteStore = create<NoteStore>()(
           state.recentFiles = state.recentFiles.filter(
             (entry) => entry !== path && !entry.startsWith(`${path}/`),
           );
+          state.openingFiles = state.openingFiles.filter(
+            (entry) => entry !== path && !entry.startsWith(`${path}/`),
+          );
           state.documents = Object.fromEntries(
             Object.entries(state.documents).filter(
               ([entry]) => entry !== path && !entry.startsWith(`${path}/`),
@@ -750,6 +800,9 @@ export const useNoteStore = create<NoteStore>()(
           (entry) => entry !== path && !entry.startsWith(`${path}/`),
         );
         state.recentFiles = state.recentFiles.filter(
+          (entry) => entry !== path && !entry.startsWith(`${path}/`),
+        );
+        state.openingFiles = state.openingFiles.filter(
           (entry) => entry !== path && !entry.startsWith(`${path}/`),
         );
 
@@ -869,6 +922,9 @@ export const useNoteStore = create<NoteStore>()(
             delete state.documents[path];
             state.openFiles = state.openFiles.filter((entry) => entry !== path);
             state.recentFiles = state.recentFiles.filter((entry) => entry !== path);
+            state.openingFiles = state.openingFiles.filter(
+              (entry) => entry !== path,
+            );
             if (state.currentFile === path) {
               state.currentFile = state.openFiles[0] ?? null;
             }
