@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Delayed Auto Hydration](exec-plans/active/2026-04-16-delayed-auto-hydration.md) — started 2026-04-16
+
 
 ## Completed Plans
 
