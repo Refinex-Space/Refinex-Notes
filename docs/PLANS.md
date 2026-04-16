@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Manual Editor Hydration](exec-plans/active/2026-04-16-manual-editor-hydration.md) — started 2026-04-16
+
 
 ## Completed Plans
 
