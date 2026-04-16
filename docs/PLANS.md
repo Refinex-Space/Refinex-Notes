@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Viewport TextBlock Skeleton](exec-plans/active/2026-04-16-viewport-textblock-skeleton.md) — started 2026-04-16
+
 
 ## Completed Plans
 
