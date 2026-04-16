@@ -64,6 +64,13 @@ const EDITOR_STATE_CACHE_LIMIT = 8;
 const parsedDocumentCache = new Map<string, ProseMirrorNode>();
 
 type IdleHandle = number | ReturnType<typeof globalThis.setTimeout>;
+type EditorStateResolution = {
+  state: EditorState;
+  editorStateCacheHit: boolean;
+  parseCacheHit?: boolean;
+  parseDurationMs: number;
+  createStateDurationMs: number;
+};
 
 function requestIdleFlush(callback: () => void) {
   if ("requestIdleCallback" in window) {
@@ -120,18 +127,33 @@ function rememberParsedDocument(
 function getParsedDocument(
   documentPath: string | undefined,
   value: string,
-) {
+): {
+  doc: ProseMirrorNode;
+  parseCacheHit: boolean;
+  parseDurationMs: number;
+} {
   const cacheKey = getDocumentCacheKey(documentPath, value);
   const cached = parsedDocumentCache.get(cacheKey);
   if (cached) {
     parsedDocumentCache.delete(cacheKey);
     parsedDocumentCache.set(cacheKey, cached);
-    return cached;
+    return {
+      doc: cached,
+      parseCacheHit: true,
+      parseDurationMs: 0,
+    };
   }
 
+  const parseStartedAt = globalThis.performance?.now() ?? Date.now();
   const doc = ensureTrailingParagraph(parseMarkdown(value));
   rememberParsedDocument(cacheKey, doc);
-  return doc;
+  return {
+    doc,
+    parseCacheHit: false,
+    parseDurationMs: Number(
+      ((globalThis.performance?.now() ?? Date.now()) - parseStartedAt).toFixed(2),
+    ),
+  };
 }
 
 function rememberEditorState(
@@ -160,21 +182,39 @@ function getOrCreateEditorState(
   documentPath: string | undefined,
   value: string,
   plugins: readonly Plugin[],
-) {
+): EditorStateResolution {
   const cacheKey = getDocumentCacheKey(documentPath, value);
   const cached = cache.get(cacheKey);
   if (cached) {
     cache.delete(cacheKey);
     cache.set(cacheKey, cached);
-    return cached;
+    return {
+      state: cached,
+      editorStateCacheHit: true,
+      parseDurationMs: 0,
+      createStateDurationMs: 0,
+    };
   }
 
+  const { doc, parseCacheHit, parseDurationMs } = getParsedDocument(
+    documentPath,
+    value,
+  );
+  const createStateStartedAt = globalThis.performance?.now() ?? Date.now();
   const state = EditorState.create({
-    doc: getParsedDocument(documentPath, value),
+    doc,
     plugins: [...plugins],
   });
   rememberEditorState(cache, documentPath, value, state);
-  return state;
+  return {
+    state,
+    editorStateCacheHit: false,
+    parseCacheHit,
+    parseDurationMs,
+    createStateDurationMs: Number(
+      ((globalThis.performance?.now() ?? Date.now()) - createStateStartedAt).toFixed(2),
+    ),
+  };
 }
 
 export function shouldSyncExternalValue(
@@ -366,6 +406,7 @@ export function RefinexEditor({
     pendingMarkdownHandleRef.current = null;
     pendingMarkdownRef.current = false;
 
+    const flushStartedAt = globalThis.performance?.now() ?? Date.now();
     const markdown = serializeMarkdownSafely(state);
     lastAppliedValueRef.current = markdown;
     lastAppliedDocumentPathRef.current = viewDocumentPathRef.current;
@@ -375,6 +416,13 @@ export function RefinexEditor({
       markdown,
       state,
     );
+    logDocumentPerfStep("editor.flush.end", {
+      path: viewDocumentPathRef.current ?? "__anonymous__",
+      durationMs: Number(
+        ((globalThis.performance?.now() ?? Date.now()) - flushStartedAt).toFixed(2),
+      ),
+      markdownLength: markdown.length,
+    });
     onChangeRef.current(markdown);
   };
 
@@ -394,6 +442,7 @@ export function RefinexEditor({
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    const mountStartedAt = globalThis.performance?.now() ?? Date.now();
 
     const plugins = [
       refinexKeymap({
@@ -422,15 +471,23 @@ export function RefinexEditor({
     ];
     editorPluginsRef.current = plugins;
 
-    const state = getOrCreateEditorState(
+    const stateResolution = getOrCreateEditorState(
       editorStateCacheRef.current,
       documentPath,
       value,
       plugins,
     );
+    logDocumentPerfStep("editor.mount.statePrepared", {
+      path: documentPath ?? "__anonymous__",
+      editorStateCacheHit: stateResolution.editorStateCacheHit,
+      parseCacheHit: stateResolution.parseCacheHit,
+      parseDurationMs: stateResolution.parseDurationMs,
+      createStateDurationMs: stateResolution.createStateDurationMs,
+      valueLength: value.length,
+    });
 
     const view = new EditorView(mount, {
-      state,
+      state: stateResolution.state,
       editable: () => !readOnlyRef.current,
       handleDrop(view, event) {
         return handleImageFileDrop(view, event);
@@ -465,6 +522,14 @@ export function RefinexEditor({
     setEditorView(view);
     onEditorViewRef.current?.(view);
     reportCursorPositionSafely(view.state, onCursorChangeRef.current);
+    logDocumentPerfStep("editor.mount.end", {
+      path: documentPath ?? "__anonymous__",
+      durationMs: Number(
+        ((globalThis.performance?.now() ?? Date.now()) - mountStartedAt).toFixed(2),
+      ),
+      editorStateCacheHit: stateResolution.editorStateCacheHit,
+      parseCacheHit: stateResolution.parseCacheHit,
+    });
 
     return () => {
       flushPendingMarkdown(view.state);
@@ -547,7 +612,7 @@ export function RefinexEditor({
       return;
     }
 
-    const newState = getOrCreateEditorState(
+    const stateResolution = getOrCreateEditorState(
       editorStateCacheRef.current,
       documentPath,
       value,
@@ -555,19 +620,34 @@ export function RefinexEditor({
         ? editorPluginsRef.current
         : view.state.plugins,
     );
-    view.updateState(newState);
+    logDocumentPerfStep("editor.externalSync.statePrepared", {
+      path: documentPath ?? "__anonymous__",
+      editorStateCacheHit: stateResolution.editorStateCacheHit,
+      parseCacheHit: stateResolution.parseCacheHit,
+      parseDurationMs: stateResolution.parseDurationMs,
+      createStateDurationMs: stateResolution.createStateDurationMs,
+      valueLength: value.length,
+    });
+    const updateStateStartedAt = globalThis.performance?.now() ?? Date.now();
+    view.updateState(stateResolution.state);
     viewDocumentPathRef.current = documentPath;
     lastAppliedValueRef.current = value;
     lastAppliedDocumentPathRef.current = documentPath;
     setOverlayVersion((current) => current + 1);
     setLinkPopoverRequest(null);
     setSlashMenuRequest(null);
-    reportCursorPositionSafely(newState, onCursorChangeRef.current);
+    reportCursorPositionSafely(stateResolution.state, onCursorChangeRef.current);
     finishDocumentPerfTrace(documentPath ?? "__anonymous__", "editor.externalSync.end", {
       durationMs: Number(
         ((globalThis.performance?.now() ?? Date.now()) - syncStartedAt).toFixed(2),
       ),
-      editorStateCacheHit,
+      editorStateCacheHit: stateResolution.editorStateCacheHit,
+      parseCacheHit: stateResolution.parseCacheHit,
+      parseDurationMs: stateResolution.parseDurationMs,
+      createStateDurationMs: stateResolution.createStateDurationMs,
+      updateStateDurationMs: Number(
+        ((globalThis.performance?.now() ?? Date.now()) - updateStateStartedAt).toFixed(2),
+      ),
       valueLength: value.length,
     });
   }, [documentPath, value]);

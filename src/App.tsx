@@ -56,9 +56,12 @@ import { useEditorStore } from "./stores/editorStore";
 import { useGitStore } from "./stores/gitStore";
 import { useNoteStore } from "./stores/noteStore";
 import type { OutlineHeading } from "./types";
+import type { NoteDocument } from "./types/notes";
 import type { SearchResult } from "./types/search";
 import {
+  finishDocumentPerfTrace,
   logDocumentPerfStep,
+  peekDocumentPerfTrace,
   setDocumentPerfSourceHint,
 } from "./utils/documentPerf";
 
@@ -289,6 +292,7 @@ function WorkspaceShell({
     path: string;
     query: string;
   } | null>(null);
+  const [renderedDocument, setRenderedDocument] = useState<NoteDocument | null>(null);
 
   const workspacePath = useNoteStore((state) => state.workspacePath);
   const recentWorkspaces = useNoteStore((state) => state.recentWorkspaces);
@@ -325,6 +329,18 @@ function WorkspaceShell({
   const isCurrentFileOpening = Boolean(
     currentFile && !currentDocument && openingFiles.includes(currentFile),
   );
+  const editorDocument = currentDocument ?? renderedDocument;
+
+  useEffect(() => {
+    if (currentDocument) {
+      setRenderedDocument(currentDocument);
+      return;
+    }
+
+    if (!currentFile) {
+      setRenderedDocument(null);
+    }
+  }, [currentDocument, currentFile]);
 
   useEffect(() => {
     setActiveTab(currentFile);
@@ -344,11 +360,19 @@ function WorkspaceShell({
     }
 
     if (currentDocument) {
-      logDocumentPerfStep("app.currentDocument.ready", {
-        path: currentDocument.path,
+      const trace = peekDocumentPerfTrace(currentDocument.path);
+      const details = {
         contentLength: currentDocument.content.length,
         openFiles: useNoteStore.getState().openFiles.length,
-      });
+      };
+      if (trace) {
+        finishDocumentPerfTrace(currentDocument.path, "app.currentDocument.ready", details);
+      } else {
+        logDocumentPerfStep("app.currentDocument.ready", {
+          path: currentDocument.path,
+          ...details,
+        });
+      }
     }
   }, [currentDocument, currentFile, isCurrentFileOpening, openingFiles.length]);
 
@@ -554,22 +578,23 @@ function WorkspaceShell({
         }
         tabBar={<TabBar />}
         editor={
-          currentDocument ? (
+          editorDocument ? (
             <div className="relative h-full min-h-0 bg-bg">
               <div ref={editorScrollRef} className="h-full overflow-auto">
                 <RefinexEditor
-                  documentPath={currentDocument.path}
-                  value={currentDocument.content}
+                  documentPath={editorDocument.path}
+                  value={editorDocument.content}
                   className="min-h-full px-6 py-5"
+                  readOnly={isCurrentFileOpening}
                   onChange={(markdown) => {
-                    updateFileContent(currentDocument.path, markdown);
+                    updateFileContent(editorDocument.path, markdown);
 
-                    if (markdown === currentDocument.savedContent) {
-                      markClean(currentDocument.path);
+                    if (markdown === editorDocument.savedContent) {
+                      markClean(editorDocument.path);
                       return;
                     }
 
-                    markDirty(currentDocument.path);
+                    markDirty(editorDocument.path);
                   }}
                   onCursorChange={setCursorPosition}
                   onEditorView={(view) => {
@@ -577,12 +602,27 @@ function WorkspaceShell({
                   }}
                 />
               </div>
-              <DocumentOutlineDock
-                markdown={currentDocument.content}
-                editorViewRef={editorViewRef}
-                scrollContainerRef={editorScrollRef}
-                onSelectHeading={handleSelectHeading}
-              />
+              {currentDocument && !isCurrentFileOpening ? (
+                <DocumentOutlineDock
+                  markdown={currentDocument.content}
+                  editorViewRef={editorViewRef}
+                  scrollContainerRef={editorScrollRef}
+                  onSelectHeading={handleSelectHeading}
+                />
+              ) : null}
+              {isCurrentFileOpening && currentFile ? (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-[rgb(var(--color-bg)/0.82)] backdrop-blur-sm">
+                  <section className="w-full max-w-md rounded-[1.6rem] border border-border/70 bg-[rgb(var(--color-bg)/0.94)] px-6 py-5 text-center shadow-[0_20px_80px_rgba(15,23,42,0.18)]">
+                    <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-50 text-cyan-600 dark:border-cyan-300/18 dark:bg-cyan-400/10 dark:text-cyan-100">
+                      <RefreshCcw className="h-5 w-5 animate-spin" />
+                    </div>
+                    <p className="mt-4 text-sm font-semibold tracking-tight text-fg">
+                      正在切换文档
+                    </p>
+                    <p className="mt-2 text-xs leading-6 text-muted">{currentFile}</p>
+                  </section>
+                </div>
+              ) : null}
             </div>
           ) : isCurrentFileOpening && currentFile ? (
             <LoadingEditorState path={currentFile} />
@@ -604,7 +644,7 @@ function WorkspaceShell({
             syncTone={syncTone}
             cursor={cursorPosition}
             wordCount={wordCount}
-            language={currentDocument?.language ?? "Markdown"}
+            language={editorDocument?.language ?? "Markdown"}
             gitStatusSlot={
               <div className="flex items-center gap-2">
                 <AccountStatus />
