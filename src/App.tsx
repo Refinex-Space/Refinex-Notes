@@ -707,7 +707,11 @@ function WorkspaceShell({
         editor={
           editorDocument ? (
             <div className="relative h-full min-h-0 bg-bg">
-              <div ref={editorScrollRef} className="h-full overflow-auto">
+              <div
+                ref={editorScrollRef}
+                data-refinex-editor-scroll="true"
+                className="h-full overflow-auto"
+              >
                 {!isActiveEditorHydrated && currentDocument ? (
                   <InstantDocumentPreview
                     path={currentDocument.path}

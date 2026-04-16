@@ -9,6 +9,13 @@ export { refinexKeymap, type RefinexKeymapOptions } from "./plugins/keymap";
 export { slashMenuPlugin, refinexSlashMenuKey } from "./plugins/slash-menu";
 export { placeholderPlugin, refinexPlaceholderKey } from "./plugins/placeholder";
 export {
+  viewportBlocksPlugin,
+  refinexViewportBlocksKey,
+  isViewportTextBlockNode,
+  summarizeViewportText,
+  isViewportBlockVisible,
+} from "./plugins/viewport-blocks";
+export {
   ensureTrailingParagraph,
   stripTrailingParagraph,
   trailingNodePlugin,
@@ -24,6 +31,7 @@ export {
   resolveCodeBlockLanguageSupport,
 } from "./node-views/CodeBlockView";
 export { ImageView } from "./node-views/ImageView";
+export { ViewportTextBlockView, createViewportTextBlockShell } from "./node-views/ViewportTextBlockView";
 export { FloatingToolbar } from "./ui/FloatingToolbar";
 export { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 export { SlashMenu, type SlashMenuRequest } from "./ui/SlashMenu";

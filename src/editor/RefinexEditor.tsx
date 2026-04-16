@@ -14,6 +14,7 @@ import { inlineSyncPlugin } from "./plugins/inline-sync";
 import { refinexKeymap } from "./plugins/keymap";
 import { placeholderPlugin } from "./plugins/placeholder";
 import { slashMenuPlugin } from "./plugins/slash-menu";
+import { viewportBlocksPlugin } from "./plugins/viewport-blocks";
 import { refinexSerializer, serializeMarkdown } from "./serializer";
 import {
   ensureTrailingParagraph,
@@ -22,6 +23,7 @@ import {
 } from "./plugins/trailing-node";
 import { CodeBlockView } from "./node-views/CodeBlockView";
 import { ImageView } from "./node-views/ImageView";
+import { ViewportTextBlockView } from "./node-views/ViewportTextBlockView";
 import { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { SlashMenu, type SlashMenuRequest } from "./ui/SlashMenu";
@@ -465,6 +467,7 @@ export function RefinexEditor({
       }),
       trailingNodePlugin(),
       placeholderPlugin(),
+      viewportBlocksPlugin(),
       history(),
       dropCursor(),
       gapCursor(),
@@ -493,6 +496,10 @@ export function RefinexEditor({
         return handleImageFileDrop(view, event);
       },
       nodeViews: {
+        paragraph: (node, _view, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        heading: (node, _view, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
         code_block: (node, view, getPos) => new CodeBlockView(node, view, getPos),
         image: (node, view, getPos) => new ImageView(node, view, getPos),
       },
@@ -554,6 +561,10 @@ export function RefinexEditor({
         return handleImageFileDrop(innerView, event);
       },
       nodeViews: {
+        paragraph: (node, _innerView, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        heading: (node, _innerView, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
         code_block: (node, innerView, getPos) =>
           new CodeBlockView(node, innerView, getPos),
         image: (node, innerView, getPos) => new ImageView(node, innerView, getPos),
