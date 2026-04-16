@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Minimal Editor Warmup Loading](exec-plans/active/2026-04-16-minimal-editor-warmup-loading.md) — started 2026-04-16
+
 
 ## Completed Plans
 
