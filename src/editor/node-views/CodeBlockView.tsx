@@ -103,6 +103,26 @@ export function normalizeCodeBlockLanguage(language: string | null | undefined):
   return LANGUAGE_ALIASES[normalized] ?? "plaintext";
 }
 
+export function countCodeBlockLines(doc: string) {
+  return Math.max(1, doc.split("\n").length);
+}
+
+export function summarizeCodeBlock(doc: string) {
+  const normalized = doc.replace(/\s+$/g, "");
+  const firstLine = normalized.split("\n")[0]?.trim() ?? "";
+  const preview =
+    firstLine.length === 0
+      ? "空代码块"
+      : firstLine.length > 72
+        ? `${firstLine.slice(0, 72)}...`
+        : firstLine;
+
+  return {
+    lineCount: countCodeBlockLines(doc),
+    preview,
+  };
+}
+
 export function resolveCodeBlockLanguageSupport(language: string | null | undefined): Extension {
   switch (normalizeCodeBlockLanguage(language)) {
     case "javascript":
@@ -178,6 +198,10 @@ export class CodeBlockView implements NodeView {
 
   readonly contentDOM = null;
 
+  private readonly toolbar: HTMLDivElement;
+
+  private readonly summaryElement: HTMLDivElement;
+
   private readonly editorMount: HTMLDivElement;
 
   private readonly previewElement: HTMLPreElement;
@@ -194,6 +218,10 @@ export class CodeBlockView implements NodeView {
 
   private isActive = false;
 
+  private isInViewport = true;
+
+  private viewportObserver: IntersectionObserver | null = null;
+
   constructor(
     private node: ProseMirrorNode,
     private readonly pmView: EditorView,
@@ -202,8 +230,8 @@ export class CodeBlockView implements NodeView {
     this.dom = document.createElement("div");
     this.dom.className = "refinex-code-block-view";
 
-    const toolbar = document.createElement("div");
-    toolbar.className = "refinex-code-block-toolbar";
+    this.toolbar = document.createElement("div");
+    this.toolbar.className = "refinex-code-block-toolbar";
 
     this.languageSelect = document.createElement("select");
     this.languageSelect.className = "refinex-code-block-language-select";
@@ -218,21 +246,33 @@ export class CodeBlockView implements NodeView {
     this.languageSelect.value = normalizeCodeBlockLanguage(
       this.node.attrs.language as string,
     );
-    toolbar.append(this.languageSelect);
+    this.toolbar.append(this.languageSelect);
+
+    this.summaryElement = document.createElement("div");
+    this.summaryElement.className = "refinex-code-block-summary";
+    this.summaryElement.tabIndex = 0;
 
     this.previewElement = document.createElement("pre");
     this.previewElement.className = "refinex-code-block-preview";
     this.previewElement.tabIndex = 0;
-    this.previewElement.textContent = this.node.textContent || " ";
 
     this.editorMount = document.createElement("div");
     this.editorMount.className = "refinex-code-block-editor";
 
-    this.dom.append(toolbar, this.previewElement, this.editorMount);
+    this.dom.append(
+      this.toolbar,
+      this.summaryElement,
+      this.previewElement,
+      this.editorMount,
+    );
 
     this.languageSelect.addEventListener("change", this.handleLanguageChange);
+    this.summaryElement.addEventListener("mousedown", this.handleSummaryPointerDown);
+    this.summaryElement.addEventListener("keydown", this.handleSummaryKeyDown);
     this.previewElement.addEventListener("mousedown", this.handlePreviewPointerDown);
     this.previewElement.addEventListener("keydown", this.handlePreviewKeyDown);
+    this.setupViewportObservation();
+    this.refreshPassiveSurfaces();
     this.syncPresentation();
   }
 
@@ -249,7 +289,7 @@ export class CodeBlockView implements NodeView {
       this.languageSelect.value = nextLanguage;
     }
 
-    this.previewElement.textContent = node.textContent || " ";
+    this.refreshPassiveSurfaces();
 
     if (this.codeMirrorView) {
       this.codeMirrorView.dispatch({
@@ -290,8 +330,11 @@ export class CodeBlockView implements NodeView {
 
   destroy() {
     this.languageSelect.removeEventListener("change", this.handleLanguageChange);
+    this.summaryElement.removeEventListener("mousedown", this.handleSummaryPointerDown);
+    this.summaryElement.removeEventListener("keydown", this.handleSummaryKeyDown);
     this.previewElement.removeEventListener("mousedown", this.handlePreviewPointerDown);
     this.previewElement.removeEventListener("keydown", this.handlePreviewKeyDown);
+    this.viewportObserver?.disconnect();
     this.codeMirrorView?.destroy();
   }
 
@@ -350,8 +393,65 @@ export class CodeBlockView implements NodeView {
 
   private syncPresentation() {
     this.dom.classList.toggle("is-active", this.isActive);
-    this.previewElement.hidden = this.isActive;
+    const showPreview = !this.isActive && this.isInViewport;
+    const showSummary = !this.isActive && !this.isInViewport;
+    this.toolbar.hidden = !showPreview && !this.isActive;
+    this.summaryElement.hidden = !showSummary;
+    this.previewElement.hidden = !showPreview;
     this.editorMount.hidden = !this.isActive;
+  }
+
+  private refreshPassiveSurfaces() {
+    const summary = summarizeCodeBlock(this.node.textContent);
+    this.summaryElement.innerHTML = "";
+
+    const badge = document.createElement("span");
+    badge.className = "refinex-code-block-summary-badge";
+    badge.textContent = normalizeCodeBlockLanguage(
+      this.node.attrs.language as string,
+    ).toUpperCase();
+
+    const preview = document.createElement("span");
+    preview.className = "refinex-code-block-summary-text";
+    preview.textContent = summary.preview;
+
+    const meta = document.createElement("span");
+    meta.className = "refinex-code-block-summary-meta";
+    meta.textContent = `${summary.lineCount} 行`;
+
+    this.summaryElement.append(badge, preview, meta);
+    this.previewElement.textContent = this.isInViewport
+      ? this.node.textContent || " "
+      : "";
+  }
+
+  private setupViewportObservation() {
+    if (!("IntersectionObserver" in window)) {
+      this.isInViewport = true;
+      return;
+    }
+
+    this.viewportObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        const nextInViewport = Boolean(entry?.isIntersecting);
+        if (nextInViewport === this.isInViewport || this.isActive) {
+          return;
+        }
+
+        this.isInViewport = nextInViewport;
+        this.refreshPassiveSurfaces();
+        this.syncPresentation();
+      },
+      {
+        root: null,
+        rootMargin: "480px 0px",
+        threshold: 0,
+      },
+    );
+
+    this.viewportObserver.observe(this.dom);
+    this.isInViewport = false;
   }
 
   private readonly handleLanguageChange = () => {
@@ -389,6 +489,24 @@ export class CodeBlockView implements NodeView {
 
     event.preventDefault();
     this.activateCodeMirror(true);
+  };
+
+  private readonly handleSummaryPointerDown = (event: MouseEvent) => {
+    event.preventDefault();
+    this.isInViewport = true;
+    this.refreshPassiveSurfaces();
+    this.syncPresentation();
+  };
+
+  private readonly handleSummaryKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    this.isInViewport = true;
+    this.refreshPassiveSurfaces();
+    this.syncPresentation();
   };
 
   private createKeyBindings(): KeyBinding[] {

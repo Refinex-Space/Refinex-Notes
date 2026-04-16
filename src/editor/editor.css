@@ -193,6 +193,48 @@
   outline: none;
 }
 
+.refinex-code-block-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0.875rem 1rem;
+  color: #475569;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.refinex-code-block-summary:focus {
+  outline: none;
+}
+
+.refinex-code-block-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.refinex-code-block-summary-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.refinex-code-block-summary-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 /* ============================================================
    Horizontal rule
    ============================================================ */
@@ -431,6 +473,18 @@
 
 .dark .refinex-code-block-preview {
   color: #e2e8f0;
+}
+
+.dark .refinex-code-block-summary {
+  color: #cbd5e1;
+}
+
+.dark .refinex-code-block-summary-badge {
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.dark .refinex-code-block-summary-meta {
+  color: #94a3b8;
 }
 
 .dark .ProseMirror hr {

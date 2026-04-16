@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import { parseMarkdown } from "../parser";
 import {
   CODE_BLOCK_LANGUAGE_OPTIONS,
+  countCodeBlockLines,
   createCodeBlockContentTransaction,
   createExitCodeBlockTransaction,
   isCodeBlockSelectionOnLastLine,
   normalizeCodeBlockLanguage,
+  summarizeCodeBlock,
 } from "../node-views/CodeBlockView";
 
 describe("CodeBlockView helpers", () => {
@@ -33,6 +35,19 @@ describe("CodeBlockView helpers", () => {
     expect(isCodeBlockSelectionOnLastLine("line 1\nline 2", "line 1\nline 2".length)).toBe(
       true,
     );
+  });
+
+  it("summarizes code blocks for collapsed viewport shells", () => {
+    expect(countCodeBlockLines("const a = 1;\nconst b = 2;")).toBe(2);
+    expect(summarizeCodeBlock("")).toEqual({
+      lineCount: 1,
+      preview: "空代码块",
+    });
+    expect(
+      summarizeCodeBlock(
+        "const stream = repository.findAll().stream().map(transform).filter(Boolean);",
+      ).preview,
+    ).toContain("...");
   });
 
   it("creates a content transaction that rewrites only the code block text", () => {
