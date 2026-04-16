@@ -72,6 +72,40 @@ const sidebarActionButtonClassName = [
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
 ].join(" ");
 
+function requestIdleWork(callback: () => void) {
+  if ("requestIdleCallback" in window) {
+    return {
+      kind: "idle" as const,
+      id: window.requestIdleCallback(callback, { timeout: 120 }),
+    };
+  }
+
+  return {
+    kind: "timeout" as const,
+    id: globalThis.setTimeout(callback, 0),
+  };
+}
+
+type IdleWorkHandle = {
+  kind: "idle" | "timeout";
+  id: number | ReturnType<typeof globalThis.setTimeout>;
+};
+
+function cancelIdleWork(
+  handle: IdleWorkHandle | null,
+) {
+  if (!handle) {
+    return;
+  }
+
+  if (handle.kind === "idle" && "cancelIdleCallback" in window) {
+    window.cancelIdleCallback(handle.id as number);
+    return;
+  }
+
+  globalThis.clearTimeout(handle.id);
+}
+
 function SidebarContent({
   onSelectSearchResult,
   workspacePath,
@@ -261,6 +295,44 @@ function LoadingEditorState({ path }: { path: string }) {
   );
 }
 
+function InstantDocumentPreview({
+  path,
+  markdown,
+  onActivate,
+}: {
+  path: string;
+  markdown: string;
+  onActivate: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="group relative block h-full w-full overflow-auto bg-bg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+      onClick={onActivate}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+        event.preventDefault();
+        onActivate();
+      }}
+    >
+      <div className="sticky top-0 z-10 border-b border-border/70 bg-[rgb(var(--color-bg)/0.92)] px-6 py-3 backdrop-blur">
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
+          Instant Preview
+        </p>
+        <p className="mt-1 text-xs text-muted">{path}</p>
+        <p className="mt-2 text-[12px] text-fg/80">
+          点击后进入完整编辑模式
+        </p>
+      </div>
+      <pre className="min-h-full whitespace-pre-wrap break-words px-6 py-5 font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] text-[13px] leading-7 text-fg">
+        {markdown}
+      </pre>
+    </button>
+  );
+}
+
 function SplashScreen() {
   return (
     <main className="flex h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.12),transparent_38%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#e2e8f0_100%)] px-6 text-fg dark:bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_38%),linear-gradient(180deg,#071120_0%,#050a17_55%,#03060f_100%)]">
@@ -293,6 +365,9 @@ function WorkspaceShell({
     query: string;
   } | null>(null);
   const [renderedDocument, setRenderedDocument] = useState<NoteDocument | null>(null);
+  const [hydratedEditorPaths, setHydratedEditorPaths] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const workspacePath = useNoteStore((state) => state.workspacePath);
   const recentWorkspaces = useNoteStore((state) => state.recentWorkspaces);
@@ -326,6 +401,7 @@ function WorkspaceShell({
   const editorViewRef = useRef<EditorView | null>(null);
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
   const editorViewRegistryRef = useRef<Record<string, EditorView | null>>({});
+  const pendingFocusEditorPathRef = useRef<string | null>(null);
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
   const isCurrentFileOpening = Boolean(
@@ -335,7 +411,13 @@ function WorkspaceShell({
   const loadedOpenDocuments = openFiles
     .map((path: string) => documents[path] ?? null)
     .filter((document: NoteDocument | null): document is NoteDocument => document !== null);
+  const hydratedOpenDocuments = loadedOpenDocuments.filter((document) =>
+    hydratedEditorPaths.has(document.path),
+  );
   const activeEditorPath = currentDocument?.path ?? renderedDocument?.path ?? null;
+  const isActiveEditorHydrated = activeEditorPath
+    ? hydratedEditorPaths.has(activeEditorPath)
+    : false;
 
   useEffect(() => {
     if (currentDocument) {
@@ -347,6 +429,28 @@ function WorkspaceShell({
       setRenderedDocument(null);
     }
   }, [currentDocument, currentFile]);
+
+  useEffect(() => {
+    if (!currentDocument || hydratedEditorPaths.has(currentDocument.path)) {
+      return;
+    }
+
+    const handle = requestIdleWork(() => {
+      setHydratedEditorPaths((previous) => {
+        if (previous.has(currentDocument.path)) {
+          return previous;
+        }
+
+        const next = new Set(previous);
+        next.add(currentDocument.path);
+        return next;
+      });
+    });
+
+    return () => {
+      cancelIdleWork(handle);
+    };
+  }, [currentDocument, hydratedEditorPaths]);
 
   useEffect(() => {
     setActiveTab(currentFile);
@@ -379,6 +483,7 @@ function WorkspaceShell({
       const details = {
         contentLength: currentDocument.content.length,
         openFiles: useNoteStore.getState().openFiles.length,
+        mode: isActiveEditorHydrated ? "editor" : "preview",
       };
       if (trace) {
         finishDocumentPerfTrace(currentDocument.path, "app.currentDocument.ready", details);
@@ -389,7 +494,28 @@ function WorkspaceShell({
         });
       }
     }
-  }, [currentDocument, currentFile, isCurrentFileOpening, openingFiles.length]);
+  }, [
+    currentDocument,
+    currentFile,
+    isActiveEditorHydrated,
+    isCurrentFileOpening,
+    openingFiles.length,
+  ]);
+
+  useEffect(() => {
+    if (!activeEditorPath) {
+      return;
+    }
+
+    const pendingPath = pendingFocusEditorPathRef.current;
+    const view = editorViewRegistryRef.current[activeEditorPath];
+    if (pendingPath !== activeEditorPath || !view) {
+      return;
+    }
+
+    view.focus();
+    pendingFocusEditorPathRef.current = null;
+  }, [activeEditorPath, hydratedEditorPaths]);
 
   useEffect(() => {
     if (
@@ -512,8 +638,9 @@ function WorkspaceShell({
     [documents],
   );
   const wordCount = useMemo(
-    () => countWords(currentDocument?.content ?? ""),
-    [currentDocument?.content],
+    () =>
+      isActiveEditorHydrated ? countWords(currentDocument?.content ?? "") : 0,
+    [currentDocument?.content, isActiveEditorHydrated],
   );
   const syncTone =
     currentFile && unsavedChanges.has(currentFile) ? "pending" : "synced";
@@ -596,7 +723,25 @@ function WorkspaceShell({
           editorDocument ? (
             <div className="relative h-full min-h-0 bg-bg">
               <div ref={editorScrollRef} className="h-full overflow-auto">
-                {loadedOpenDocuments.map((document: NoteDocument) => {
+                {!isActiveEditorHydrated && currentDocument ? (
+                  <InstantDocumentPreview
+                    path={currentDocument.path}
+                    markdown={currentDocument.content}
+                    onActivate={() => {
+                      pendingFocusEditorPathRef.current = currentDocument.path;
+                      setHydratedEditorPaths((previous) => {
+                        if (previous.has(currentDocument.path)) {
+                          return previous;
+                        }
+
+                        const next = new Set(previous);
+                        next.add(currentDocument.path);
+                        return next;
+                      });
+                    }}
+                  />
+                ) : null}
+                {hydratedOpenDocuments.map((document: NoteDocument) => {
                   const isVisible = activeEditorPath === document.path;
                   const isLoadingShell =
                     isCurrentFileOpening && renderedDocument?.path === document.path;
@@ -604,7 +749,11 @@ function WorkspaceShell({
                   return (
                     <div
                       key={document.path}
-                      className={isVisible ? "block min-h-full" : "hidden min-h-full"}
+                      className={
+                        isVisible && isActiveEditorHydrated
+                          ? "block min-h-full"
+                          : "hidden min-h-full"
+                      }
                     >
                       <RefinexEditor
                         documentPath={document.path}
@@ -631,13 +780,22 @@ function WorkspaceShell({
                           if (activeEditorPath === document.path) {
                             editorViewRef.current = view;
                           }
+                          if (
+                            view &&
+                            pendingFocusEditorPathRef.current === document.path
+                          ) {
+                            view.focus();
+                            pendingFocusEditorPathRef.current = null;
+                          }
                         }}
                       />
                     </div>
                   );
                 })}
               </div>
-              {currentDocument && !isCurrentFileOpening ? (
+              {currentDocument &&
+              !isCurrentFileOpening &&
+              isActiveEditorHydrated ? (
                 <DocumentOutlineDock
                   markdown={currentDocument.content}
                   editorViewRef={editorViewRef}
