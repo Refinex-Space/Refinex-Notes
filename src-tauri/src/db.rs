@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS file_meta (
     tags TEXT,
     modified INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS file_content_cache (
+    workspace_path TEXT NOT NULL,
+    path TEXT NOT NULL,
+    content TEXT NOT NULL,
+    modified INTEGER NOT NULL,
+    PRIMARY KEY (workspace_path, path)
+);
 "#;
 
 pub fn init_database<R: Runtime>(app: &AppHandle<R>) -> Result<Connection, String> {
@@ -90,6 +98,71 @@ pub fn remove_recent_workspace(connection: &Connection, workspace_path: &str) ->
     Ok(())
 }
 
+pub fn get_cached_file_content(
+    connection: &Connection,
+    workspace_path: &Path,
+    path: &str,
+    modified: i64,
+) -> Result<Option<String>, String> {
+    let workspace = workspace_path.to_string_lossy().into_owned();
+    let mut statement = connection
+        .prepare(
+            r#"
+            SELECT content
+            FROM file_content_cache
+            WHERE workspace_path = ?1 AND path = ?2 AND modified = ?3
+            "#,
+        )
+        .map_err(|error| format!("读取文件缓存失败: {error}"))?;
+
+    statement
+        .query_row((&workspace, path, modified), |row| row.get::<_, String>(0))
+        .map(Some)
+        .or_else(|error| match error {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(format!("查询文件缓存失败: {other}")),
+        })
+}
+
+pub fn upsert_file_content_cache(
+    connection: &Connection,
+    workspace_path: &Path,
+    path: &str,
+    modified: i64,
+    content: &str,
+) -> Result<(), String> {
+    let workspace = workspace_path.to_string_lossy().into_owned();
+    connection
+        .execute(
+            r#"
+            INSERT INTO file_content_cache(workspace_path, path, content, modified)
+            VALUES (?1, ?2, ?3, ?4)
+            ON CONFLICT(workspace_path, path)
+            DO UPDATE SET content = excluded.content, modified = excluded.modified
+            "#,
+            (&workspace, path, content, modified),
+        )
+        .map_err(|error| format!("写入文件缓存失败: {error}"))?;
+
+    Ok(())
+}
+
+pub fn delete_file_content_cache(
+    connection: &Connection,
+    workspace_path: &Path,
+    path: &str,
+) -> Result<(), String> {
+    let workspace = workspace_path.to_string_lossy().into_owned();
+    connection
+        .execute(
+            "DELETE FROM file_content_cache WHERE workspace_path = ?1 AND path = ?2",
+            (&workspace, path),
+        )
+        .map_err(|error| format!("删除文件缓存失败: {error}"))?;
+
+    Ok(())
+}
+
 pub fn resolve_database_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
     let home_dir = app
         .path()
@@ -131,7 +204,10 @@ mod tests {
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
-        assert_eq!(tables, vec!["file_meta", "recent_workspaces", "settings"]);
+        assert_eq!(
+            tables,
+            vec!["file_content_cache", "file_meta", "recent_workspaces", "settings"]
+        );
     }
 
     #[test]

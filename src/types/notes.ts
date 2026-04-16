@@ -55,6 +55,7 @@ export interface NoteStoreActions {
   removeRecentWorkspace: (path: string) => Promise<void>;
   loadDirectory: (path: string) => Promise<void>;
   openFile: (path: string) => Promise<void>;
+  prefetchFile: (path: string) => Promise<void>;
   closeFile: (path: string) => Promise<void>;
   closeAllFiles: () => Promise<void>;
   closeOtherFiles: (path: string) => Promise<void>;

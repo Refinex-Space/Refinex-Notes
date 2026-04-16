@@ -1,8 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
+use walkdir::WalkDir;
 
 use crate::db;
 use crate::search::indexer as search_indexer;
@@ -75,6 +77,7 @@ pub fn open_workspace(
     }
 
     schedule_workspace_index_rebuild(&state, workspace_path.clone())?;
+    schedule_workspace_content_cache_warm(&state, workspace_path.clone())?;
 
     Ok(file_tree)
 }
@@ -160,12 +163,42 @@ pub fn read_file_tree(
 pub async fn read_file(state: State<'_, AppState>, path: String) -> Result<String, String> {
     let workspace_path = current_workspace_path(&state)?;
     let target_path = resolve_workspace_path(&workspace_path, &path)?;
+    let relative_path = to_relative_path(&workspace_path, &target_path)?;
+    let modified = file_modified_unix(&target_path)?;
 
-    tauri::async_runtime::spawn_blocking(move || {
+    {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "数据库锁获取失败".to_string())?;
+        if let Some(content) =
+            db::get_cached_file_content(&connection, &workspace_path, &relative_path, modified)?
+        {
+            return Ok(content);
+        }
+    }
+
+    let content = tauri::async_runtime::spawn_blocking(move || {
         fs::read_to_string(&target_path).map_err(|error| format!("读取文件失败: {error}"))
     })
     .await
-    .map_err(|error| format!("读取文件任务失败: {error}"))?
+    .map_err(|error| format!("读取文件任务失败: {error}"))??;
+
+    {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "数据库锁获取失败".to_string())?;
+        db::upsert_file_content_cache(
+            &connection,
+            &workspace_path,
+            &relative_path,
+            modified,
+            &content,
+        )?;
+    }
+
+    Ok(content)
 }
 
 #[tauri::command]
@@ -181,7 +214,15 @@ pub fn write_file(
         fs::create_dir_all(parent).map_err(|error| format!("创建父目录失败: {error}"))?;
     }
 
-    fs::write(&target_path, content).map_err(|error| format!("写入文件失败: {error}"))?;
+    fs::write(&target_path, &content).map_err(|error| format!("写入文件失败: {error}"))?;
+    let modified = file_modified_unix(&target_path)?;
+    {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "数据库锁获取失败".to_string())?;
+        db::upsert_file_content_cache(&connection, &workspace_path, &path, modified, &content)?;
+    }
     notify_git_sync(&state)
 }
 
@@ -199,6 +240,14 @@ pub fn create_file(state: State<'_, AppState>, path: String) -> Result<(), Strin
         .create_new(true)
         .open(&target_path)
         .map_err(|error| format!("创建文件失败: {error}"))?;
+    let modified = file_modified_unix(&target_path)?;
+    {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "数据库锁获取失败".to_string())?;
+        db::upsert_file_content_cache(&connection, &workspace_path, &path, modified, "")?;
+    }
 
     notify_git_sync(&state)
 }
@@ -222,6 +271,13 @@ pub fn delete_file(state: State<'_, AppState>, path: String) -> Result<(), Strin
     } else {
         fs::remove_file(&target_path).map_err(|error| format!("删除文件失败: {error}"))
     }?;
+    if !target_path.is_dir() {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "数据库锁获取失败".to_string())?;
+        db::delete_file_content_cache(&connection, &workspace_path, &path)?;
+    }
 
     notify_git_sync(&state)
 }
@@ -408,6 +464,68 @@ fn schedule_workspace_index_rebuild(
     Ok(())
 }
 
+fn schedule_workspace_content_cache_warm(
+    state: &State<'_, AppState>,
+    workspace_path: PathBuf,
+) -> Result<(), String> {
+    let app_handle = state.app_handle.clone();
+    std::thread::spawn(move || {
+        let state = app_handle.state::<AppState>();
+        for entry in WalkDir::new(&workspace_path)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+        {
+            let name = entry.file_name().to_string_lossy();
+            if should_ignore(&name) || !name.ends_with(".md") {
+                continue;
+            }
+
+            let path = entry.into_path();
+            let relative_path = match to_relative_path(&workspace_path, &path) {
+                Ok(relative_path) => relative_path,
+                Err(_) => continue,
+            };
+            let modified = match file_modified_unix(&path) {
+                Ok(modified) => modified,
+                Err(_) => continue,
+            };
+
+            {
+                let connection = match state.db.lock() {
+                    Ok(connection) => connection,
+                    Err(_) => continue,
+                };
+                match db::get_cached_file_content(&connection, &workspace_path, &relative_path, modified)
+                {
+                    Ok(Some(_)) => continue,
+                    Ok(None) => {}
+                    Err(_) => continue,
+                }
+            }
+
+            let content = match fs::read_to_string(&path) {
+                Ok(content) => content,
+                Err(_) => continue,
+            };
+
+            let connection = match state.db.lock() {
+                Ok(connection) => connection,
+                Err(_) => continue,
+            };
+            let _ = db::upsert_file_content_cache(
+                &connection,
+                &workspace_path,
+                &relative_path,
+                modified,
+                &content,
+            );
+        }
+    });
+
+    Ok(())
+}
+
 fn stop_running_sync(state: &State<'_, AppState>) -> Result<(), String> {
     let controller = {
         let mut guard = state
@@ -439,6 +557,16 @@ fn notify_git_sync(state: &State<'_, AppState>) -> Result<(), String> {
 
 fn should_ignore(name: &str) -> bool {
     IGNORED_NAMES.iter().any(|ignored| ignored == &name)
+}
+
+fn file_modified_unix(path: &Path) -> Result<i64, String> {
+    let modified = fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .map_err(|error| format!("读取文件修改时间失败: {error}"))?;
+    let duration = modified
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| format!("转换文件修改时间失败: {error}"))?;
+    i64::try_from(duration.as_secs()).map_err(|error| format!("文件修改时间超界: {error}"))
 }
 
 fn to_relative_path(workspace_path: &Path, path: &Path) -> Result<String, String> {

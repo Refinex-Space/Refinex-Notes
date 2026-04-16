@@ -104,6 +104,7 @@ function FileRow({
   currentFile: string | null;
 }) {
   const openFile = useNoteStore((state) => state.openFile);
+  const prefetchFile = useNoteStore((state) => state.prefetchFile);
   const loadDirectory = useNoteStore((state) => state.loadDirectory);
   const createFile = useNoteStore((state) => state.createFile);
   const createFolder = useNoteStore((state) => state.createFolder);
@@ -186,6 +187,12 @@ function FileRow({
         .filter(Boolean)
         .join(" ")}
       style={indentation}
+      onMouseEnter={() => {
+        if (!isMarkdownPath(node.path)) {
+          return;
+        }
+        void prefetchFile(node.path);
+      }}
       onClick={() => {
         if (!isMarkdownPath(node.path)) {
           return;

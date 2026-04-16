@@ -192,6 +192,27 @@ describe("workspace state stores", () => {
     expect(useNoteStore.getState().openingFiles).toEqual([]);
   });
 
+  it("prefetches workspace documents without switching the active file", async () => {
+    vi.mocked(fileService.readFile).mockResolvedValue("# Warmed");
+
+    useNoteStore.setState({
+      workspacePath: "/tmp/workspace",
+      documents: {},
+      currentFile: "Inbox/Welcome.md",
+      openFiles: ["Inbox/Welcome.md"],
+      recentFiles: ["Inbox/Welcome.md"],
+      openingFiles: [],
+    });
+
+    await useNoteStore.getState().prefetchFile("Daily/2026-04-13.md");
+
+    expect(useNoteStore.getState().documents["Daily/2026-04-13.md"]?.content).toBe(
+      "# Warmed",
+    );
+    expect(useNoteStore.getState().currentFile).toBe("Inbox/Welcome.md");
+    expect(useNoteStore.getState().openFiles).toEqual(["Inbox/Welcome.md"]);
+  });
+
   it("reorders tabs and supports bulk-close actions", async () => {
     await useNoteStore.getState().openFile("Daily/2026-04-13.md");
     await useNoteStore.getState().openFile("Projects/Refinex/Roadmap.md");

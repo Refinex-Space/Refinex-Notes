@@ -680,6 +680,24 @@ export const useNoteStore = create<NoteStore>()(
         openFiles: get().openFiles.length,
       });
     },
+    prefetchFile: async (path) => {
+      const { documents, workspacePath } = get();
+      if (!workspacePath || documents[path]) {
+        return;
+      }
+
+      try {
+        const content = await readDocumentOnce(workspacePath, path);
+        set((state) => {
+          if (state.workspacePath !== workspacePath || state.documents[path]) {
+            return;
+          }
+          state.documents[path] = createDocumentFromDisk(path, content);
+        });
+      } catch {
+        // 预取失败不影响主交互链路
+      }
+    },
     closeFile: async (path) => {
       set((state) => {
         const index = state.openFiles.indexOf(path);
