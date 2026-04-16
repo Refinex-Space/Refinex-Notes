@@ -157,12 +157,15 @@ pub fn read_file_tree(
 }
 
 #[tauri::command]
-pub fn read_file(state: State<'_, AppState>, path: String) -> Result<String, String> {
+pub async fn read_file(state: State<'_, AppState>, path: String) -> Result<String, String> {
     let workspace_path = current_workspace_path(&state)?;
     let target_path = resolve_workspace_path(&workspace_path, &path)?;
 
-    fs::read_to_string(&target_path)
-        .map_err(|error| format!("读取文件失败: {error}"))
+    tauri::async_runtime::spawn_blocking(move || {
+        fs::read_to_string(&target_path).map_err(|error| format!("读取文件失败: {error}"))
+    })
+    .await
+    .map_err(|error| format!("读取文件任务失败: {error}"))?
 }
 
 #[tauri::command]

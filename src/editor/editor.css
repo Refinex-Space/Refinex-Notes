@@ -176,6 +176,23 @@
   outline: none;
 }
 
+.refinex-code-block-preview {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  overflow: auto;
+  background: transparent;
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre;
+  cursor: text;
+}
+
+.refinex-code-block-preview:focus {
+  outline: none;
+}
+
 /* ============================================================
    Horizontal rule
    ============================================================ */
@@ -409,6 +426,10 @@
 }
 
 .dark .refinex-code-block-editor .cm-editor {
+  color: #e2e8f0;
+}
+
+.dark .refinex-code-block-preview {
   color: #e2e8f0;
 }
 

@@ -180,15 +180,19 @@ export class CodeBlockView implements NodeView {
 
   private readonly editorMount: HTMLDivElement;
 
+  private readonly previewElement: HTMLPreElement;
+
   private readonly languageSelect: HTMLSelectElement;
 
   private readonly languageCompartment = new Compartment();
 
-  private codeMirrorView: CodeMirrorView;
+  private codeMirrorView: CodeMirrorView | null = null;
 
   private isSyncingFromCodeMirror = false;
 
   private isSyncingFromProseMirror = false;
+
+  private isActive = false;
 
   constructor(
     private node: ProseMirrorNode,
@@ -216,55 +220,20 @@ export class CodeBlockView implements NodeView {
     );
     toolbar.append(this.languageSelect);
 
+    this.previewElement = document.createElement("pre");
+    this.previewElement.className = "refinex-code-block-preview";
+    this.previewElement.tabIndex = 0;
+    this.previewElement.textContent = this.node.textContent || " ";
+
     this.editorMount = document.createElement("div");
     this.editorMount.className = "refinex-code-block-editor";
 
-    this.dom.append(toolbar, this.editorMount);
+    this.dom.append(toolbar, this.previewElement, this.editorMount);
 
     this.languageSelect.addEventListener("change", this.handleLanguageChange);
-
-    this.codeMirrorView = new CodeMirrorView({
-      parent: this.editorMount,
-      state: CodeMirrorState.create({
-        doc: this.node.textContent,
-        extensions: [
-          CodeMirrorState.readOnly.of(!pmView.editable),
-          CodeMirrorView.editable.of(pmView.editable),
-          CodeMirrorView.lineWrapping,
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-          this.languageCompartment.of(
-            resolveCodeBlockLanguageSupport(this.node.attrs.language as string),
-          ),
-          keymap.of(this.createKeyBindings()),
-          CodeMirrorView.updateListener.of((update) => {
-            if (!update.docChanged || this.isSyncingFromProseMirror) {
-              return;
-            }
-
-            const position = this.readPosition();
-            if (position == null) {
-              return;
-            }
-
-            const transaction = createCodeBlockContentTransaction(
-              this.pmView.state,
-              position,
-              this.node,
-              update.state.doc.toString(),
-            );
-
-            if (!transaction) {
-              return;
-            }
-
-            this.isSyncingFromCodeMirror = true;
-            this.pmView.dispatch(transaction);
-            this.isSyncingFromCodeMirror = false;
-          }),
-          codeMirrorTheme,
-        ],
-      }),
-    });
+    this.previewElement.addEventListener("mousedown", this.handlePreviewPointerDown);
+    this.previewElement.addEventListener("keydown", this.handlePreviewKeyDown);
+    this.syncPresentation();
   }
 
   update(node: ProseMirrorNode): boolean {
@@ -280,19 +249,23 @@ export class CodeBlockView implements NodeView {
       this.languageSelect.value = nextLanguage;
     }
 
-    this.codeMirrorView.dispatch({
-      effects: this.languageCompartment.reconfigure(
-        resolveCodeBlockLanguageSupport(node.attrs.language as string),
-      ),
-    });
+    this.previewElement.textContent = node.textContent || " ";
 
-    const currentText = this.codeMirrorView.state.doc.toString();
-    if (!this.isSyncingFromCodeMirror && currentText !== node.textContent) {
-      this.isSyncingFromProseMirror = true;
+    if (this.codeMirrorView) {
       this.codeMirrorView.dispatch({
-        changes: { from: 0, to: currentText.length, insert: node.textContent },
+        effects: this.languageCompartment.reconfigure(
+          resolveCodeBlockLanguageSupport(node.attrs.language as string),
+        ),
       });
-      this.isSyncingFromProseMirror = false;
+
+      const currentText = this.codeMirrorView.state.doc.toString();
+      if (!this.isSyncingFromCodeMirror && currentText !== node.textContent) {
+        this.isSyncingFromProseMirror = true;
+        this.codeMirrorView.dispatch({
+          changes: { from: 0, to: currentText.length, insert: node.textContent },
+        });
+        this.isSyncingFromProseMirror = false;
+      }
     }
 
     return true;
@@ -300,7 +273,7 @@ export class CodeBlockView implements NodeView {
 
   selectNode() {
     this.dom.classList.add("ProseMirror-selectednode");
-    this.codeMirrorView.focus();
+    this.activateCodeMirror(true);
   }
 
   deselectNode() {
@@ -317,7 +290,68 @@ export class CodeBlockView implements NodeView {
 
   destroy() {
     this.languageSelect.removeEventListener("change", this.handleLanguageChange);
-    this.codeMirrorView.destroy();
+    this.previewElement.removeEventListener("mousedown", this.handlePreviewPointerDown);
+    this.previewElement.removeEventListener("keydown", this.handlePreviewKeyDown);
+    this.codeMirrorView?.destroy();
+  }
+
+  private activateCodeMirror(shouldFocus: boolean) {
+    if (!this.codeMirrorView) {
+      this.codeMirrorView = new CodeMirrorView({
+        parent: this.editorMount,
+        state: CodeMirrorState.create({
+          doc: this.node.textContent,
+          extensions: [
+            CodeMirrorState.readOnly.of(!this.pmView.editable),
+            CodeMirrorView.editable.of(this.pmView.editable),
+            CodeMirrorView.lineWrapping,
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            this.languageCompartment.of(
+              resolveCodeBlockLanguageSupport(this.node.attrs.language as string),
+            ),
+            keymap.of(this.createKeyBindings()),
+            CodeMirrorView.updateListener.of((update) => {
+              if (!update.docChanged || this.isSyncingFromProseMirror) {
+                return;
+              }
+
+              const position = this.readPosition();
+              if (position == null) {
+                return;
+              }
+
+              const transaction = createCodeBlockContentTransaction(
+                this.pmView.state,
+                position,
+                this.node,
+                update.state.doc.toString(),
+              );
+
+              if (!transaction) {
+                return;
+              }
+
+              this.isSyncingFromCodeMirror = true;
+              this.pmView.dispatch(transaction);
+              this.isSyncingFromCodeMirror = false;
+            }),
+            codeMirrorTheme,
+          ],
+        }),
+      });
+    }
+
+    this.isActive = true;
+    this.syncPresentation();
+    if (shouldFocus) {
+      this.codeMirrorView.focus();
+    }
+  }
+
+  private syncPresentation() {
+    this.dom.classList.toggle("is-active", this.isActive);
+    this.previewElement.hidden = this.isActive;
+    this.editorMount.hidden = !this.isActive;
   }
 
   private readonly handleLanguageChange = () => {
@@ -341,6 +375,20 @@ export class CodeBlockView implements NodeView {
       }),
     );
     this.pmView.focus();
+  };
+
+  private readonly handlePreviewPointerDown = (event: MouseEvent) => {
+    event.preventDefault();
+    this.activateCodeMirror(true);
+  };
+
+  private readonly handlePreviewKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    this.activateCodeMirror(true);
   };
 
   private createKeyBindings(): KeyBinding[] {
