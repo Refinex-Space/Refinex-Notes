@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod git;
+mod github_session;
 mod search;
 mod state;
 mod watcher;
@@ -35,7 +36,11 @@ pub fn run() {
                 .to_string();
             let database = db::init_database(&app.handle())?;
 
-            app.manage(AppState::new(app.handle().clone(), github_client_id, database));
+            app.manage(AppState::new(
+                app.handle().clone(),
+                github_client_id,
+                database,
+            ));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

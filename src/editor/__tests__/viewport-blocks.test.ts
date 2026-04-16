@@ -1,12 +1,18 @@
 import { Decoration } from "prosemirror-view";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { parseMarkdown } from "../parser";
 import {
+  createViewportMeasurementCacheKey,
   estimateViewportShellMetrics,
   isViewportBlockVisible,
   isViewportSkeletonNode,
+  readViewportMeasuredHeightPx,
+  rememberViewportMeasuredHeightPx,
+  resolveViewportShellMinHeightPx,
+  scheduleViewportScrollSettle,
   summarizeViewportText,
+  VIEWPORT_SCROLL_SETTLE_DELAY_MS,
 } from "../plugins/viewport-blocks";
 import { describeViewportTextBlockShell } from "../node-views/ViewportTextBlockView";
 
@@ -93,5 +99,46 @@ describe("viewport blocks helpers", () => {
     expect(paragraphShell.text).toContain("Paragraph");
     expect(taskShell.nodeType).toBe("task_list_item");
     expect(taskShell.text.startsWith("[x]")).toBe(true);
+  });
+
+  it("debounces viewport measurement until scrolling settles", () => {
+    vi.useFakeTimers();
+
+    try {
+      const callback = vi.fn();
+
+      let handle = scheduleViewportScrollSettle(null, callback);
+      vi.advanceTimersByTime(VIEWPORT_SCROLL_SETTLE_DELAY_MS - 1);
+      expect(callback).not.toHaveBeenCalled();
+
+      handle = scheduleViewportScrollSettle(handle, callback);
+      vi.advanceTimersByTime(VIEWPORT_SCROLL_SETTLE_DELAY_MS - 1);
+      expect(callback).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("prefers cached measured height over estimated shell height", () => {
+    const doc = parseMarkdown("Paragraph with enough content to produce a shell estimate.");
+    const paragraph = doc.firstChild;
+
+    if (!paragraph) {
+      throw new Error("expected paragraph");
+    }
+
+    const cacheKey = createViewportMeasurementCacheKey(
+      "/tmp/blog.md",
+      () => 4,
+      paragraph,
+    );
+    rememberViewportMeasuredHeightPx(cacheKey, 148.5);
+
+    expect(readViewportMeasuredHeightPx(cacheKey)).toBe(148.5);
+    expect(resolveViewportShellMinHeightPx(paragraph, 148.5, 16)).toBe(148.5);
+    expect(resolveViewportShellMinHeightPx(paragraph, null, 16)).toBeGreaterThan(0);
   });
 });

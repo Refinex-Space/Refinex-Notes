@@ -189,7 +189,7 @@ export function AppLayout({
         className="grid min-h-0 flex-1 overflow-hidden"
         style={{ gridTemplateColumns }}
       >
-        <div className="h-full min-h-0 overflow-hidden">
+        <div className="h-full min-h-0 min-w-0 overflow-hidden">
           <Collapsible open={!sidebarCollapsed}>
             <CollapsibleContent
               forceMount
@@ -216,7 +216,7 @@ export function AppLayout({
           </Collapsible>
         </div>
 
-        <section className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-bg">
+        <section className="relative grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] bg-bg">
           {!sidebarCollapsed ? (
             <div
               className="absolute inset-y-0 left-0 z-10 w-[10px] -translate-x-1/2 cursor-col-resize"
@@ -236,10 +236,10 @@ export function AppLayout({
           ) : null}
 
           <div className="px-2.5 py-1.5">{tabBar}</div>
-          <div className="h-full min-h-0 overflow-hidden">{editor}</div>
+          <div className="h-full min-h-0 min-w-0 overflow-hidden">{editor}</div>
         </section>
 
-        <div className="h-full min-h-0 overflow-hidden">
+        <div className="h-full min-h-0 min-w-0 overflow-hidden">
           <Collapsible open={!rightPanelCollapsed}>
             <CollapsibleContent
               forceMount

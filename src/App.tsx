@@ -742,11 +742,11 @@ function WorkspaceShell({
         tabBar={<TabBar />}
         editor={
           editorDocument ? (
-            <div className="relative h-full min-h-0 bg-bg">
+            <div className="relative h-full min-h-0 min-w-0 bg-bg">
               <div
                 ref={editorScrollRef}
                 data-refinex-editor-scroll="true"
-                className="h-full overflow-auto"
+                className="h-full min-w-0 overflow-auto"
               >
                 {!isActiveEditorHydrated && currentDocument ? (
                   <InstantDocumentPreview
@@ -778,14 +778,14 @@ function WorkspaceShell({
                       key={document.path}
                       className={
                         isVisible && isActiveEditorHydrated
-                          ? "block min-h-full"
-                          : "hidden min-h-full"
+                          ? "block min-h-full min-w-0"
+                          : "hidden min-h-full min-w-0"
                       }
                     >
                       <RefinexEditor
                         documentPath={document.path}
                         value={document.content}
-                        className="min-h-full px-6 py-5"
+                        className="min-h-full min-w-0 px-6 py-5"
                         readOnly={isLoadingShell}
                         onChange={(markdown) => {
                           updateFileContent(document.path, markdown);

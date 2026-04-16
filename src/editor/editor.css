@@ -236,36 +236,16 @@
 }
 
 .refinex-viewport-block-shell {
-  min-height: 2.4rem;
-  padding: 0.5rem 0;
+  display: block;
   color: #475569;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .refinex-viewport-block-shell.is-heading {
   font-weight: 700;
   color: #0f172a;
-}
-
-.refinex-viewport-block-shell.is-heading[data-heading-level="1"] {
-  font-size: 1.55rem;
-}
-
-.refinex-viewport-block-shell.is-heading[data-heading-level="2"] {
-  font-size: 1.3rem;
-}
-
-.refinex-viewport-block-shell.is-blockquote {
-  padding-left: 1rem;
-  border-left: 3px solid rgba(148, 163, 184, 0.35);
-  font-style: italic;
-}
-
-.refinex-viewport-block-shell.is-list_item,
-.refinex-viewport-block-shell.is-task_list_item {
-  padding-left: 1.25rem;
 }
 
 .refinex-viewport-block-live {

@@ -498,20 +498,20 @@ export function RefinexEditor({
         return handleImageFileDrop(view, event);
       },
       nodeViews: {
-        paragraph: (node, _view, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
-        heading: (node, _view, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
-        blockquote: (node, _view, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
+        paragraph: (node, _view, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
+        heading: (node, _view, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
+        blockquote: (node, _view, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
         bullet_list: (node, _view, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
         ordered_list: (node, _view, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
-        list_item: (node, _view, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
-        task_list_item: (node, _view, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
+        list_item: (node, _view, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
+        task_list_item: (node, _view, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
         table: (node, _view, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
         table_row: (node, _view, _getPos, decorations) =>
@@ -577,20 +577,20 @@ export function RefinexEditor({
         return handleImageFileDrop(innerView, event);
       },
       nodeViews: {
-        paragraph: (node, _innerView, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
-        heading: (node, _innerView, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
-        blockquote: (node, _innerView, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
+        paragraph: (node, _innerView, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
+        heading: (node, _innerView, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
+        blockquote: (node, _innerView, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
         bullet_list: (node, _innerView, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
         ordered_list: (node, _innerView, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
-        list_item: (node, _innerView, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
-        task_list_item: (node, _innerView, _getPos, decorations) =>
-          new ViewportTextBlockView(node, decorations),
+        list_item: (node, _innerView, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
+        task_list_item: (node, _innerView, getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations, getPos, documentPath),
         table: (node, _innerView, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
         table_row: (node, _innerView, _getPos, decorations) =>
@@ -694,7 +694,10 @@ export function RefinexEditor({
   }, [documentPath, value]);
 
   return (
-    <div className={className} data-refinex-editor-shell>
+    <div
+      className={["min-w-0", className].filter(Boolean).join(" ")}
+      data-refinex-editor-shell
+    >
       <div ref={mountRef} data-refinex-editor />
       <FloatingToolbar
         view={editorView}

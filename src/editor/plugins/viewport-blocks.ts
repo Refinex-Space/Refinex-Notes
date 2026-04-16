@@ -6,9 +6,11 @@ export const refinexViewportBlocksKey = new PluginKey<readonly number[]>(
   "refinexViewportBlocks",
 );
 
+const VIEWPORT_HEIGHT_CACHE_LIMIT = 1200;
 const VIEWPORT_ROOT_SELECTOR = "[data-refinex-editor-scroll='true']";
 const VIEWPORT_BLOCK_MARGIN_PX = 360;
 const VIEWPORT_HOTZONE_RADIUS = 6;
+export const VIEWPORT_SCROLL_SETTLE_DELAY_MS = 140;
 const VIEWPORT_BLOCK_TYPES = new Set([
   "paragraph",
   "heading",
@@ -29,6 +31,20 @@ function scheduleFrame(callback: () => void) {
 
 function cancelFrame(frame: number) {
   window.cancelAnimationFrame(frame);
+}
+
+type ViewportScrollSettleHandle = ReturnType<typeof globalThis.setTimeout>;
+const viewportMeasuredHeightCache = new Map<string, number>();
+
+export function scheduleViewportScrollSettle(
+  previousHandle: ViewportScrollSettleHandle | null,
+  callback: () => void,
+) {
+  if (previousHandle) {
+    globalThis.clearTimeout(previousHandle);
+  }
+
+  return globalThis.setTimeout(callback, VIEWPORT_SCROLL_SETTLE_DELAY_MS);
 }
 
 export function isViewportSkeletonNode(node: Pick<ProseMirrorNode, "type">) {
@@ -91,6 +107,69 @@ export function estimateViewportShellMetrics(
         minHeightRem: Math.max(2.2, 1.15 + estimatedLines * 0.95),
       };
   }
+}
+
+function rememberViewportMeasuredHeightCacheEntry(cacheKey: string, heightPx: number) {
+  if (viewportMeasuredHeightCache.has(cacheKey)) {
+    viewportMeasuredHeightCache.delete(cacheKey);
+  }
+  viewportMeasuredHeightCache.set(cacheKey, heightPx);
+
+  while (viewportMeasuredHeightCache.size > VIEWPORT_HEIGHT_CACHE_LIMIT) {
+    const oldestKey = viewportMeasuredHeightCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    viewportMeasuredHeightCache.delete(oldestKey);
+  }
+}
+
+export function createViewportMeasurementCacheKey(
+  documentPath: string | undefined,
+  getPos: (() => number | undefined) | undefined,
+  node: Pick<ProseMirrorNode, "type">,
+) {
+  if (!documentPath || !getPos) {
+    return null;
+  }
+
+  const position = getPos();
+  if (typeof position !== "number") {
+    return null;
+  }
+
+  return `${documentPath}\u0000${position}\u0000${node.type.name}`;
+}
+
+export function readViewportMeasuredHeightPx(cacheKey: string | null) {
+  if (!cacheKey) {
+    return null;
+  }
+
+  return viewportMeasuredHeightCache.get(cacheKey) ?? null;
+}
+
+export function rememberViewportMeasuredHeightPx(
+  cacheKey: string | null,
+  heightPx: number,
+) {
+  if (!cacheKey || !Number.isFinite(heightPx) || heightPx <= 0) {
+    return;
+  }
+
+  rememberViewportMeasuredHeightCacheEntry(
+    cacheKey,
+    Number(heightPx.toFixed(2)),
+  );
+}
+
+export function resolveViewportShellMinHeightPx(
+  node: Pick<ProseMirrorNode, "type" | "textContent" | "childCount">,
+  cachedHeightPx: number | null,
+  rootFontSizePx = 16,
+) {
+  const estimatedPx = estimateViewportShellMetrics(node).minHeightRem * rootFontSizePx;
+  return Math.max(cachedHeightPx ?? 0, estimatedPx);
 }
 
 export function isViewportBlockVisible(decorations: readonly Decoration[]) {
@@ -223,17 +302,19 @@ class ViewportBlocksPluginView {
 
   private frame = 0;
 
+  private scrollSettleHandle: ViewportScrollSettleHandle | null = null;
+
+  private isScrollSettling = false;
+
   constructor(private readonly view: EditorView) {
-    this.scrollContainer = this.resolveScrollContainer();
-    this.scrollContainer?.addEventListener("scroll", this.scheduleMeasure, {
-      passive: true,
-    });
+    this.scrollContainer = null;
+    this.bindScrollContainer(this.resolveScrollContainer());
     window.addEventListener("resize", this.scheduleMeasure);
     this.scheduleMeasure();
   }
 
   update(view: EditorView) {
-    this.scrollContainer = this.resolveScrollContainer();
+    this.bindScrollContainer(this.resolveScrollContainer());
     this.scheduleMeasure();
   }
 
@@ -241,7 +322,11 @@ class ViewportBlocksPluginView {
     if (this.frame !== 0) {
       cancelFrame(this.frame);
     }
-    this.scrollContainer?.removeEventListener("scroll", this.scheduleMeasure);
+    if (this.scrollSettleHandle) {
+      globalThis.clearTimeout(this.scrollSettleHandle);
+      this.scrollSettleHandle = null;
+    }
+    this.bindScrollContainer(null);
     window.removeEventListener("resize", this.scheduleMeasure);
   }
 
@@ -249,13 +334,51 @@ class ViewportBlocksPluginView {
     return this.view.dom.closest(VIEWPORT_ROOT_SELECTOR) as HTMLElement | null;
   }
 
+  private bindScrollContainer(nextContainer: HTMLElement | null) {
+    if (this.scrollContainer === nextContainer) {
+      return;
+    }
+
+    this.scrollContainer?.removeEventListener("scroll", this.handleScroll);
+    this.scrollContainer = nextContainer;
+    this.scrollContainer?.addEventListener("scroll", this.handleScroll, {
+      passive: true,
+    });
+  }
+
+  private readonly handleScroll = () => {
+    this.isScrollSettling = true;
+
+    if (this.frame !== 0) {
+      cancelFrame(this.frame);
+      this.frame = 0;
+    }
+
+    this.scrollSettleHandle = scheduleViewportScrollSettle(
+      this.scrollSettleHandle,
+      () => {
+        this.scrollSettleHandle = null;
+        this.isScrollSettling = false;
+        this.scheduleMeasure();
+      },
+    );
+  };
+
   private readonly scheduleMeasure = () => {
+    if (this.isScrollSettling) {
+      return;
+    }
+
     if (this.frame !== 0) {
       return;
     }
 
     this.frame = scheduleFrame(() => {
       this.frame = 0;
+      if (this.isScrollSettling) {
+        return;
+      }
+
       const nextPositions = collectVisibleViewportBlockPositions(
         this.view,
         this.scrollContainer,

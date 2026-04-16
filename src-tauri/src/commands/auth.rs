@@ -2,10 +2,12 @@ use std::process::Command;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use keyring::{Entry, Error as KeyringError};
 use serde::{Deserialize, Serialize};
 use tauri::{ipc::Channel, State};
 
+use crate::github_session::{
+    delete_stored_session, load_stored_session, store_session, StoredGithubSession,
+};
 use crate::state::AppState;
 
 const GITHUB_DEVICE_CODE_URL: &str = "https://github.com/login/device/code";
@@ -14,9 +16,6 @@ const GITHUB_USER_URL: &str = "https://api.github.com/user";
 const GITHUB_API_ACCEPT: &str = "application/vnd.github+json";
 const GITHUB_BROWSER_URL_PREFIX: &str = "https://github.com/";
 const DEFAULT_POLL_INTERVAL_SECONDS: u64 = 5;
-const ACCESS_TOKEN_REFRESH_SKEW_SECONDS: u64 = 60;
-const KEYRING_SERVICE: &str = "refinex-notes";
-const KEYRING_ACCOUNT: &str = "github-token";
 const USER_AGENT: &str = "Refinex-Notes";
 
 #[derive(Debug, Clone, Serialize)]
@@ -75,15 +74,6 @@ struct AccessTokenApiResponse {
     interval: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-struct StoredGithubSession {
-    access_token: String,
-    refresh_token: Option<String>,
-    access_token_expires_at: Option<u64>,
-    refresh_token_expires_at: Option<u64>,
-    token_type: Option<String>,
-}
-
 impl StoredGithubSession {
     fn from_token_payload(payload: &AccessTokenApiResponse, now: u64) -> Result<Self, String> {
         let access_token = payload
@@ -95,24 +85,14 @@ impl StoredGithubSession {
         Ok(Self {
             access_token,
             refresh_token: payload.refresh_token.clone(),
-            access_token_expires_at: payload.expires_in.map(|seconds| now.saturating_add(seconds)),
+            access_token_expires_at: payload
+                .expires_in
+                .map(|seconds| now.saturating_add(seconds)),
             refresh_token_expires_at: payload
                 .refresh_token_expires_in
                 .map(|seconds| now.saturating_add(seconds)),
             token_type: payload.token_type.clone(),
         })
-    }
-
-    fn should_refresh_access_token(&self, now: u64) -> bool {
-        self.access_token_expires_at
-            .is_some_and(|expires_at| expires_at <= now.saturating_add(ACCESS_TOKEN_REFRESH_SKEW_SECONDS))
-    }
-
-    fn can_refresh(&self, now: u64) -> bool {
-        self.refresh_token.is_some()
-            && self
-                .refresh_token_expires_at
-                .is_none_or(|expires_at| expires_at > now)
     }
 }
 
@@ -298,10 +278,7 @@ pub async fn check_auth_status(state: State<'_, AppState>) -> Result<Option<User
 #[tauri::command]
 pub fn github_logout(state: State<'_, AppState>) -> Result<(), String> {
     clear_pending_device_code(&state)?;
-    match delete_stored_session() {
-        Ok(()) | Err(KeyringMessage::NoEntry) => Ok(()),
-        Err(KeyringMessage::Other(message)) => Err(message),
-    }
+    delete_stored_session()
 }
 
 #[tauri::command]
@@ -369,7 +346,9 @@ async fn fetch_user_profile(
         .bearer_auth(token)
         .send()
         .await
-        .map_err(|error| UserProfileFetchError::Other(format!("读取 GitHub 用户信息失败: {error}")))?;
+        .map_err(|error| {
+            UserProfileFetchError::Other(format!("读取 GitHub 用户信息失败: {error}"))
+        })?;
 
     if response.status() == reqwest::StatusCode::UNAUTHORIZED {
         return Err(UserProfileFetchError::Unauthorized);
@@ -438,53 +417,6 @@ async fn refresh_user_access_token(
         )),
         None => Err("GitHub 未返回新的 user access token".to_string()),
     }
-}
-
-fn keyring_entry() -> Result<Entry, String> {
-    Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
-        .map_err(|error| format!("初始化系统钥匙串条目失败: {error}"))
-}
-
-fn load_stored_session() -> Result<Option<StoredGithubSession>, String> {
-    let entry = keyring_entry()?;
-    let raw_value = match entry.get_password().map_err(keyring_error_to_string) {
-        Ok(value) => value,
-        Err(KeyringMessage::NoEntry) => return Ok(None),
-        Err(KeyringMessage::Other(message)) => return Err(message),
-    };
-
-    parse_stored_session(&raw_value).map(Some)
-}
-
-fn parse_stored_session(raw_value: &str) -> Result<StoredGithubSession, String> {
-    serde_json::from_str::<StoredGithubSession>(raw_value).or_else(|_| {
-        if raw_value.trim().is_empty() {
-            Err("系统钥匙串中的 GitHub 会话为空".to_string())
-        } else {
-            Ok(StoredGithubSession {
-                access_token: raw_value.to_string(),
-                refresh_token: None,
-                access_token_expires_at: None,
-                refresh_token_expires_at: None,
-                token_type: Some("bearer".to_string()),
-            })
-        }
-    })
-}
-
-fn store_session(session: &StoredGithubSession) -> Result<(), String> {
-    let raw_value = serde_json::to_string(session)
-        .map_err(|error| format!("序列化 GitHub 会话失败: {error}"))?;
-    keyring_entry()?
-        .set_password(&raw_value)
-        .map_err(|error| format!("写入系统钥匙串失败: {error}"))
-}
-
-fn delete_stored_session() -> Result<(), KeyringMessage> {
-    keyring_entry()
-        .map_err(KeyringMessage::Other)?
-        .delete_credential()
-        .map_err(keyring_error_to_string)
 }
 
 fn unix_timestamp_now() -> Result<u64, String> {
@@ -559,25 +491,13 @@ fn open_url_in_system_browser(url: &str) -> Result<(), String> {
         .map_err(|error| format!("打开系统浏览器失败: {error}"))
 }
 
-enum KeyringMessage {
-    NoEntry,
-    Other(String),
-}
-
-fn keyring_error_to_string(error: KeyringError) -> KeyringMessage {
-    match error {
-        KeyringError::NoEntry => KeyringMessage::NoEntry,
-        other => KeyringMessage::Other(format!("访问系统钥匙串失败: {other}")),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         describe_device_flow_error, describe_refresh_error, is_allowed_browser_url,
-        looks_like_github_client_secret, next_poll_interval, parse_stored_session,
-        StoredGithubSession, ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
+        looks_like_github_client_secret, next_poll_interval, StoredGithubSession,
     };
+    use crate::github_session::ACCESS_TOKEN_REFRESH_SKEW_SECONDS;
 
     #[test]
     fn next_poll_interval_prefers_github_suggestion() {
@@ -623,29 +543,6 @@ mod tests {
         assert!(!is_allowed_browser_url("http://github.com/login/device"));
         assert!(!is_allowed_browser_url("https://example.com/login/device"));
     }
-
-    #[test]
-    fn parse_stored_session_accepts_structured_json() {
-        let session = StoredGithubSession {
-            access_token: "ghu_access".to_string(),
-            refresh_token: Some("ghr_refresh".to_string()),
-            access_token_expires_at: Some(120),
-            refresh_token_expires_at: Some(240),
-            token_type: Some("bearer".to_string()),
-        };
-        let raw_value = serde_json::to_string(&session).expect("session json");
-
-        assert_eq!(parse_stored_session(&raw_value).expect("parsed session"), session);
-    }
-
-    #[test]
-    fn parse_stored_session_accepts_legacy_plain_token() {
-        let session = parse_stored_session("gho_legacy_token").expect("legacy session");
-
-        assert_eq!(session.access_token, "gho_legacy_token");
-        assert_eq!(session.refresh_token, None);
-    }
-
     #[test]
     fn stored_session_refresh_window_obeys_skew() {
         let session = StoredGithubSession {
