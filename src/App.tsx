@@ -57,6 +57,10 @@ import { useGitStore } from "./stores/gitStore";
 import { useNoteStore } from "./stores/noteStore";
 import type { OutlineHeading } from "./types";
 import type { SearchResult } from "./types/search";
+import {
+  logDocumentPerfStep,
+  setDocumentPerfSourceHint,
+} from "./utils/documentPerf";
 
 const sidebarActionButtonClassName = [
   "inline-flex h-9 w-9 items-center justify-center",
@@ -327,6 +331,28 @@ function WorkspaceShell({
   }, [currentFile, setActiveTab]);
 
   useEffect(() => {
+    if (!currentFile) {
+      return;
+    }
+
+    if (isCurrentFileOpening) {
+      logDocumentPerfStep("app.currentFile.loading", {
+        path: currentFile,
+        openingFiles: openingFiles.length,
+      });
+      return;
+    }
+
+    if (currentDocument) {
+      logDocumentPerfStep("app.currentDocument.ready", {
+        path: currentDocument.path,
+        contentLength: currentDocument.content.length,
+        openFiles: useNoteStore.getState().openFiles.length,
+      });
+    }
+  }, [currentDocument, currentFile, isCurrentFileOpening, openingFiles.length]);
+
+  useEffect(() => {
     if (
       !pendingSearchJump ||
       !currentDocument ||
@@ -495,6 +521,7 @@ function WorkspaceShell({
   };
 
   const handleSelectSearchResult = (result: SearchResult, query: string) => {
+    setDocumentPerfSourceHint(result.path, "search-result");
     void openFile(result.path).then(() => {
       setPendingSearchJump({ path: result.path, query });
     });

@@ -2,9 +2,14 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import type { FileNode, RecentWorkspace } from "../types/notes";
+import { logDocumentPerfStep } from "../utils/documentPerf";
 
 export interface FilesChangedPayload {
   paths: string[];
+}
+
+interface ReadFilePerfContext {
+  requestId?: string;
 }
 
 async function chooseWorkspaceDirectory() {
@@ -52,8 +57,35 @@ export const fileService = {
     return invoke<FileNode[]>("read_file_tree", { path });
   },
 
-  async readFile(path: string) {
-    return invoke<string>("read_file", { path });
+  async readFile(path: string, context?: ReadFilePerfContext) {
+    const startedAt = globalThis.performance?.now() ?? Date.now();
+    logDocumentPerfStep("fileService.readFile.start", {
+      path,
+      requestId: context?.requestId,
+    });
+
+    try {
+      const content = await invoke<string>("read_file", { path });
+      logDocumentPerfStep("fileService.readFile.end", {
+        path,
+        requestId: context?.requestId,
+        durationMs: Number(
+          ((globalThis.performance?.now() ?? Date.now()) - startedAt).toFixed(2),
+        ),
+        contentLength: content.length,
+      });
+      return content;
+    } catch (error) {
+      logDocumentPerfStep("fileService.readFile.error", {
+        path,
+        requestId: context?.requestId,
+        durationMs: Number(
+          ((globalThis.performance?.now() ?? Date.now()) - startedAt).toFixed(2),
+        ),
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
   },
 
   async writeFile(path: string, content: string) {

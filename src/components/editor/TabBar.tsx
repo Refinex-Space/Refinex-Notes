@@ -4,6 +4,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { useEditorStore } from "../../stores/editorStore";
 import { useNoteStore } from "../../stores/noteStore";
+import { setDocumentPerfSourceHint } from "../../utils/documentPerf";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -395,6 +396,7 @@ export function TabBar() {
     <Tabs
       value={activeValue}
       onValueChange={(path) => {
+        setDocumentPerfSourceHint(path, "tab-bar");
         void openFile(path);
         setActiveTab(path);
       }}

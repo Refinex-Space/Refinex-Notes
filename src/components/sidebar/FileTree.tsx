@@ -13,6 +13,7 @@ import {
 
 import { useNoteStore } from "../../stores/noteStore";
 import type { FileNode } from "../../types/notes";
+import { setDocumentPerfSourceHint } from "../../utils/documentPerf";
 import {
   Accordion,
   AccordionContent,
@@ -189,6 +190,7 @@ function FileRow({
         if (!isMarkdownPath(node.path)) {
           return;
         }
+        setDocumentPerfSourceHint(node.path, "file-tree");
         void openFile(node.path);
       }}
       title={node.path}

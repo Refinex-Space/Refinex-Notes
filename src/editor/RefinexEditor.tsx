@@ -30,6 +30,10 @@ import {
   getSelectionAnchorRect,
   handleImageFileDrop,
 } from "./rich-ui";
+import {
+  finishDocumentPerfTrace,
+  logDocumentPerfStep,
+} from "../utils/documentPerf";
 import "./editor.css";
 
 export interface EditorCursorPosition {
@@ -499,6 +503,7 @@ export function RefinexEditor({
     const view = viewRef.current;
     if (!view) return;
 
+    const syncStartedAt = globalThis.performance?.now() ?? Date.now();
     const needsExternalSync = shouldSyncExternalValue(
       lastAppliedDocumentPathRef.current,
       lastAppliedValueRef.current,
@@ -509,15 +514,25 @@ export function RefinexEditor({
       return;
     }
 
-    if (
-      shouldFlushBeforeExternalSync(
-        pendingMarkdownRef.current,
-        lastAppliedDocumentPathRef.current,
-        lastAppliedValueRef.current,
-        documentPath,
-        value,
-      )
-    ) {
+    const shouldFlush = shouldFlushBeforeExternalSync(
+      pendingMarkdownRef.current,
+      lastAppliedDocumentPathRef.current,
+      lastAppliedValueRef.current,
+      documentPath,
+      value,
+    );
+    const stateCacheKey = getDocumentCacheKey(documentPath, value);
+    const editorStateCacheHit = editorStateCacheRef.current.has(stateCacheKey);
+    logDocumentPerfStep("editor.externalSync.start", {
+      path: documentPath ?? "__anonymous__",
+      previousDocumentPath: lastAppliedDocumentPathRef.current,
+      shouldFlush,
+      pendingMarkdown: pendingMarkdownRef.current,
+      editorStateCacheHit,
+      valueLength: value.length,
+    });
+
+    if (shouldFlush) {
       flushPendingMarkdown(view.state);
     }
 
@@ -548,6 +563,13 @@ export function RefinexEditor({
     setLinkPopoverRequest(null);
     setSlashMenuRequest(null);
     reportCursorPositionSafely(newState, onCursorChangeRef.current);
+    finishDocumentPerfTrace(documentPath ?? "__anonymous__", "editor.externalSync.end", {
+      durationMs: Number(
+        ((globalThis.performance?.now() ?? Date.now()) - syncStartedAt).toFixed(2),
+      ),
+      editorStateCacheHit,
+      valueLength: value.length,
+    });
   }, [documentPath, value]);
 
   return (

@@ -8,6 +8,14 @@ import type {
   NoteStore,
   RecentWorkspace,
 } from "../types/notes";
+import {
+  beginDocumentPerfTrace,
+  consumeDocumentPerfSourceHint,
+  createDocumentPerfRequestId,
+  finishDocumentPerfTrace,
+  logDocumentPerfStep,
+  peekDocumentPerfTrace,
+} from "../utils/documentPerf";
 import { useEditorStore } from "./editorStore";
 
 type StoreState = Pick<
@@ -346,14 +354,22 @@ function getPendingDocumentReadKey(workspacePath: string, path: string) {
   return `${workspacePath}\u0000${path}`;
 }
 
-function readDocumentOnce(workspacePath: string, path: string) {
+function hasPendingDocumentRead(workspacePath: string, path: string) {
+  return pendingDocumentReads.has(getPendingDocumentReadKey(workspacePath, path));
+}
+
+function readDocumentOnce(
+  workspacePath: string,
+  path: string,
+  requestId?: string,
+) {
   const key = getPendingDocumentReadKey(workspacePath, path);
   const pendingRead = pendingDocumentReads.get(key);
   if (pendingRead) {
     return pendingRead;
   }
 
-  const nextRead = fileService.readFile(path).finally(() => {
+  const nextRead = fileService.readFile(path, { requestId }).finally(() => {
     pendingDocumentReads.delete(key);
   });
   pendingDocumentReads.set(key, nextRead);
@@ -561,6 +577,19 @@ export const useNoteStore = create<NoteStore>()(
     },
     openFile: async (path) => {
       const { documents, workspacePath } = get();
+      const requestId = createDocumentPerfRequestId();
+      const source = consumeDocumentPerfSourceHint(path) ?? "unknown";
+      const trace =
+        peekDocumentPerfTrace(path) ?? beginDocumentPerfTrace(path, source);
+      logDocumentPerfStep("noteStore.openFile.start", {
+        path,
+        trace,
+        requestId,
+        workspacePath,
+        source,
+        hasCachedDocument: Boolean(documents[path]),
+      });
+
       if (workspacePath) {
         if (documents[path]) {
           set((state) => {
@@ -569,18 +598,32 @@ export const useNoteStore = create<NoteStore>()(
             state.recentFiles = withRecentFile(state.recentFiles, path);
             state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
           });
+          logDocumentPerfStep("noteStore.openFile.cacheHit", {
+            path,
+            trace,
+            requestId,
+            openFiles: get().openFiles.length,
+          });
           return;
         }
 
+        const reusingPendingRead = hasPendingDocumentRead(workspacePath, path);
         set((state) => {
           state.currentFile = path;
           state.openFiles = ensureUniquePaths([...state.openFiles, path]);
           state.recentFiles = withRecentFile(state.recentFiles, path);
           state.openingFiles = ensureUniquePaths([...state.openingFiles, path]);
         });
+        logDocumentPerfStep("noteStore.openFile.queued", {
+          path,
+          trace,
+          requestId,
+          pendingReuse: reusingPendingRead,
+          openingFiles: get().openingFiles.length,
+        });
 
         try {
-          const content = await readDocumentOnce(workspacePath, path);
+          const content = await readDocumentOnce(workspacePath, path, requestId);
           set((state) => {
             state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
             if (state.workspacePath !== workspacePath) {
@@ -588,6 +631,13 @@ export const useNoteStore = create<NoteStore>()(
             }
 
             state.documents[path] = createDocumentFromDisk(path, content);
+          });
+          logDocumentPerfStep("noteStore.openFile.contentReady", {
+            path,
+            trace,
+            requestId,
+            contentLength: content.length,
+            openingFiles: get().openingFiles.length,
           });
           useEditorStore.getState().markClean(path);
         } catch (error) {
@@ -605,6 +655,10 @@ export const useNoteStore = create<NoteStore>()(
                 state.openFiles[state.openFiles.length - 1] ?? null;
             }
           });
+          finishDocumentPerfTrace(path, "noteStore.openFile.error", {
+            requestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
           throw error;
         }
         return;
@@ -618,6 +672,12 @@ export const useNoteStore = create<NoteStore>()(
         state.openFiles = ensureUniquePaths([...state.openFiles, path]);
         state.recentFiles = withRecentFile(state.recentFiles, path);
         state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
+      });
+      logDocumentPerfStep("noteStore.openFile.localCacheHit", {
+        path,
+        trace,
+        requestId,
+        openFiles: get().openFiles.length,
       });
     },
     closeFile: async (path) => {
