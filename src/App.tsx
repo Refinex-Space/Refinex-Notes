@@ -72,40 +72,6 @@ const sidebarActionButtonClassName = [
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
 ].join(" ");
 
-function requestIdleWork(callback: () => void) {
-  if ("requestIdleCallback" in window) {
-    return {
-      kind: "idle" as const,
-      id: window.requestIdleCallback(callback, { timeout: 120 }),
-    };
-  }
-
-  return {
-    kind: "timeout" as const,
-    id: globalThis.setTimeout(callback, 0),
-  };
-}
-
-type IdleWorkHandle = {
-  kind: "idle" | "timeout";
-  id: number | ReturnType<typeof globalThis.setTimeout>;
-};
-
-function cancelIdleWork(
-  handle: IdleWorkHandle | null,
-) {
-  if (!handle) {
-    return;
-  }
-
-  if (handle.kind === "idle" && "cancelIdleCallback" in window) {
-    window.cancelIdleCallback(handle.id as number);
-    return;
-  }
-
-  globalThis.clearTimeout(handle.id);
-}
-
 function SidebarContent({
   onSelectSearchResult,
   workspacePath,
@@ -429,28 +395,6 @@ function WorkspaceShell({
       setRenderedDocument(null);
     }
   }, [currentDocument, currentFile]);
-
-  useEffect(() => {
-    if (!currentDocument || hydratedEditorPaths.has(currentDocument.path)) {
-      return;
-    }
-
-    const handle = requestIdleWork(() => {
-      setHydratedEditorPaths((previous) => {
-        if (previous.has(currentDocument.path)) {
-          return previous;
-        }
-
-        const next = new Set(previous);
-        next.add(currentDocument.path);
-        return next;
-      });
-    });
-
-    return () => {
-      cancelIdleWork(handle);
-    };
-  }, [currentDocument, hydratedEditorPaths]);
 
   useEffect(() => {
     setActiveTab(currentFile);
