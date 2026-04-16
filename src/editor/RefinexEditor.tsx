@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { EditorState } from "prosemirror-state";
+import { EditorState, type Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import type { Node as ProseMirrorNode } from "prosemirror-model";
 import { history } from "prosemirror-history";
@@ -56,6 +56,7 @@ export interface RefinexEditorProps {
 
 const MARKDOWN_FLUSH_DELAY_MS = 120;
 const PARSED_DOCUMENT_CACHE_LIMIT = 8;
+const EDITOR_STATE_CACHE_LIMIT = 8;
 const parsedDocumentCache = new Map<string, ProseMirrorNode>();
 
 type IdleHandle = number | ReturnType<typeof globalThis.setTimeout>;
@@ -87,7 +88,7 @@ function cancelIdleFlush(handle: { kind: "idle" | "timeout"; id: IdleHandle } | 
   globalThis.clearTimeout(handle.id);
 }
 
-function getParsedDocumentCacheKey(
+export function getDocumentCacheKey(
   documentPath: string | undefined,
   value: string,
 ) {
@@ -116,7 +117,7 @@ function getParsedDocument(
   documentPath: string | undefined,
   value: string,
 ) {
-  const cacheKey = getParsedDocumentCacheKey(documentPath, value);
+  const cacheKey = getDocumentCacheKey(documentPath, value);
   const cached = parsedDocumentCache.get(cacheKey);
   if (cached) {
     parsedDocumentCache.delete(cacheKey);
@@ -127,6 +128,49 @@ function getParsedDocument(
   const doc = ensureTrailingParagraph(parseMarkdown(value));
   rememberParsedDocument(cacheKey, doc);
   return doc;
+}
+
+function rememberEditorState(
+  cache: Map<string, EditorState>,
+  documentPath: string | undefined,
+  value: string,
+  state: EditorState,
+) {
+  const cacheKey = getDocumentCacheKey(documentPath, value);
+  if (cache.has(cacheKey)) {
+    cache.delete(cacheKey);
+  }
+  cache.set(cacheKey, state);
+
+  while (cache.size > EDITOR_STATE_CACHE_LIMIT) {
+    const oldestKey = cache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    cache.delete(oldestKey);
+  }
+}
+
+function getOrCreateEditorState(
+  cache: Map<string, EditorState>,
+  documentPath: string | undefined,
+  value: string,
+  plugins: readonly Plugin[],
+) {
+  const cacheKey = getDocumentCacheKey(documentPath, value);
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    cache.delete(cacheKey);
+    cache.set(cacheKey, cached);
+    return cached;
+  }
+
+  const state = EditorState.create({
+    doc: getParsedDocument(documentPath, value),
+    plugins: [...plugins],
+  });
+  rememberEditorState(cache, documentPath, value, state);
+  return state;
 }
 
 export function shouldSyncExternalValue(
@@ -146,6 +190,24 @@ export function shouldRefreshOverlay(
   hasVisibleSelection: boolean,
 ) {
   return selectionSet || storedMarksSet || hasVisibleSelection;
+}
+
+export function shouldFlushBeforeExternalSync(
+  hasPendingMarkdown: boolean,
+  previousDocumentPath: string | undefined,
+  previousValue: string,
+  nextDocumentPath: string | undefined,
+  nextValue: string,
+) {
+  return (
+    hasPendingMarkdown &&
+    shouldSyncExternalValue(
+      previousDocumentPath,
+      previousValue,
+      nextDocumentPath,
+      nextValue,
+    )
+  );
 }
 
 function countTextblockLines(text: string) {
@@ -254,6 +316,8 @@ export function RefinexEditor({
     id: IdleHandle;
   } | null>(null);
   const pendingMarkdownRef = useRef(false);
+  const editorPluginsRef = useRef<Plugin[]>([]);
+  const editorStateCacheRef = useRef<Map<string, EditorState>>(new Map());
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
   const slashMenuChangeRef = useRef(
     (_request: SlashMenuRequest | null) => {},
@@ -301,6 +365,12 @@ export function RefinexEditor({
     const markdown = serializeMarkdownSafely(state);
     lastAppliedValueRef.current = markdown;
     lastAppliedDocumentPathRef.current = viewDocumentPathRef.current;
+    rememberEditorState(
+      editorStateCacheRef.current,
+      viewDocumentPathRef.current,
+      markdown,
+      state,
+    );
     onChangeRef.current(markdown);
   };
 
@@ -321,36 +391,39 @@ export function RefinexEditor({
     const mount = mountRef.current;
     if (!mount) return;
 
-    const doc = getParsedDocument(documentPath, value);
+    const plugins = [
+      refinexKeymap({
+        onOpenLinkPopover: (view) => openLinkPopoverRef.current(view),
+      }),
+      keymap(baseKeymap),
+      refinexInputRules(),
+      inlineSyncPlugin(refinexParser, refinexSerializer),
+      slashMenuPlugin({
+        onChange: (trigger, view) => {
+          slashMenuChangeRef.current(
+            trigger
+              ? {
+                  ...trigger,
+                  anchor: getSelectionAnchorRect(view, trigger.from, trigger.to),
+                }
+              : null,
+          );
+        },
+      }),
+      trailingNodePlugin(),
+      placeholderPlugin(),
+      history(),
+      dropCursor(),
+      gapCursor(),
+    ];
+    editorPluginsRef.current = plugins;
 
-    const state = EditorState.create({
-      doc,
-      plugins: [
-        refinexKeymap({
-          onOpenLinkPopover: (view) => openLinkPopoverRef.current(view),
-        }),
-        keymap(baseKeymap),
-        refinexInputRules(),
-        inlineSyncPlugin(refinexParser, refinexSerializer),
-        slashMenuPlugin({
-          onChange: (trigger, view) => {
-            slashMenuChangeRef.current(
-              trigger
-                ? {
-                    ...trigger,
-                    anchor: getSelectionAnchorRect(view, trigger.from, trigger.to),
-                  }
-                : null,
-            );
-          },
-        }),
-        trailingNodePlugin(),
-        placeholderPlugin(),
-        history(),
-        dropCursor(),
-        gapCursor(),
-      ],
-    });
+    const state = getOrCreateEditorState(
+      editorStateCacheRef.current,
+      documentPath,
+      value,
+      plugins,
+    );
 
     const view = new EditorView(mount, {
       state,
@@ -426,6 +499,28 @@ export function RefinexEditor({
     const view = viewRef.current;
     if (!view) return;
 
+    const needsExternalSync = shouldSyncExternalValue(
+      lastAppliedDocumentPathRef.current,
+      lastAppliedValueRef.current,
+      documentPath,
+      value,
+    );
+    if (!needsExternalSync) {
+      return;
+    }
+
+    if (
+      shouldFlushBeforeExternalSync(
+        pendingMarkdownRef.current,
+        lastAppliedDocumentPathRef.current,
+        lastAppliedValueRef.current,
+        documentPath,
+        value,
+      )
+    ) {
+      flushPendingMarkdown(view.state);
+    }
+
     if (
       !shouldSyncExternalValue(
         lastAppliedDocumentPathRef.current,
@@ -437,24 +532,14 @@ export function RefinexEditor({
       return;
     }
 
-    flushPendingMarkdown(view.state);
-
-    if (
-      !shouldSyncExternalValue(
-        lastAppliedDocumentPathRef.current,
-        lastAppliedValueRef.current,
-        documentPath,
-        value,
-      )
-    ) {
-      return;
-    }
-
-    const doc = getParsedDocument(documentPath, value);
-    const newState = EditorState.create({
-      doc,
-      plugins: view.state.plugins,
-    });
+    const newState = getOrCreateEditorState(
+      editorStateCacheRef.current,
+      documentPath,
+      value,
+      editorPluginsRef.current.length > 0
+        ? editorPluginsRef.current
+        : view.state.plugins,
+    );
     view.updateState(newState);
     viewDocumentPathRef.current = documentPath;
     lastAppliedValueRef.current = value;

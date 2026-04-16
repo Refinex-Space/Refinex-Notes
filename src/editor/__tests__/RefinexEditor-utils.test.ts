@@ -3,8 +3,10 @@ import { EditorState, TextSelection } from "prosemirror-state";
 
 import { parseMarkdown } from "../parser";
 import {
+  getDocumentCacheKey,
   getCursorPosition,
   shouldRefreshOverlay,
+  shouldFlushBeforeExternalSync,
   shouldSyncExternalValue,
 } from "../RefinexEditor";
 
@@ -57,6 +59,50 @@ Line two
         "# Updated",
       ),
     ).toBe(true);
+  });
+
+  it("flushes before external sync only when a pending markdown write exists", () => {
+    expect(
+      shouldFlushBeforeExternalSync(
+        false,
+        "Inbox/Welcome.md",
+        "# Welcome",
+        "Inbox/Guide.md",
+        "# Guide",
+      ),
+    ).toBe(false);
+
+    expect(
+      shouldFlushBeforeExternalSync(
+        true,
+        "Inbox/Welcome.md",
+        "# Welcome",
+        "Inbox/Welcome.md",
+        "# Welcome",
+      ),
+    ).toBe(false);
+
+    expect(
+      shouldFlushBeforeExternalSync(
+        true,
+        "Inbox/Welcome.md",
+        "# Welcome",
+        "Inbox/Guide.md",
+        "# Guide",
+      ),
+    ).toBe(true);
+  });
+
+  it("builds stable cache keys for document path and value pairs", () => {
+    expect(getDocumentCacheKey("Inbox/Welcome.md", "# Welcome")).toBe(
+      getDocumentCacheKey("Inbox/Welcome.md", "# Welcome"),
+    );
+    expect(getDocumentCacheKey("Inbox/Welcome.md", "# Welcome")).not.toBe(
+      getDocumentCacheKey("Inbox/Guide.md", "# Welcome"),
+    );
+    expect(getDocumentCacheKey("Inbox/Welcome.md", "# Welcome")).not.toBe(
+      getDocumentCacheKey("Inbox/Welcome.md", "# Updated"),
+    );
   });
 
   it("refreshes overlay only for selection-affecting visible states", () => {
