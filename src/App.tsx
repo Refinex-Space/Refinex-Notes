@@ -72,6 +72,8 @@ const sidebarActionButtonClassName = [
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
 ].join(" ");
 
+const AUTO_EDITOR_HYDRATION_DELAY_MS = 900;
+
 function SidebarContent({
   onSelectSearchResult,
   workspacePath,
@@ -265,10 +267,12 @@ function InstantDocumentPreview({
   path,
   markdown,
   onActivate,
+  autoHydrationDelayMs,
 }: {
   path: string;
   markdown: string;
   onActivate: () => void;
+  autoHydrationDelayMs: number;
 }) {
   return (
     <button
@@ -289,7 +293,7 @@ function InstantDocumentPreview({
         </p>
         <p className="mt-1 text-xs text-muted">{path}</p>
         <p className="mt-2 text-[12px] text-fg/80">
-          点击后进入完整编辑模式
+          正在准备编辑器，约 {Math.round(autoHydrationDelayMs / 100) / 10}s 后自动进入编辑
         </p>
       </div>
       <pre className="min-h-full whitespace-pre-wrap break-words px-6 py-5 font-[ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace] text-[13px] leading-7 text-fg">
@@ -368,6 +372,7 @@ function WorkspaceShell({
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
   const editorViewRegistryRef = useRef<Record<string, EditorView | null>>({});
   const pendingFocusEditorPathRef = useRef<string | null>(null);
+  const pendingHydrationTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
   const isCurrentFileOpening = Boolean(
@@ -408,6 +413,42 @@ function WorkspaceShell({
 
     editorViewRef.current = editorViewRegistryRef.current[activeEditorPath] ?? null;
   }, [activeEditorPath]);
+
+  useEffect(() => {
+    if (pendingHydrationTimerRef.current) {
+      globalThis.clearTimeout(pendingHydrationTimerRef.current);
+      pendingHydrationTimerRef.current = null;
+    }
+
+    if (
+      !currentDocument ||
+      isCurrentFileOpening ||
+      hydratedEditorPaths.has(currentDocument.path)
+    ) {
+      return;
+    }
+
+    const targetPath = currentDocument.path;
+    pendingHydrationTimerRef.current = globalThis.setTimeout(() => {
+      setHydratedEditorPaths((previous) => {
+        if (previous.has(targetPath)) {
+          return previous;
+        }
+
+        const next = new Set(previous);
+        next.add(targetPath);
+        return next;
+      });
+      pendingHydrationTimerRef.current = null;
+    }, AUTO_EDITOR_HYDRATION_DELAY_MS);
+
+    return () => {
+      if (pendingHydrationTimerRef.current) {
+        globalThis.clearTimeout(pendingHydrationTimerRef.current);
+        pendingHydrationTimerRef.current = null;
+      }
+    };
+  }, [currentDocument, hydratedEditorPaths, isCurrentFileOpening]);
 
   useEffect(() => {
     if (!currentFile) {
@@ -671,7 +712,12 @@ function WorkspaceShell({
                   <InstantDocumentPreview
                     path={currentDocument.path}
                     markdown={currentDocument.content}
+                    autoHydrationDelayMs={AUTO_EDITOR_HYDRATION_DELAY_MS}
                     onActivate={() => {
+                      if (pendingHydrationTimerRef.current) {
+                        globalThis.clearTimeout(pendingHydrationTimerRef.current);
+                        pendingHydrationTimerRef.current = null;
+                      }
                       pendingFocusEditorPathRef.current = currentDocument.path;
                       setHydratedEditorPaths((previous) => {
                         if (previous.has(currentDocument.path)) {
