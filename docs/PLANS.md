@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Editor Warmup Loading Polish](exec-plans/active/2026-04-16-editor-warmup-loading-polish.md) — started 2026-04-16
+
 
 ## Completed Plans
 
