@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Instant Preview Editor Hydration](exec-plans/active/2026-04-16-instant-preview-editor-hydration.md) — started 2026-04-16
+
 
 ## Completed Plans
 
