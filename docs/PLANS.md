@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Viewport Table Rows](exec-plans/active/2026-04-16-viewport-table-rows.md) — started 2026-04-16
+
 
 ## Completed Plans
 
