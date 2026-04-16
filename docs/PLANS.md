@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Viewport CodeBlock NodeViews](exec-plans/active/2026-04-16-viewport-codeblock-nodeviews.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Viewport CodeBlock NodeViews](exec-plans/completed/2026-04-16-viewport-codeblock-nodeviews.md) — completed 2026-04-16
 - [Delayed Auto Hydration](exec-plans/completed/2026-04-16-delayed-auto-hydration.md) — completed 2026-04-16
 - [Manual Editor Hydration](exec-plans/completed/2026-04-16-manual-editor-hydration.md) — completed 2026-04-16
 - [Instant Preview Editor Hydration](exec-plans/completed/2026-04-16-instant-preview-editor-hydration.md) — completed 2026-04-16
