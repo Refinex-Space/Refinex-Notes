@@ -12,14 +12,35 @@ function getViewportTextBlockTag(node: ProseMirrorNode) {
     return `h${node.attrs.level as number}`;
   }
 
+  if (node.type.name === "blockquote") {
+    return "blockquote";
+  }
+
+  if (node.type.name === "list_item" || node.type.name === "task_list_item") {
+    return "li";
+  }
+
   return "p";
 }
 
 function buildShellClassName(node: ProseMirrorNode) {
   return [
-    "refinex-viewport-textblock-shell",
-    node.type.name === "heading" ? "is-heading" : "is-paragraph",
+    "refinex-viewport-block-shell",
+    `is-${node.type.name}`,
   ].join(" ");
+}
+
+function summarizeNodeText(node: ProseMirrorNode) {
+  if (node.type.name === "task_list_item") {
+    const checked = node.attrs.checked as boolean;
+    return `${checked ? "[x]" : "[ ]"} ${summarizeViewportText(node.textContent)}`;
+  }
+
+  if (node.type.name === "blockquote") {
+    return `> ${summarizeViewportText(node.textContent)}`;
+  }
+
+  return summarizeViewportText(node.textContent);
 }
 
 export function describeViewportTextBlockShell(node: ProseMirrorNode) {
@@ -28,7 +49,7 @@ export function describeViewportTextBlockShell(node: ProseMirrorNode) {
     nodeType: node.type.name,
     headingLevel:
       node.type.name === "heading" ? String(node.attrs.level as number) : null,
-    text: summarizeViewportText(node.textContent),
+    text: summarizeNodeText(node),
   };
 }
 
@@ -62,7 +83,14 @@ export class ViewportTextBlockView implements NodeView {
 
     if (this.isVisibleMode) {
       const dom = document.createElement(this.tagName);
-      dom.className = "refinex-viewport-textblock-live";
+      dom.className = "refinex-viewport-block-live";
+      if (node.type.name === "task_list_item") {
+        dom.setAttribute("data-task-item", "true");
+        dom.setAttribute(
+          "data-checked",
+          (node.attrs.checked as boolean) ? "true" : "false",
+        );
+      }
       this.dom = dom;
       this.contentDOM = dom;
       return;
@@ -85,9 +113,15 @@ export class ViewportTextBlockView implements NodeView {
     this.node = node;
 
     if (!this.isVisibleMode) {
-      this.dom.textContent = summarizeViewportText(node.textContent);
+      this.dom.textContent = summarizeNodeText(node);
       if (node.type.name === "heading") {
         this.dom.setAttribute("data-heading-level", String(node.attrs.level as number));
+      }
+      if (node.type.name === "task_list_item") {
+        this.dom.setAttribute(
+          "data-checked",
+          (node.attrs.checked as boolean) ? "true" : "false",
+        );
       }
     }
 

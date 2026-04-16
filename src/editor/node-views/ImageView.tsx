@@ -140,6 +140,10 @@ export class ImageView implements NodeView {
 
   private selected = false;
 
+  private isInViewport = true;
+
+  private observer: IntersectionObserver | null = null;
+
   constructor(
     private node: ProseMirrorNode,
     private readonly pmView: EditorView,
@@ -148,6 +152,7 @@ export class ImageView implements NodeView {
     this.dom = document.createElement("div");
     this.dom.className = "refinex-image-node-host";
     this.root = createRoot(this.dom);
+    this.setupViewportObserver();
     this.render();
   }
 
@@ -180,13 +185,27 @@ export class ImageView implements NodeView {
   }
 
   destroy() {
+    this.observer?.disconnect();
     this.root.unmount();
   }
 
   private render() {
+    const attrs = this.node.attrs as ImageNodeAttrs;
+    if (!this.isInViewport && !this.selected) {
+      this.root.render(
+        <div className="refinex-image-node-shell" data-align={attrs.align ?? "center"}>
+          <span className="refinex-image-node-shell-badge">IMAGE</span>
+          <span className="refinex-image-node-shell-text">
+            {attrs.alt ?? attrs.title ?? "图片占位"}
+          </span>
+        </div>,
+      );
+      return;
+    }
+
     this.root.render(
       <ImageNodeSurface
-        attrs={this.node.attrs as ImageNodeAttrs}
+        attrs={attrs}
         selected={this.selected}
         readOnly={!this.pmView.editable}
         onSelect={() => {
@@ -229,6 +248,32 @@ export class ImageView implements NodeView {
         }}
       />,
     );
+  }
+
+  private setupViewportObserver() {
+    if (!("IntersectionObserver" in window)) {
+      this.isInViewport = true;
+      return;
+    }
+
+    this.isInViewport = false;
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        const nextVisible = Boolean(entries[0]?.isIntersecting);
+        if (nextVisible === this.isInViewport) {
+          return;
+        }
+
+        this.isInViewport = nextVisible;
+        this.render();
+      },
+      {
+        root: null,
+        rootMargin: "360px 0px",
+        threshold: 0,
+      },
+    );
+    this.observer.observe(this.dom);
   }
 
   private async replaceImage() {

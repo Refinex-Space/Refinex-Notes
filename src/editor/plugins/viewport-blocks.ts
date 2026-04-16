@@ -8,7 +8,17 @@ export const refinexViewportBlocksKey = new PluginKey<readonly number[]>(
 
 const VIEWPORT_ROOT_SELECTOR = "[data-refinex-editor-scroll='true']";
 const VIEWPORT_BLOCK_MARGIN_PX = 360;
-const VIEWPORT_BLOCK_TYPES = new Set(["paragraph", "heading"]);
+const VIEWPORT_HOTZONE_RADIUS = 6;
+const VIEWPORT_BLOCK_TYPES = new Set([
+  "paragraph",
+  "heading",
+  "blockquote",
+  "bullet_list",
+  "ordered_list",
+  "list_item",
+  "task_list_item",
+  "table",
+]);
 
 function scheduleFrame(callback: () => void) {
   return window.requestAnimationFrame(callback);
@@ -18,7 +28,7 @@ function cancelFrame(frame: number) {
   window.cancelAnimationFrame(frame);
 }
 
-export function isViewportTextBlockNode(node: Pick<ProseMirrorNode, "type">) {
+export function isViewportSkeletonNode(node: Pick<ProseMirrorNode, "type">) {
   return VIEWPORT_BLOCK_TYPES.has(node.type.name);
 }
 
@@ -37,11 +47,43 @@ export function isViewportBlockVisible(decorations: readonly Decoration[]) {
   return decorations.some((decoration) => decoration.spec.viewportBlock === true);
 }
 
-function findSelectionTextblockPos(view: EditorView) {
+function collectViewportDecoratedElements(view: EditorView) {
+  return Array.from(
+    view.dom.querySelectorAll<HTMLElement>("[data-refinex-viewport-block='true']"),
+  );
+}
+
+export function collectViewportRootElements(view: EditorView) {
+  const decorated = collectViewportDecoratedElements(view);
+  return decorated.filter(
+    (element) => !element.parentElement?.closest("[data-refinex-viewport-block='true']"),
+  );
+}
+
+export function countViewportWords(view: EditorView) {
+  return collectViewportRootElements(view).reduce((total, element) => {
+    const matches = element.textContent?.trim().match(/\S+/g);
+    return total + (matches?.length ?? 0);
+  }, 0);
+}
+
+export function collectViewportHeadingItems(view: EditorView) {
+  return collectViewportDecoratedElements(view)
+    .filter((element) => /^H[1-6]$/.test(element.tagName))
+    .map((element, index) => ({
+      id: `viewport-heading-${index + 1}:${element.textContent?.trim() ?? ""}`,
+      text: element.textContent?.trim() ?? "",
+      level: Number(element.tagName.slice(1)),
+      line: index + 1,
+    }))
+    .filter((heading) => heading.text.length > 0);
+}
+
+function findSelectionViewportBlockPos(view: EditorView) {
   const { $head } = view.state.selection;
 
   for (let depth = $head.depth; depth > 0; depth -= 1) {
-    if ($head.node(depth).isTextblock) {
+    if (isViewportSkeletonNode($head.node(depth))) {
       return $head.before(depth);
     }
   }
@@ -67,16 +109,19 @@ function collectVisibleViewportBlockPositions(
   const viewportBottom = scrollContainer
     ? scrollContainer.getBoundingClientRect().bottom + VIEWPORT_BLOCK_MARGIN_PX
     : window.innerHeight + VIEWPORT_BLOCK_MARGIN_PX;
-  const selectionPos = findSelectionTextblockPos(view);
-  const positions: number[] = [];
+  const selectionPos = findSelectionViewportBlockPos(view);
+  const visiblePositions = new Set<number>();
+  const orderedPositions: number[] = [];
 
   view.state.doc.descendants((node, pos) => {
-    if (!isViewportTextBlockNode(node)) {
+    if (!isViewportSkeletonNode(node)) {
       return true;
     }
 
+    orderedPositions.push(pos);
+
     if (selectionPos === pos) {
-      positions.push(pos);
+      visiblePositions.add(pos);
       return false;
     }
 
@@ -88,12 +133,27 @@ function collectVisibleViewportBlockPositions(
     const rect = dom.getBoundingClientRect();
     const isVisible = rect.bottom >= viewportTop && rect.top <= viewportBottom;
     if (isVisible) {
-      positions.push(pos);
+      visiblePositions.add(pos);
     }
 
     return false;
   });
 
+  if (selectionPos !== null) {
+    const selectionIndex = orderedPositions.indexOf(selectionPos);
+    if (selectionIndex !== -1) {
+      const from = Math.max(0, selectionIndex - VIEWPORT_HOTZONE_RADIUS);
+      const to = Math.min(
+        orderedPositions.length - 1,
+        selectionIndex + VIEWPORT_HOTZONE_RADIUS,
+      );
+      for (let index = from; index <= to; index += 1) {
+        visiblePositions.add(orderedPositions[index]);
+      }
+    }
+  }
+
+  const positions = [...visiblePositions];
   positions.sort((left, right) => left - right);
   return positions;
 }
@@ -170,7 +230,7 @@ export function viewportBlocksPlugin() {
 
         const decorations = positions.flatMap((pos) => {
           const node = state.doc.nodeAt(pos);
-          if (!node || !isViewportTextBlockNode(node)) {
+          if (!node || !isViewportSkeletonNode(node)) {
             return [];
           }
 

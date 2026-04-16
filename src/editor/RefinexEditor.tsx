@@ -23,6 +23,7 @@ import {
 } from "./plugins/trailing-node";
 import { CodeBlockView } from "./node-views/CodeBlockView";
 import { ImageView } from "./node-views/ImageView";
+import { ViewportContainerBlockView } from "./node-views/ViewportContainerBlockView";
 import { ViewportTextBlockView } from "./node-views/ViewportTextBlockView";
 import { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
@@ -500,6 +501,18 @@ export function RefinexEditor({
           new ViewportTextBlockView(node, decorations),
         heading: (node, _view, _getPos, decorations) =>
           new ViewportTextBlockView(node, decorations),
+        blockquote: (node, _view, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        bullet_list: (node, _view, _getPos, decorations) =>
+          new ViewportContainerBlockView(node, decorations),
+        ordered_list: (node, _view, _getPos, decorations) =>
+          new ViewportContainerBlockView(node, decorations),
+        list_item: (node, _view, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        task_list_item: (node, _view, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        table: (node, _view, _getPos, decorations) =>
+          new ViewportContainerBlockView(node, decorations),
         code_block: (node, view, getPos) => new CodeBlockView(node, view, getPos),
         image: (node, view, getPos) => new ImageView(node, view, getPos),
       },
@@ -565,6 +578,18 @@ export function RefinexEditor({
           new ViewportTextBlockView(node, decorations),
         heading: (node, _innerView, _getPos, decorations) =>
           new ViewportTextBlockView(node, decorations),
+        blockquote: (node, _innerView, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        bullet_list: (node, _innerView, _getPos, decorations) =>
+          new ViewportContainerBlockView(node, decorations),
+        ordered_list: (node, _innerView, _getPos, decorations) =>
+          new ViewportContainerBlockView(node, decorations),
+        list_item: (node, _innerView, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        task_list_item: (node, _innerView, _getPos, decorations) =>
+          new ViewportTextBlockView(node, decorations),
+        table: (node, _innerView, _getPos, decorations) =>
+          new ViewportContainerBlockView(node, decorations),
         code_block: (node, innerView, getPos) =>
           new CodeBlockView(node, innerView, getPos),
         image: (node, innerView, getPos) => new ImageView(node, innerView, getPos),

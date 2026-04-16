@@ -1,8 +1,9 @@
 import type { MutableRefObject } from "react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EditorView } from "prosemirror-view";
 
 import type { OutlineHeading } from "../../types";
+import { collectViewportHeadingItems } from "../../editor";
 import { extractOutlineHeadings } from "../sidebar/sidebar-utils";
 
 const MAX_RAIL_ITEMS = 24;
@@ -83,24 +84,21 @@ export function DocumentOutlineDock({
 }: DocumentOutlineDockProps) {
   const [expanded, setExpanded] = useState(false);
   const [visibleRailItems, setVisibleRailItems] = useState<OutlineHeading[]>([]);
-  const deferredMarkdown = useDeferredValue(markdown ?? "");
-  const shouldRenderFullOutline =
-    expanded || !editorViewRef || !scrollContainerRef;
+  const shouldUseViewportData = Boolean(editorViewRef && scrollContainerRef);
   const headings = useMemo(
     () =>
-      shouldRenderFullOutline ? extractOutlineHeadings(deferredMarkdown) : [],
-    [deferredMarkdown, shouldRenderFullOutline],
+      shouldUseViewportData
+        ? visibleRailItems
+        : extractOutlineHeadings(markdown ?? ""),
+    [markdown, shouldUseViewportData, visibleRailItems],
   );
   const railItems = useMemo(
-    () =>
-      buildOutlineRailItems(
-        shouldRenderFullOutline ? headings : visibleRailItems,
-      ),
-    [headings, shouldRenderFullOutline, visibleRailItems],
+    () => buildOutlineRailItems(headings),
+    [headings],
   );
 
   useEffect(() => {
-    if (shouldRenderFullOutline) {
+    if (!shouldUseViewportData) {
       return;
     }
 
@@ -113,9 +111,7 @@ export function DocumentOutlineDock({
     let frame = 0;
     const updateVisibleRail = () => {
       frame = 0;
-      setVisibleRailItems(
-        collectVisibleHeadingRailItems(view, scrollContainer),
-      );
+      setVisibleRailItems(collectViewportHeadingItems(view));
     };
 
     const scheduleUpdate = () => {
@@ -136,13 +132,9 @@ export function DocumentOutlineDock({
       scrollContainer.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
     };
-  }, [deferredMarkdown, editorViewRef, scrollContainerRef, shouldRenderFullOutline]);
+  }, [editorViewRef, scrollContainerRef, shouldUseViewportData]);
 
-  if (shouldRenderFullOutline && headings.length === 0) {
-    return null;
-  }
-
-  if (!shouldRenderFullOutline && visibleRailItems.length === 0) {
+  if (headings.length === 0) {
     return null;
   }
 
@@ -197,7 +189,7 @@ export function DocumentOutlineDock({
           <section className="rounded-[1rem] border border-border/70 bg-bg/95 p-4 text-fg shadow-[0_18px_50px_rgba(15,23,42,0.12)] backdrop-blur">
             <header className="border-b border-border/60 pb-3">
               <p className="text-sm font-semibold tracking-tight text-fg">
-                目录
+                {shouldUseViewportData ? "热区目录" : "目录"}
               </p>
             </header>
 
