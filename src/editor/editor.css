@@ -532,6 +532,22 @@
   color: #e2e8f0;
 }
 
+.refinex-viewport-table-row-shell td {
+  padding: 0.55rem 0.75rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.dark .refinex-viewport-table-row-shell td {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+}
+
 .dark .ProseMirror hr {
   border-top-color: #334155;
 }

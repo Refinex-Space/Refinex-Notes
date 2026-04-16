@@ -18,6 +18,7 @@ const VIEWPORT_BLOCK_TYPES = new Set([
   "list_item",
   "task_list_item",
   "table",
+  "table_row",
 ]);
 
 function scheduleFrame(callback: () => void) {

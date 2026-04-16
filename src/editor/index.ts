@@ -35,6 +35,7 @@ export {
 export { ImageView } from "./node-views/ImageView";
 export { ViewportTextBlockView, createViewportTextBlockShell } from "./node-views/ViewportTextBlockView";
 export { ViewportContainerBlockView } from "./node-views/ViewportContainerBlockView";
+export { ViewportTableRowView } from "./node-views/ViewportTableRowView";
 export { FloatingToolbar } from "./ui/FloatingToolbar";
 export { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 export { SlashMenu, type SlashMenuRequest } from "./ui/SlashMenu";

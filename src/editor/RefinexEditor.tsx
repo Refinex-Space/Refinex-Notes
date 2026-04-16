@@ -24,6 +24,7 @@ import {
 import { CodeBlockView } from "./node-views/CodeBlockView";
 import { ImageView } from "./node-views/ImageView";
 import { ViewportContainerBlockView } from "./node-views/ViewportContainerBlockView";
+import { ViewportTableRowView } from "./node-views/ViewportTableRowView";
 import { ViewportTextBlockView } from "./node-views/ViewportTextBlockView";
 import { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
@@ -513,6 +514,8 @@ export function RefinexEditor({
           new ViewportTextBlockView(node, decorations),
         table: (node, _view, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
+        table_row: (node, _view, _getPos, decorations) =>
+          new ViewportTableRowView(node, decorations),
         code_block: (node, view, getPos) => new CodeBlockView(node, view, getPos),
         image: (node, view, getPos) => new ImageView(node, view, getPos),
       },
@@ -590,6 +593,8 @@ export function RefinexEditor({
           new ViewportTextBlockView(node, decorations),
         table: (node, _innerView, _getPos, decorations) =>
           new ViewportContainerBlockView(node, decorations),
+        table_row: (node, _innerView, _getPos, decorations) =>
+          new ViewportTableRowView(node, decorations),
         code_block: (node, innerView, getPos) =>
           new CodeBlockView(node, innerView, getPos),
         image: (node, innerView, getPos) => new ImageView(node, innerView, getPos),

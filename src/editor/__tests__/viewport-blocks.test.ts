@@ -11,13 +11,17 @@ import { describeViewportTextBlockShell } from "../node-views/ViewportTextBlockV
 
 describe("viewport blocks helpers", () => {
   it("recognizes supported blocks as viewport skeleton nodes", () => {
-    const doc = parseMarkdown("# Title\n\nParagraph\n\n> Quote\n\n- Item\n- [x] Task");
+    const doc = parseMarkdown(
+      "# Title\n\nParagraph\n\n> Quote\n\n- Item\n- [x] Task\n\n| A | B |\n| --- | --- |\n| 1 | 2 |",
+    );
     const heading = doc.firstChild;
     const paragraph = doc.child(1);
     const blockquote = doc.child(2);
     const bulletList = doc.child(3);
     const listItem = bulletList.firstChild;
     const taskItem = bulletList.lastChild;
+    const table = doc.child(4);
+    const tableRow = table.firstChild;
     const codeDoc = parseMarkdown("```ts\nconst value = 1;\n```");
     const codeBlock = codeDoc.firstChild;
 
@@ -26,6 +30,8 @@ describe("viewport blocks helpers", () => {
     expect(blockquote && isViewportSkeletonNode(blockquote)).toBe(true);
     expect(listItem && isViewportSkeletonNode(listItem)).toBe(true);
     expect(taskItem && isViewportSkeletonNode(taskItem)).toBe(true);
+    expect(table && isViewportSkeletonNode(table)).toBe(true);
+    expect(tableRow && isViewportSkeletonNode(tableRow)).toBe(true);
     expect(codeBlock && isViewportSkeletonNode(codeBlock)).toBe(false);
   });
 
