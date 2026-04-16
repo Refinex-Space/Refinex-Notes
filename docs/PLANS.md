@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Document Open Switch Latency](exec-plans/active/2026-04-16-document-open-switch-latency.md) — started 2026-04-16
+
 
 ## Completed Plans
 
