@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Viewport CodeBlock NodeViews](exec-plans/active/2026-04-16-viewport-codeblock-nodeviews.md) — started 2026-04-16
+
 
 ## Completed Plans
 
