@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Document Open Perf Logging](exec-plans/active/2026-04-16-document-open-perf-logging.md) — started 2026-04-16
+
 
 ## Completed Plans
 
