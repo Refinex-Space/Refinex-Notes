@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Viewport TextBlock Skeleton](exec-plans/active/2026-04-16-viewport-textblock-skeleton.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Viewport TextBlock Skeleton](exec-plans/completed/2026-04-16-viewport-textblock-skeleton.md) — completed 2026-04-16
 - [Viewport CodeBlock NodeViews](exec-plans/completed/2026-04-16-viewport-codeblock-nodeviews.md) — completed 2026-04-16
 - [Delayed Auto Hydration](exec-plans/completed/2026-04-16-delayed-auto-hydration.md) — completed 2026-04-16
 - [Manual Editor Hydration](exec-plans/completed/2026-04-16-manual-editor-hydration.md) — completed 2026-04-16
