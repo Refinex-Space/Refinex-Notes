@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Delayed Auto Hydration](exec-plans/active/2026-04-16-delayed-auto-hydration.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Delayed Auto Hydration](exec-plans/completed/2026-04-16-delayed-auto-hydration.md) — completed 2026-04-16
 - [Manual Editor Hydration](exec-plans/completed/2026-04-16-manual-editor-hydration.md) — completed 2026-04-16
 - [Instant Preview Editor Hydration](exec-plans/completed/2026-04-16-instant-preview-editor-hydration.md) — completed 2026-04-16
 - [Workspace Content Cache Prefetch](exec-plans/completed/2026-04-16-workspace-content-cache-prefetch.md) — completed 2026-04-16
