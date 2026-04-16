@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Async Read Lazy CodeBlock](exec-plans/active/2026-04-16-async-read-lazy-codeblock.md) — started 2026-04-16
+
 
 ## Completed Plans
 
