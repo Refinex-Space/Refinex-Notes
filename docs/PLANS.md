@@ -6,11 +6,10 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Editor Warmup Loading Polish](exec-plans/active/2026-04-16-editor-warmup-loading-polish.md) — started 2026-04-16
-
 
 ## Completed Plans
 
+- [Editor Warmup Loading Polish](exec-plans/completed/2026-04-16-editor-warmup-loading-polish.md) — completed 2026-04-16
 - [Hotzone Shell Estimation Table Cells](exec-plans/completed/2026-04-16-hotzone-shell-estimation-table-cells.md) — completed 2026-04-16
 - [Viewport Table Rows](exec-plans/completed/2026-04-16-viewport-table-rows.md) — completed 2026-04-16
 - [Hotzone UI Container Views](exec-plans/completed/2026-04-16-hotzone-ui-container-views.md) — completed 2026-04-16
