@@ -1,7 +1,7 @@
 # Execution Plan: Hotzone Shell Estimation Table Cells
 
 Created: 2026-04-16
-Status: Active
+Status: Completed
 Author: agent
 
 ## Objective
@@ -19,7 +19,7 @@ Author: agent
 - `src/editor/index.ts`
 - `src/editor/editor.css`
 - `src/editor/__tests__/viewport-blocks.test.ts`
-- `docs/exec-plans/active/2026-04-16-hotzone-shell-estimation-table-cells.md`
+- `docs/exec-plans/completed/2026-04-16-hotzone-shell-estimation-table-cells.md`
 - `docs/PLANS.md`
 
 **Out of scope:**
@@ -56,8 +56,8 @@ Author: agent
 **Files:** `docs/exec-plans/active/2026-04-16-hotzone-shell-estimation-table-cells.md`, `docs/PLANS.md`
 **Verification:** 计划文件存在且 `docs/PLANS.md` Active Plans 已登记
 
-Status: 🔄 In progress
-Evidence:
+Status: ✅ Done
+Evidence: 计划文件已创建，`docs/PLANS.md` 已登记 Active Plans 条目。
 Deviations:
 
 ### Step 2: 实现高度估算、cell 骨架与热区祖先链
@@ -65,8 +65,8 @@ Deviations:
 **Files:** `src/editor/plugins/viewport-blocks.ts`, `src/editor/node-views/ViewportTextBlockView.ts`, `src/editor/node-views/ViewportContainerBlockView.ts`, `src/editor/node-views/ViewportTableCellView.ts`, `src/editor/RefinexEditor.tsx`, `src/editor/index.ts`, `src/editor/editor.css`
 **Verification:** 壳层高度更稳定，table cell 与 selection 热区策略生效
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `viewport-blocks.ts` 现已支持 `table_cell / table_header` 进入热区集合，并新增 `estimateViewportShellMetrics()` 作为统一壳层高度估算模型；`ViewportTextBlockView` 与 `ViewportContainerBlockView` 已接入估算高度；新增 `ViewportTableCellView` 让热区外表格单元格退化为轻量 `td/th` 壳；同时 selection 祖先链与周边 block 会一起进入热区。
 Deviations:
 
 ### Step 3: 回归测试与归档
@@ -74,28 +74,29 @@ Deviations:
 **Files:** `src/editor/__tests__/viewport-blocks.test.ts`, `docs/exec-plans/active/2026-04-16-hotzone-shell-estimation-table-cells.md`, `docs/PLANS.md`
 **Verification:** `npm test`、`npm run build`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `npx vitest run src/editor/__tests__/viewport-blocks.test.ts` 通过，结果为 1 个测试文件、4 个断言全部通过；`npm test` 通过，结果为 22 个测试文件、126 个断言全部通过；`npm run build` 通过。
 Deviations:
 
 ## Progress Log
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | 计划文件正在创建并登记 |  |
-| 2 | ⬜ |  |  |
-| 3 | ⬜ |  |  |
+| 1 | ✅ | 计划文件与 `docs/PLANS.md` 已更新 |  |
+| 2 | ✅ | 高度估算、cell 骨架与祖先链热区已落地 | 热区范围更接近真实编辑上下文 |
+| 3 | ✅ | 单测、全量测试与构建通过 |  |
 
 ## Decision Log
 
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 在表格上进一步细到 cell 级 | table_row 级仍然太粗 | 停在 row 级 | 这是往 Typora 靠时必须继续往下拆的一层 |
+| 用统一壳层高度估算函数驱动不同 block | 需要减少滚动切换抖动 | 继续只靠固定样式 | 高度估算是进一步稳定壳层的必要前提 |
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-16
 Duration: 3 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 这轮继续把“可视区 + 热区 + 渐进激活”的体系往更细粒度推进。首先，引入了统一的 `estimateViewportShellMetrics()`，让文本壳、容器壳和表格单元格壳都拥有更稳定的最小高度估算，不再完全依赖固定样式，从而进一步减少滚动切换时的抖动。其次，表格从 row 级继续细化到 `table_cell / table_header` 级，热区外单元格现在会退化为轻量 `td/th` 壳，而不是整行真实渲染。最后，selection 的祖先链也被一并纳入热区提升逻辑，使当前编辑点周围的真实 DOM 更连贯，不再只保护最深层节点。最终相关单测、全量前端测试和构建均保持通过。
