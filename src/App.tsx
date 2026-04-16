@@ -298,6 +298,7 @@ function WorkspaceShell({
   const recentWorkspaces = useNoteStore((state) => state.recentWorkspaces);
   const documents = useNoteStore((state) => state.documents);
   const currentFile = useNoteStore((state) => state.currentFile);
+  const openFiles = useNoteStore((state) => state.openFiles);
   const openingFiles = useNoteStore((state) => state.openingFiles);
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
   const hydrateRecentWorkspaces = useNoteStore(
@@ -324,12 +325,17 @@ function WorkspaceShell({
 
   const editorViewRef = useRef<EditorView | null>(null);
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
+  const editorViewRegistryRef = useRef<Record<string, EditorView | null>>({});
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
   const isCurrentFileOpening = Boolean(
     currentFile && !currentDocument && openingFiles.includes(currentFile),
   );
   const editorDocument = currentDocument ?? renderedDocument;
+  const loadedOpenDocuments = openFiles
+    .map((path: string) => documents[path] ?? null)
+    .filter((document: NoteDocument | null): document is NoteDocument => document !== null);
+  const activeEditorPath = currentDocument?.path ?? renderedDocument?.path ?? null;
 
   useEffect(() => {
     if (currentDocument) {
@@ -345,6 +351,15 @@ function WorkspaceShell({
   useEffect(() => {
     setActiveTab(currentFile);
   }, [currentFile, setActiveTab]);
+
+  useEffect(() => {
+    if (!activeEditorPath) {
+      editorViewRef.current = null;
+      return;
+    }
+
+    editorViewRef.current = editorViewRegistryRef.current[activeEditorPath] ?? null;
+  }, [activeEditorPath]);
 
   useEffect(() => {
     if (!currentFile) {
@@ -581,26 +596,46 @@ function WorkspaceShell({
           editorDocument ? (
             <div className="relative h-full min-h-0 bg-bg">
               <div ref={editorScrollRef} className="h-full overflow-auto">
-                <RefinexEditor
-                  documentPath={editorDocument.path}
-                  value={editorDocument.content}
-                  className="min-h-full px-6 py-5"
-                  readOnly={isCurrentFileOpening}
-                  onChange={(markdown) => {
-                    updateFileContent(editorDocument.path, markdown);
+                {loadedOpenDocuments.map((document: NoteDocument) => {
+                  const isVisible = activeEditorPath === document.path;
+                  const isLoadingShell =
+                    isCurrentFileOpening && renderedDocument?.path === document.path;
 
-                    if (markdown === editorDocument.savedContent) {
-                      markClean(editorDocument.path);
-                      return;
-                    }
+                  return (
+                    <div
+                      key={document.path}
+                      className={isVisible ? "block min-h-full" : "hidden min-h-full"}
+                    >
+                      <RefinexEditor
+                        documentPath={document.path}
+                        value={document.content}
+                        className="min-h-full px-6 py-5"
+                        readOnly={isLoadingShell}
+                        onChange={(markdown) => {
+                          updateFileContent(document.path, markdown);
 
-                    markDirty(editorDocument.path);
-                  }}
-                  onCursorChange={setCursorPosition}
-                  onEditorView={(view) => {
-                    editorViewRef.current = view;
-                  }}
-                />
+                          if (markdown === document.savedContent) {
+                            markClean(document.path);
+                            return;
+                          }
+
+                          markDirty(document.path);
+                        }}
+                        onCursorChange={(cursor) => {
+                          if (activeEditorPath === document.path) {
+                            setCursorPosition(cursor);
+                          }
+                        }}
+                        onEditorView={(view) => {
+                          editorViewRegistryRef.current[document.path] = view;
+                          if (activeEditorPath === document.path) {
+                            editorViewRef.current = view;
+                          }
+                        }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
               {currentDocument && !isCurrentFileOpening ? (
                 <DocumentOutlineDock
