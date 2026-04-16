@@ -50,7 +50,7 @@ Author: agent
 **Verification:** 计划文件存在且 `docs/PLANS.md` Active Plans 已登记
 
 Status: 🔄 In progress
-Evidence:
+Evidence: 计划文件已创建，`docs/PLANS.md` 已登记 Active Plans 条目。
 Deviations:
 
 ### Step 2: 为当前文档增加预览先开与 editor 延迟水合
@@ -58,8 +58,8 @@ Deviations:
 **Files:** `src/App.tsx`
 **Verification:** 首次打开缓存命中文档时先显示预览，editor 在后续空闲或交互时再水合
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `App.tsx` 现在会把未水合文档先渲染成 `InstantDocumentPreview`，并在空闲时自动把当前文档加入 `hydratedEditorPaths`；用户点击预览也会立即触发水合并在完成后 focus 真正的 `RefinexEditor`。同时，预览态下会跳过 `DocumentOutlineDock` 和 `wordCount` 等附属计算，`app.currentDocument.ready` 日志还会带上 `mode: preview | editor` 区分打开路径。
 Deviations:
 
 ### Step 3: 完成验证并归档
@@ -67,28 +67,29 @@ Deviations:
 **Files:** `docs/exec-plans/active/2026-04-16-instant-preview-editor-hydration.md`, `docs/PLANS.md`
 **Verification:** `npm test`、`npm run build`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `npm test` 通过，结果为 21 个测试文件、121 个断言全部通过；`npm run build` 通过。
 Deviations:
 
 ## Progress Log
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | 🔄 | 计划文件正在创建并登记 |  |
-| 2 | ⬜ |  |  |
-| 3 | ⬜ |  |  |
+| 1 | ✅ | 计划文件与 `docs/PLANS.md` 已更新 |  |
+| 2 | ✅ | 预览先开与 editor 延迟水合已落地 | 预览态会延迟附属计算 |
+| 3 | ✅ | 全量测试与构建通过 |  |
 
 ## Decision Log
 
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 用“两阶段打开”满足 `<50ms` 目标 | 当前同步 editor 挂载本身已接近 50ms 预算上限 | 继续压榨 editor mount 微成本 | 要稳进 `<50ms`，必须把“可见打开”和“完整编辑器水合”拆开 |
+| 预览态直接渲染 Markdown 文本 | 目标是先把文档可见时间压到极低 | 首开就做完整 Markdown HTML 预览 | 纯文本预览最轻，且最不容易重新引入大渲染成本 |
 
 ## Completion Summary
 
-Completed:
+Completed: 2026-04-16
 Duration: 3 steps
-All acceptance criteria: PASS / FAIL
+All acceptance criteria: PASS
 
-Summary:
+Summary: 本轮将“文档打开时间”与“完整编辑器就绪时间”彻底拆开。当前文档在首次打开且尚未水合 editor 时，会先以 `InstantDocumentPreview` 轻量预览态渲染 Markdown 文本，让文档内容尽快可见；之后再在浏览器空闲时把该路径加入 `hydratedEditorPaths`，延后水合完整 `RefinexEditor`。如果用户立即点击预览，也会同步触发 editor 水合并在完成后自动 focus。与此同时，预览态下会跳过 `DocumentOutlineDock` 和字数统计等附属计算，避免这些额外工作把首屏可见时间重新拖上去。最终前端测试与构建全部通过，为下一轮重新测量 `<50ms` 打开时间建立了新的基线。
