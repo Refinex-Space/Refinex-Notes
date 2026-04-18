@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Link Hover Tooltip](exec-plans/active/2026-04-18-link-hover-tooltip.md) — started 2026-04-18
-
 ## Completed Plans
+
+- [Link Hover Tooltip](exec-plans/completed/2026-04-18-link-hover-tooltip.md) — completed 2026-04-18
 
 - [Source Mode Toggle (Cmd/Ctrl + /)](exec-plans/completed/2026-04-18-source-mode-toggle.md) — completed 2026-04-18
 - [Remove Viewport Progressive Rendering](exec-plans/completed/2026-04-18-remove-viewport-progressive-rendering.md) — completed 2026-04-18
