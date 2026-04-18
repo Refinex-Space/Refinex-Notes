@@ -2,10 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { SetupPanel } from "../SetupPanel";
-import {
-  formatLastSyncTime,
-  syncIndicatorMeta,
-} from "../SyncStatus";
+import { formatLastSyncTime, syncIndicatorMeta } from "../SyncStatus";
 
 describe("SyncStatus", () => {
   it("maps conflicted state to warning presentation", () => {
@@ -34,7 +31,6 @@ describe("SetupPanel", () => {
 
     expect(markup).toContain("为工作区接入 Git");
     expect(markup).toContain("初始化仓库");
-    expect(markup).toContain("已连接 GitHub · refinex");
     expect(markup).toContain("https://github.com/owner/repo.git");
   });
 });

@@ -89,18 +89,6 @@ export function SetupPanel({
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[11px] text-muted">
-            {userLogin ? (
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/60 px-3 py-1.5">
-                已连接 GitHub · {userLogin}
-              </span>
-            ) : null}
-            <span className="inline-flex items-center gap-2 rounded-full border border-border/60 px-3 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              粘贴仓库地址即可开始
-            </span>
-          </div>
-
           {errorMessage ? (
             <p className="rounded-[1rem] border border-rose-300/35 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-300/15 dark:bg-rose-400/10 dark:text-rose-100">
               {errorMessage}

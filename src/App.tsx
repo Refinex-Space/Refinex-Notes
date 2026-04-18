@@ -51,7 +51,6 @@ import {
   TooltipTrigger,
 } from "./components/ui/tooltip";
 import { RefinexEditor, serializeEditorState } from "./editor";
-import { countViewportWords } from "./editor";
 import { fileService } from "./services/fileService";
 import { gitService } from "./services/gitService";
 import { searchService } from "./services/searchService";
@@ -453,8 +452,6 @@ function WorkspaceShell({
   const [hydratedEditorPaths, setHydratedEditorPaths] = useState<Set<string>>(
     () => new Set(),
   );
-  const [hotZoneWordCount, setHotZoneWordCount] = useState(0);
-
   const workspacePath = useNoteStore((state) => state.workspacePath);
   const recentWorkspaces = useNoteStore((state) => state.recentWorkspaces);
   const documents = useNoteStore((state) => state.documents);
@@ -630,49 +627,6 @@ function WorkspaceShell({
   }, [activeEditorPath, hydratedEditorPaths]);
 
   useEffect(() => {
-    if (!isActiveEditorHydrated) {
-      setHotZoneWordCount(0);
-      return;
-    }
-
-    const scrollContainer = editorScrollRef.current;
-    const update = () => {
-      const view = editorViewRef.current;
-      if (!view) {
-        setHotZoneWordCount(0);
-        return;
-      }
-
-      setHotZoneWordCount(countViewportWords(view));
-    };
-
-    let frame = 0;
-    const scheduleUpdate = () => {
-      if (frame !== 0) {
-        return;
-      }
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        update();
-      });
-    };
-
-    scheduleUpdate();
-    scrollContainer?.addEventListener("scroll", scheduleUpdate, {
-      passive: true,
-    });
-    window.addEventListener("resize", scheduleUpdate);
-
-    return () => {
-      if (frame !== 0) {
-        window.cancelAnimationFrame(frame);
-      }
-      scrollContainer?.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
-    };
-  }, [activeEditorPath, currentDocument?.content, isActiveEditorHydrated]);
-
-  useEffect(() => {
     if (
       !pendingSearchJump ||
       !currentDocument ||
@@ -793,11 +747,8 @@ function WorkspaceShell({
     [documents],
   );
   const wordCount = useMemo(
-    () =>
-      isActiveEditorHydrated
-        ? hotZoneWordCount
-        : countWords(currentDocument?.content ?? ""),
-    [currentDocument?.content, hotZoneWordCount, isActiveEditorHydrated],
+    () => countWords(editorDocument?.content ?? ""),
+    [editorDocument?.content],
   );
   const syncTone =
     currentFile && unsavedChanges.has(currentFile) ? "pending" : "synced";
@@ -988,7 +939,7 @@ function WorkspaceShell({
                 !isCurrentFileOpening &&
                 isActiveEditorHydrated &&
                 outlineVisible ? (
-                  <div className="sticky top-0 self-start max-h-full w-[200px] flex-none overflow-y-auto border-l border-border/60 bg-[rgb(var(--color-bg)/0.9)]">
+                  <div className="no-scrollbar sticky top-0 self-start max-h-full w-[200px] flex-none overflow-y-auto border-l border-border/60 bg-[rgb(var(--color-bg)/0.9)]">
                     <DocumentOutlineDock
                       markdown={currentDocument.content}
                       editorViewRef={editorViewRef}
