@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Source Mode Toggle (Cmd/Ctrl + /)](exec-plans/active/2026-04-18-source-mode-toggle.md) — started 2026-04-18
+
 ## Completed Plans
 
 - [Remove Viewport Progressive Rendering](exec-plans/completed/2026-04-18-remove-viewport-progressive-rendering.md) — completed 2026-04-18
