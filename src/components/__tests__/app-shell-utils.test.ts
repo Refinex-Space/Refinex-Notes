@@ -15,6 +15,15 @@ describe("app shell helpers", () => {
     expect(countWords("")).toBe(0);
   });
 
+  it("counts CJK characters individually", () => {
+    // 4 CJK chars, no Latin
+    expect(countWords("你好世界")).toBe(4);
+    // Mixed: 2 CJK + 1 Latin word
+    expect(countWords("你好 world")).toBe(3);
+    // Markdown heading stripped, then 3 CJK
+    expect(countWords("# 架构")).toBe(2);
+  });
+
   it("builds command palette file items from documents", () => {
     const items = buildCommandPaletteItems({
       "Inbox/Welcome.md": {

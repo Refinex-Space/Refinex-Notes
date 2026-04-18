@@ -4,9 +4,32 @@ import type { CommandPaletteItem, OutlineHeading } from "../types";
 import type { NoteDocument } from "../types/notes";
 import type { SearchResult } from "../types/search";
 
-export function countWords(content: string) {
-  const matches = content.trim().match(/\S+/g);
-  return matches?.length ?? 0;
+export function countWords(content: string): number {
+  // Strip common markdown syntax that should not contribute to the word count.
+  const stripped = content
+    .replace(/^#{1,6}\s+/gm, "") // heading markers
+    .replace(/```[\s\S]*?```/g, " ") // fenced code blocks
+    .replace(/`[^`\n]+`/g, " ") // inline code
+    .replace(/!\[.*?\]\(.*?\)/g, " ") // images
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // links → keep label text
+    .replace(/[*_~>#|\\]/g, " "); // decoration characters
+
+  // CJK Unified Ideographs (BMP only: covers all common Chinese/Japanese/Korean).
+  // Supplementary planes intentionally excluded to avoid u-flag range-parsing issues.
+  const CJK_RE =
+    /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\u2e80-\u2eff\u2f00-\u2fdf]/g;
+
+  let count = 0;
+
+  // Count each CJK character as one unit.
+  const cjk = stripped.match(CJK_RE);
+  if (cjk) count += cjk.length;
+
+  // Count non-CJK words as whitespace-delimited Latin/numeral sequences.
+  const latin = stripped.replace(CJK_RE, " ").match(/[a-zA-Z0-9]+/g);
+  if (latin) count += latin.length;
+
+  return count;
 }
 
 export function createNextNotePath(existingPaths: readonly string[]) {
@@ -36,7 +59,9 @@ export function buildCommandPaletteItems(
       group: "files" as const,
       path: document.path,
     }))
-    .sort((left, right) => left.description.localeCompare(right.description, "en"));
+    .sort((left, right) =>
+      left.description.localeCompare(right.description, "en"),
+    );
 }
 
 export function searchResultsToCommandPaletteItems(
@@ -63,7 +88,10 @@ export function findHeadingPosition(
       return true;
     }
 
-    if (node.attrs.level === heading.level && node.textContent === heading.text) {
+    if (
+      node.attrs.level === heading.level &&
+      node.textContent === heading.text
+    ) {
       position = pos;
       return false;
     }

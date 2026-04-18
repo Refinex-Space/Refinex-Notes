@@ -10,11 +10,7 @@ import {
 
 import { useGitStore } from "../../stores/gitStore";
 import type { GitSyncPhase } from "../../types/git";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -34,35 +30,35 @@ export function syncIndicatorMeta(phase: GitSyncPhase) {
         label: "已同步",
         icon: CheckCircle2,
         tone: "text-emerald-300",
-        chip: "border-emerald-400/20 bg-emerald-400/10 text-emerald-100",
+        chip: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
       };
     case "conflicted":
       return {
         label: "存在冲突",
         icon: AlertTriangle,
         tone: "text-amber-300",
-        chip: "border-amber-300/20 bg-amber-400/10 text-amber-100",
+        chip: "border-amber-300/20 bg-amber-400/10 text-amber-200",
       };
     case "offline":
       return {
         label: "离线",
         icon: CloudOff,
         tone: "text-slate-300",
-        chip: "border-slate-200/15 bg-slate-200/5 text-slate-100",
+        chip: "border-slate-200/15 bg-slate-200/5 text-slate-200",
       };
     case "not-initialized":
       return {
         label: "未初始化",
         icon: CircleDashed,
         tone: "text-cyan-200",
-        chip: "border-cyan-300/20 bg-cyan-400/10 text-cyan-50",
+        chip: "border-cyan-300/20 bg-cyan-400/10 text-cyan-200",
       };
     default:
       return {
         label: "同步中",
         icon: RefreshCcw,
         tone: "text-sky-200",
-        chip: "border-sky-300/20 bg-sky-400/10 text-sky-50",
+        chip: "border-sky-300/20 bg-sky-400/10 text-sky-200",
       };
   }
 }
@@ -87,10 +83,7 @@ function changeSummary(count: number) {
   return `${count} 个文件待处理`;
 }
 
-export function SyncStatus({
-  onOpenHistory,
-  onOpenSettings,
-}: SyncStatusProps) {
+export function SyncStatus({ onOpenHistory, onOpenSettings }: SyncStatusProps) {
   const syncStatus = useGitStore((state) => state.syncStatus);
   const syncDetail = useGitStore((state) => state.syncDetail);
   const lastSyncTime = useGitStore((state) => state.lastSyncTime);
@@ -110,7 +103,7 @@ export function SyncStatus({
               <button
                 type="button"
                 className={[
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left text-[11px] font-semibold transition",
+                  "inline-flex items-center gap-2 px-3 py-1.5 text-left text-[11px] font-semibold transition bg-transparent",
                   meta.chip,
                 ].join(" ")}
               >
@@ -132,9 +125,15 @@ export function SyncStatus({
           <TooltipContent className="max-w-xs">
             <div className="space-y-1.5">
               <p className="font-semibold">{meta.label}</p>
-              <p className="text-slate-300">{syncDetail ?? "等待下一次同步事件"}</p>
-              <p className="text-slate-400">最后同步：{formatLastSyncTime(lastSyncTime)}</p>
-              <p className="text-slate-400">{changeSummary(changedFiles.length)}</p>
+              <p className="text-slate-300">
+                {syncDetail ?? "等待下一次同步事件"}
+              </p>
+              <p className="text-slate-400">
+                最后同步：{formatLastSyncTime(lastSyncTime)}
+              </p>
+              <p className="text-slate-400">
+                {changeSummary(changedFiles.length)}
+              </p>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -143,7 +142,8 @@ export function SyncStatus({
           <div>
             <p className="text-sm font-semibold text-fg">Git 同步</p>
             <p className="mt-1 text-xs leading-5 text-muted">
-              {syncDetail ?? "自动同步已关闭，通过手动提交、推送、拉取或刷新状态来管理版本。"}
+              {syncDetail ??
+                "自动同步已关闭，通过手动提交、推送、拉取或刷新状态来管理版本。"}
             </p>
           </div>
 

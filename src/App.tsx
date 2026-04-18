@@ -1034,6 +1034,7 @@ function WorkspaceShell({
             cursor={cursorPosition}
             wordCount={wordCount}
             language={editorDocument?.language ?? "Markdown"}
+            encoding="UTF-8"
             gitStatusSlot={
               <div className="flex items-center gap-2">
                 <AccountStatus />

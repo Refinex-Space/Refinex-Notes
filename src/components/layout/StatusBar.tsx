@@ -1,4 +1,4 @@
-import { Activity, FileText, GitBranch, Languages } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import type { ReactNode } from "react";
 
 export interface StatusBarProps {
@@ -7,6 +7,7 @@ export interface StatusBarProps {
   cursor: { line: number; col: number };
   wordCount: number;
   language: string;
+  encoding?: string;
   gitStatusSlot?: ReactNode;
 }
 
@@ -27,35 +28,36 @@ export function StatusBar({
   cursor,
   wordCount,
   language,
+  encoding = "UTF-8",
   gitStatusSlot,
 }: StatusBarProps) {
   return (
-    <footer className="grid h-10 grid-cols-[1fr_auto_1fr] items-center gap-4 border-t border-border/70 bg-bg/90 px-4 text-xs text-muted backdrop-blur">
+    <footer className="flex h-7 items-center justify-between border-t border-border/70 bg-bg/90 px-3 text-[11px] text-muted backdrop-blur">
+      {/* Left: GitHub account + sync status */}
       <div className="flex min-w-0 items-center gap-2">
         {gitStatusSlot ?? (
           <>
-            <GitBranch className={["h-3.5 w-3.5", syncToneClasses(syncTone)].join(" ")} />
+            <GitBranch
+              className={["h-3 w-3 shrink-0", syncToneClasses(syncTone)].join(
+                " ",
+              )}
+            />
             <span className="truncate">{syncLabel}</span>
           </>
         )}
       </div>
 
-      <div className="flex items-center gap-2 rounded-full border border-border/70 px-3 py-1 text-fg">
-        <Activity className="h-3.5 w-3.5 text-accent" />
+      {/* Right: language | encoding | word count | cursor */}
+      <div className="flex items-center gap-3 text-muted/80">
+        <span>{language}</span>
+        <span className="opacity-40">|</span>
+        <span>{encoding}</span>
+        <span className="opacity-40">|</span>
+        <span>{wordCount.toLocaleString()} 字</span>
+        <span className="opacity-40">|</span>
         <span>
-          {cursor.line}:{cursor.col}
+          行 {cursor.line}, 列 {cursor.col}
         </span>
-      </div>
-
-      <div className="flex min-w-0 items-center justify-end gap-4">
-        <div className="flex items-center gap-2">
-          <FileText className="h-3.5 w-3.5" />
-          <span>{wordCount} words</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Languages className="h-3.5 w-3.5" />
-          <span>{language}</span>
-        </div>
       </div>
     </footer>
   );

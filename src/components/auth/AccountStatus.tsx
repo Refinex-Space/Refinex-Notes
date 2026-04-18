@@ -27,7 +27,7 @@ export function AccountStatus() {
                 type="button"
                 aria-label="GitHub 账号"
                 className={[
-                  "inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-white/[0.04] text-muted transition",
+                  "inline-flex h-7 w-7 items-center justify-center bg-white/[0.04] text-muted transition",
                   "hover:border-accent/35 hover:bg-accent/10 hover:text-fg",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
                 ].join(" ")}
@@ -56,7 +56,7 @@ export function AccountStatus() {
 
           <button
             type="button"
-            className="inline-flex w-full items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-rose-300/30 hover:bg-rose-400/10 hover:text-rose-100"
+            className="inline-flex w-full items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-rose-400/30 hover:bg-rose-400/10 hover:text-rose-500"
             onClick={() => {
               void logout();
             }}

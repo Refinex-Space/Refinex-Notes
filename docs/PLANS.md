@@ -6,6 +6,7 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [StatusBar Prototype Alignment](exec-plans/completed/2026-04-18-statusbar-prototype-alignment.md) — completed 2026-04-18
 - [Git Panel Prototype Redesign](exec-plans/completed/2026-04-18-git-panel-prototype-redesign.md) — completed 2026-04-18
 
 ## Completed Plans

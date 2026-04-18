@@ -39,7 +39,10 @@ export const TAB_WRAPPER_CLASS_NAME =
 export const TAB_TRIGGER_CLASS_NAME =
   "relative flex h-8 w-full items-center justify-start rounded-[0.95rem] border border-transparent bg-transparent pl-2.5 pr-8 text-[12.5px] leading-4 text-muted";
 
-export function getTabActionAvailability(openFiles: readonly string[], path: string) {
+export function getTabActionAvailability(
+  openFiles: readonly string[],
+  path: string,
+) {
   const index = openFiles.indexOf(path);
   if (index === -1) {
     return {
@@ -80,7 +83,8 @@ export function getDropIndicatorFromPointer(
     }
 
     const rect = node.getBoundingClientRect();
-    const withinHorizontalBounds = clientX >= rect.left && clientX <= rect.right;
+    const withinHorizontalBounds =
+      clientX >= rect.left && clientX <= rect.right;
     const withinVerticalBounds = clientY >= rect.top && clientY <= rect.bottom;
 
     if (!withinHorizontalBounds || !withinVerticalBounds) {
@@ -114,7 +118,9 @@ export function TabBar() {
 
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [pointerDrag, setPointerDrag] = useState<PointerDragState | null>(null);
-  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(
+    null,
+  );
 
   const activeValue = activeTab ?? currentFile ?? undefined;
   const hasMultipleTabs = openFiles.length > 1;
@@ -196,16 +202,19 @@ export function TabBar() {
     path: string,
   ) => {
     setPointerDrag((current) => {
-      if (!current || current.path !== path || current.pointerId !== event.pointerId) {
+      if (
+        !current ||
+        current.path !== path ||
+        current.pointerId !== event.pointerId
+      ) {
         return current;
       }
 
       const movedEnough =
         Math.abs(event.clientX - current.startX) > 4 ||
         Math.abs(event.clientY - current.startY) > 4;
-      const nextState = current.active || movedEnough
-        ? { ...current, active: true }
-        : current;
+      const nextState =
+        current.active || movedEnough ? { ...current, active: true } : current;
 
       if (!nextState.active) {
         return nextState;
@@ -234,7 +243,11 @@ export function TabBar() {
     path: string,
   ) => {
     const current = pointerDrag;
-    if (!current || current.path !== path || current.pointerId !== event.pointerId) {
+    if (
+      !current ||
+      current.path !== path ||
+      current.pointerId !== event.pointerId
+    ) {
       return;
     }
 
@@ -275,7 +288,9 @@ export function TabBar() {
             data-tab-path={path}
             className={[
               TAB_WRAPPER_CLASS_NAME,
-              pointerDrag?.path === path && pointerDrag.active ? "scale-[0.985] opacity-55" : "",
+              pointerDrag?.path === path && pointerDrag.active
+                ? "scale-[0.985] opacity-55"
+                : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -291,7 +306,8 @@ export function TabBar() {
             onPointerUp={(event) => handlePointerUp(event, path)}
             onPointerCancel={clearPointerDrag}
           >
-            {dropIndicator?.path === path && dropIndicator.position === "before" ? (
+            {dropIndicator?.path === path &&
+            dropIndicator.position === "before" ? (
               <span className="pointer-events-none absolute inset-y-1 left-0 w-0.5 rounded-full bg-accent/80" />
             ) : null}
 
@@ -343,7 +359,8 @@ export function TabBar() {
               <X className="h-3.5 w-3.5" />
             </button>
 
-            {dropIndicator?.path === path && dropIndicator.position === "after" ? (
+            {dropIndicator?.path === path &&
+            dropIndicator.position === "after" ? (
               <span className="pointer-events-none absolute inset-y-1 right-0 w-0.5 rounded-full bg-accent/80" />
             ) : null}
           </div>
@@ -386,9 +403,7 @@ export function TabBar() {
 
   if (openFiles.length === 0) {
     return (
-      <div className="flex h-9 items-center px-3 text-[13px] text-muted">
-        暂无打开的笔记
-      </div>
+      <div className="flex h-9 items-center px-3 text-[13px] text-muted"></div>
     );
   }
 
@@ -401,9 +416,7 @@ export function TabBar() {
         setActiveTab(path);
       }}
     >
-      <TabsList className={TAB_RAIL_CLASS_NAME}>
-        {renderedTabs}
-      </TabsList>
+      <TabsList className={TAB_RAIL_CLASS_NAME}>{renderedTabs}</TabsList>
     </Tabs>
   );
 }
