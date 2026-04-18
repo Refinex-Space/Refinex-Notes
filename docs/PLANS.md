@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Link Hover Tooltip](exec-plans/active/2026-04-18-link-hover-tooltip.md) — started 2026-04-18
+
 ## Completed Plans
 
 - [Source Mode Toggle (Cmd/Ctrl + /)](exec-plans/completed/2026-04-18-source-mode-toggle.md) — completed 2026-04-18
