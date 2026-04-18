@@ -1,4 +1,9 @@
-import { Fragment, Slice, type Mark, type Node as ProseMirrorNode } from "prosemirror-model";
+import {
+  Fragment,
+  Slice,
+  type Mark,
+  type Node as ProseMirrorNode,
+} from "prosemirror-model";
 import { setBlockType, wrapIn } from "prosemirror-commands";
 import { wrapInList } from "prosemirror-schema-list";
 import {
@@ -153,7 +158,10 @@ export function getSelectionAnchorRect(
   };
 }
 
-export function isMarkActive(state: EditorState, markName: "strong" | "em" | "strikethrough" | "code" | "link") {
+export function isMarkActive(
+  state: EditorState,
+  markName: "strong" | "em" | "strikethrough" | "code" | "link",
+) {
   const markType = refinexSchema.marks[markName];
   const { selection } = state;
 
@@ -164,7 +172,9 @@ export function isMarkActive(state: EditorState, markName: "strong" | "em" | "st
   return state.doc.rangeHasMark(selection.from, selection.to, markType);
 }
 
-export function getLinkEditorRequest(state: EditorState): LinkEditorRequest | null {
+export function getLinkEditorRequest(
+  state: EditorState,
+): LinkEditorRequest | null {
   const { selection } = state;
   if (!selection.empty) {
     const activeMark: Mark | null = findFirstMarkInRange(
@@ -293,11 +303,7 @@ export function createDefaultTableNode() {
 export function createLinkPopoverCommand(options?: {
   onOpen?: (view: EditorView, request: LinkEditorRequest) => void;
 }): Command {
-  return (
-    state: EditorState,
-    dispatch,
-    view?: EditorView,
-  ) => {
+  return (state: EditorState, dispatch, view?: EditorView) => {
     const request = getLinkEditorRequest(state);
     if (!request) {
       return false;
@@ -447,16 +453,25 @@ export async function executeSlashCommand(options: {
       );
     case "bullet-list":
       removeSlashTrigger(view, trigger);
-      return runEditorCommand(view, wrapInList(refinexSchema.nodes.bullet_list));
+      return runEditorCommand(
+        view,
+        wrapInList(refinexSchema.nodes.bullet_list),
+      );
     case "ordered-list":
       removeSlashTrigger(view, trigger);
-      return runEditorCommand(view, wrapInList(refinexSchema.nodes.ordered_list));
+      return runEditorCommand(
+        view,
+        wrapInList(refinexSchema.nodes.ordered_list),
+      );
     case "blockquote":
       removeSlashTrigger(view, trigger);
       return runEditorCommand(view, wrapIn(refinexSchema.nodes.blockquote));
     case "code-block":
       removeSlashTrigger(view, trigger);
-      return runEditorCommand(view, setBlockType(refinexSchema.nodes.code_block));
+      return runEditorCommand(
+        view,
+        setBlockType(refinexSchema.nodes.code_block),
+      );
     case "task-list":
       removeSlashTrigger(view, trigger);
       view.dispatch(
@@ -474,7 +489,9 @@ export async function executeSlashCommand(options: {
       return true;
     case "table":
       removeSlashTrigger(view, trigger);
-      view.dispatch(replaceCurrentBlockWithNodes(view.state, [createDefaultTableNode()]));
+      view.dispatch(
+        replaceCurrentBlockWithNodes(view.state, [createDefaultTableNode()]),
+      );
       return true;
     case "image": {
       const file = await pickImageFile();
@@ -538,7 +555,10 @@ function replaceCurrentBlockWithNodes(
   const transaction = state.tr.replaceWith(from, to, Fragment.fromArray(nodes));
   const selection =
     Selection.findFrom(transaction.doc.resolve(from), 1, true) ??
-    TextSelection.near(transaction.doc.resolve(Math.min(from, transaction.doc.content.size)), 1);
+    TextSelection.near(
+      transaction.doc.resolve(Math.min(from, transaction.doc.content.size)),
+      1,
+    );
 
   return transaction.setSelection(selection).scrollIntoView();
 }
@@ -571,7 +591,9 @@ function findFirstMarkInRange(state: EditorState, from: number, to: number) {
       return true;
     }
 
-    const nextMark = node.marks.find((mark) => mark.type === refinexSchema.marks.link);
+    const nextMark = node.marks.find(
+      (mark) => mark.type === refinexSchema.marks.link,
+    );
     if (nextMark) {
       activeMark = nextMark;
       return false;
@@ -616,5 +638,76 @@ function findActiveLinkRange(state: EditorState) {
 }
 
 function fileNameToAlt(name: string) {
-  return name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || null;
+  return (
+    name
+      .replace(/\.[^.]+$/, "")
+      .replace(/[-_]+/g, " ")
+      .trim() || null
+  );
+}
+
+/**
+ * Find the link mark and its full range at an arbitrary document position.
+ * Unlike `findActiveLinkRange`, this works on any pos—not just the cursor.
+ */
+export function findLinkMarkAtPos(
+  state: EditorState,
+  pos: number,
+): { from: number; to: number; mark: Mark } | null {
+  const linkMark = refinexSchema.marks.link;
+  const safePos = Math.max(0, Math.min(pos, state.doc.content.size));
+  const $pos = state.doc.resolve(safePos);
+
+  // `$pos.marks()` gives marks to the left of the position.
+  // Fall back to nodeAfter.marks for the very start of a link span.
+  const activeMark =
+    $pos.marks().find((m) => m.type === linkMark) ??
+    $pos.nodeAfter?.marks.find((m) => m.type === linkMark);
+
+  if (!activeMark) return null;
+
+  // Expand to full contiguous link range (mirrors findActiveLinkRange logic)
+  let from = $pos.pos;
+  let to = $pos.pos;
+
+  while (from > 0) {
+    const $scan = state.doc.resolve(from);
+    const nodeBefore = $scan.nodeBefore;
+    if (!nodeBefore?.isText || !linkMark.isInSet(nodeBefore.marks)) break;
+    from -= nodeBefore.nodeSize;
+  }
+
+  while (to < state.doc.content.size) {
+    const $scan = state.doc.resolve(to);
+    const nodeAfter = $scan.nodeAfter;
+    if (!nodeAfter?.isText || !linkMark.isInSet(nodeAfter.marks)) break;
+    to += nodeAfter.nodeSize;
+  }
+
+  return { from, to, mark: activeMark };
+}
+
+/**
+ * Returns a `PopoverAnchorRect` anchored at the bottom-left of the link span,
+ * suitable for positioning a hover tooltip below the link.
+ */
+export function getLinkHoverAnchorRect(
+  view: EditorView,
+  from: number,
+  to: number,
+): PopoverAnchorRect {
+  const start = view.coordsAtPos(from);
+  const end = view.coordsAtPos(to);
+  const top = Math.min(start.top, end.top);
+  const bottom = Math.max(start.bottom, end.bottom);
+  const left = Math.min(start.left, end.left);
+  const right = Math.max(start.right, end.right);
+  return {
+    top,
+    bottom,
+    left,
+    right,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
+  };
 }

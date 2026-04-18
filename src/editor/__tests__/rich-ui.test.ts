@@ -1,4 +1,8 @@
-import { EditorState, TextSelection, type Transaction } from "prosemirror-state";
+import {
+  EditorState,
+  TextSelection,
+  type Transaction,
+} from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { describe, expect, it, vi } from "vitest";
 
@@ -9,6 +13,7 @@ import {
   createImageParagraphNode,
   createTaskListNode,
   executeSlashCommand,
+  findLinkMarkAtPos,
   findSlashTrigger,
   getLinkEditorRequest,
   isImageFile,
@@ -50,7 +55,9 @@ describe("rich UI helpers", () => {
     });
 
     const linkedState = setSelection(
-      EditorState.create({ doc: parseMarkdown('[site](https://example.com "Docs")') }),
+      EditorState.create({
+        doc: parseMarkdown('[site](https://example.com "Docs")'),
+      }),
       2,
     );
     expect(getLinkEditorRequest(linkedState)).toEqual({
@@ -176,5 +183,21 @@ describe("rich UI helpers", () => {
     const textFile = new File(["demo"], "demo.txt", { type: "text/plain" });
     expect(isImageFile(imageFile)).toBe(true);
     expect(isImageFile(textFile)).toBe(false);
+  });
+
+  it("findLinkMarkAtPos returns link range for positions inside a link", () => {
+    const state = EditorState.create({
+      doc: parseMarkdown('[site](https://example.com "Docs")'),
+    });
+    // pos 1 = start of "site" text (inside the link)
+    const result = findLinkMarkAtPos(state, 1);
+    expect(result).not.toBeNull();
+    expect(result?.from).toBe(1);
+    expect(result?.to).toBe(5);
+    expect(result?.mark.attrs.href).toBe("https://example.com");
+
+    // pos outside the link (inside trailing paragraph) → null
+    const outside = findLinkMarkAtPos(state, 7);
+    expect(outside).toBeNull();
   });
 });
