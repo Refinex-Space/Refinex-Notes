@@ -1,13 +1,13 @@
 pub mod auth;
 pub mod sync;
 
-use std::fs;
 use std::fmt;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 use git2::build::RepoBuilder;
 use git2::{
-    BranchType, DiffFormat, DiffOptions, ErrorCode, FetchOptions, IndexAddOption, Oid,
+    BranchType, Delta, DiffFormat, DiffOptions, ErrorCode, FetchOptions, IndexAddOption, Oid,
     PushOptions, Repository, RepositoryInitOptions, Signature, Sort, Status, StatusOptions,
     StatusShow,
 };
@@ -170,8 +170,9 @@ pub(crate) fn classify_status_presence(status: Status) -> (bool, bool) {
 
 pub fn init_repo(path: &str) -> GitResult<()> {
     let workspace_path = PathBuf::from(path);
-    fs::create_dir_all(&workspace_path)
-        .map_err(|error| GitError::new(GitErrorKind::Other, format!("创建仓库目录失败: {error}")))?;
+    fs::create_dir_all(&workspace_path).map_err(|error| {
+        GitError::new(GitErrorKind::Other, format!("创建仓库目录失败: {error}"))
+    })?;
 
     let mut options = RepositoryInitOptions::new();
     options.initial_head("main");
@@ -182,9 +183,10 @@ pub fn init_repo(path: &str) -> GitResult<()> {
 
 pub fn clone_repo(url: &str, path: &str) -> GitResult<()> {
     let mut fetch_options = FetchOptions::new();
-    fetch_options.remote_callbacks(auth::remote_callbacks().map_err(|message| {
-        GitError::new(GitErrorKind::Authentication, message)
-    })?);
+    fetch_options.remote_callbacks(
+        auth::remote_callbacks()
+            .map_err(|message| GitError::new(GitErrorKind::Authentication, message))?,
+    );
 
     RepoBuilder::new()
         .fetch_options(fetch_options)
@@ -207,7 +209,8 @@ pub fn get_status(path: &str) -> GitResult<Vec<FileStatus>> {
     let mut items = Vec::new();
 
     for entry in statuses.iter() {
-        if let (Some(relative_path), Some(status)) = (entry.path(), simplify_status(entry.status())) {
+        if let (Some(relative_path), Some(status)) = (entry.path(), simplify_status(entry.status()))
+        {
             let (staged, unstaged) = classify_status_presence(entry.status());
             items.push(FileStatus {
                 path: relative_path.replace('\\', "/"),
@@ -253,8 +256,15 @@ pub fn commit(path: &str, message: &str) -> GitResult<String> {
     let commit_oid = match head {
         Ok(reference) => {
             let parent = reference.peel_to_commit().map_err(map_git2_error)?;
-            repo.commit(Some("HEAD"), &signature, &signature, message, &tree, &[&parent])
-                .map_err(map_git2_error)?
+            repo.commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                message,
+                &tree,
+                &[&parent],
+            )
+            .map_err(map_git2_error)?
         }
         Err(error) if matches!(error.code(), ErrorCode::UnbornBranch | ErrorCode::NotFound) => repo
             .commit(Some("HEAD"), &signature, &signature, message, &tree, &[])
@@ -265,13 +275,198 @@ pub fn commit(path: &str, message: &str) -> GitResult<String> {
     Ok(commit_oid.to_string())
 }
 
+pub fn get_branch(path: &str) -> GitResult<String> {
+    let repo = open_repository(path)?;
+    current_branch_name(&repo)
+}
+
+pub fn stage_file(path: &str, file_path: &str) -> GitResult<()> {
+    let repo = open_repository(path)?;
+    let mut index = repo.index().map_err(map_git2_error)?;
+    index
+        .add_path(Path::new(file_path))
+        .map_err(map_git2_error)?;
+    index.write().map_err(map_git2_error)
+}
+
+pub fn unstage_file(path: &str, file_path: &str) -> GitResult<()> {
+    let repo = open_repository(path)?;
+
+    // Extract only the OID (Copy) so all repo borrows from `head()` are released
+    // before we call `reset_default`, which also borrows `repo`.
+    let head_oid: Option<Oid> = match repo.head() {
+        Ok(reference) => Some(reference.peel_to_commit().map_err(map_git2_error)?.id()),
+        Err(e) if matches!(e.code(), ErrorCode::UnbornBranch | ErrorCode::NotFound) => None,
+        Err(e) => return Err(map_git2_error(e)),
+    };
+
+    if let Some(oid) = head_oid {
+        let obj = repo.find_object(oid, None).map_err(map_git2_error)?;
+        repo.reset_default(Some(&obj), [file_path])
+            .map_err(map_git2_error)
+    } else {
+        // No commits yet — remove from index entirely
+        let mut index = repo.index().map_err(map_git2_error)?;
+        let _ = index.remove_path(Path::new(file_path));
+        index.write().map_err(map_git2_error)
+    }
+}
+
+fn delta_to_file_status_kind(delta: Delta) -> FileStatusKind {
+    match delta {
+        Delta::Added | Delta::Copied => FileStatusKind::Added,
+        Delta::Deleted => FileStatusKind::Deleted,
+        Delta::Renamed => FileStatusKind::Renamed,
+        Delta::Typechange => FileStatusKind::Typechange,
+        Delta::Conflicted => FileStatusKind::Conflicted,
+        _ => FileStatusKind::Modified,
+    }
+}
+
+/// Returns the list of files changed by a given commit.
+pub fn get_commit_files(path: &str, commit_hash: &str) -> GitResult<Vec<FileStatus>> {
+    let repo = open_repository(path)?;
+    let oid = Oid::from_str(commit_hash)
+        .map_err(|e| GitError::new(GitErrorKind::NotFound, format!("无效 commit hash: {e}")))?;
+    let commit = repo.find_commit(oid).map_err(map_git2_error)?;
+    let current_tree = commit.tree().map_err(map_git2_error)?;
+    let parent_tree = if commit.parent_count() > 0 {
+        Some(
+            commit
+                .parent(0)
+                .map_err(map_git2_error)?
+                .tree()
+                .map_err(map_git2_error)?,
+        )
+    } else {
+        None
+    };
+
+    let diff = repo
+        .diff_tree_to_tree(parent_tree.as_ref(), Some(&current_tree), None)
+        .map_err(map_git2_error)?;
+
+    let mut files: Vec<FileStatus> = Vec::new();
+    for delta in diff.deltas() {
+        let file_path = delta
+            .new_file()
+            .path()
+            .or_else(|| delta.old_file().path())
+            .and_then(|p| p.to_str())
+            .unwrap_or("")
+            .to_string();
+        if file_path.is_empty() {
+            continue;
+        }
+        files.push(FileStatus {
+            path: file_path,
+            status: delta_to_file_status_kind(delta.status()),
+            staged: true,
+            unstaged: false,
+        });
+    }
+
+    Ok(files)
+}
+
+/// Returns the unified diff patch for a single file in a given commit.
+pub fn get_commit_file_diff(path: &str, commit_hash: &str, file_path: &str) -> GitResult<String> {
+    let repo = open_repository(path)?;
+    let oid = Oid::from_str(commit_hash)
+        .map_err(|e| GitError::new(GitErrorKind::NotFound, format!("无效 commit hash: {e}")))?;
+    let commit = repo.find_commit(oid).map_err(map_git2_error)?;
+    let current_tree = commit.tree().map_err(map_git2_error)?;
+    let parent_tree = if commit.parent_count() > 0 {
+        Some(
+            commit
+                .parent(0)
+                .map_err(map_git2_error)?
+                .tree()
+                .map_err(map_git2_error)?,
+        )
+    } else {
+        None
+    };
+
+    let mut options = DiffOptions::new();
+    options.pathspec(file_path);
+
+    let diff = repo
+        .diff_tree_to_tree(
+            parent_tree.as_ref(),
+            Some(&current_tree),
+            Some(&mut options),
+        )
+        .map_err(map_git2_error)?;
+
+    let mut patch = String::new();
+    diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
+        match line.origin() {
+            ' ' | '+' | '-' => patch.push(line.origin()),
+            _ => {}
+        }
+        patch.push_str(&String::from_utf8_lossy(line.content()));
+        true
+    })
+    .map_err(map_git2_error)?;
+
+    Ok(patch)
+}
+
+pub fn get_working_diff(path: &str, file_path: &str) -> GitResult<String> {
+    let repo = open_repository(path)?;
+    let mut options = DiffOptions::new();
+    options
+        .pathspec(file_path)
+        .include_untracked(true)
+        .recurse_untracked_dirs(true)
+        .show_untracked_content(true);
+
+    // Extract tree OID to avoid holding a borrow on `repo` via `reference`
+    // while also calling diff methods that also borrow `repo`.
+    let head_tree_oid: Option<git2::Oid> = match repo.head() {
+        Ok(reference) => Some(
+            reference
+                .peel_to_commit()
+                .map_err(map_git2_error)?
+                .tree()
+                .map_err(map_git2_error)?
+                .id(),
+        ),
+        Err(_) => None,
+    };
+
+    let diff = if let Some(oid) = head_tree_oid {
+        let parent_tree = repo.find_tree(oid).map_err(map_git2_error)?;
+        repo.diff_tree_to_workdir_with_index(Some(&parent_tree), Some(&mut options))
+            .map_err(map_git2_error)?
+    } else {
+        repo.diff_tree_to_workdir_with_index(None, Some(&mut options))
+            .map_err(map_git2_error)?
+    };
+
+    let mut patch = String::new();
+    diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
+        match line.origin() {
+            ' ' | '+' | '-' => patch.push(line.origin()),
+            _ => {}
+        }
+        patch.push_str(&String::from_utf8_lossy(line.content()));
+        true
+    })
+    .map_err(map_git2_error)?;
+
+    Ok(patch)
+}
+
 pub fn fetch(path: &str) -> GitResult<()> {
     let repo = open_repository(path)?;
     let mut remote = repo.find_remote("origin").map_err(map_git2_error)?;
     let mut fetch_options = FetchOptions::new();
-    fetch_options.remote_callbacks(auth::remote_callbacks().map_err(|message| {
-        GitError::new(GitErrorKind::Authentication, message)
-    })?);
+    fetch_options.remote_callbacks(
+        auth::remote_callbacks()
+            .map_err(|message| GitError::new(GitErrorKind::Authentication, message))?,
+    );
 
     remote
         .fetch(&[] as &[&str], Some(&mut fetch_options), None)
@@ -283,9 +478,10 @@ pub fn push(path: &str) -> GitResult<()> {
     let branch_name = current_branch_name(&repo)?;
     let mut remote = repo.find_remote("origin").map_err(map_git2_error)?;
     let mut push_options = PushOptions::new();
-    push_options.remote_callbacks(auth::remote_callbacks().map_err(|message| {
-        GitError::new(GitErrorKind::Authentication, message)
-    })?);
+    push_options.remote_callbacks(
+        auth::remote_callbacks()
+            .map_err(|message| GitError::new(GitErrorKind::Authentication, message))?,
+    );
 
     let refspec = format!("refs/heads/{branch_name}:refs/heads/{branch_name}");
     remote
@@ -306,7 +502,9 @@ pub fn pull(path: &str) -> GitResult<()> {
     fetch(path)?;
 
     let remote_ref_name = format!("refs/remotes/origin/{branch_name}");
-    let remote_reference = repo.find_reference(&remote_ref_name).map_err(map_git2_error)?;
+    let remote_reference = repo
+        .find_reference(&remote_ref_name)
+        .map_err(map_git2_error)?;
     let remote_commit = repo
         .reference_to_annotated_commit(&remote_reference)
         .map_err(map_git2_error)?;
@@ -390,12 +588,19 @@ pub fn get_log(path: &str, file_path: Option<&str>, limit: usize) -> GitResult<V
 
 pub fn get_diff(path: &str, commit_hash: &str) -> GitResult<String> {
     let repo = open_repository(path)?;
-    let oid = Oid::from_str(commit_hash)
-        .map_err(|error| GitError::new(GitErrorKind::NotFound, format!("无效 commit hash: {error}")))?;
+    let oid = Oid::from_str(commit_hash).map_err(|error| {
+        GitError::new(GitErrorKind::NotFound, format!("无效 commit hash: {error}"))
+    })?;
     let commit = repo.find_commit(oid).map_err(map_git2_error)?;
     let current_tree = commit.tree().map_err(map_git2_error)?;
     let parent_tree = if commit.parent_count() > 0 {
-        Some(commit.parent(0).map_err(map_git2_error)?.tree().map_err(map_git2_error)?)
+        Some(
+            commit
+                .parent(0)
+                .map_err(map_git2_error)?
+                .tree()
+                .map_err(map_git2_error)?,
+        )
     } else {
         None
     };
@@ -459,7 +664,13 @@ fn commit_touches_path(repo: &Repository, oid: &Oid, file_path: &str) -> GitResu
     let commit = repo.find_commit(*oid).map_err(map_git2_error)?;
     let current_tree = commit.tree().map_err(map_git2_error)?;
     let parent_tree = if commit.parent_count() > 0 {
-        Some(commit.parent(0).map_err(map_git2_error)?.tree().map_err(map_git2_error)?)
+        Some(
+            commit
+                .parent(0)
+                .map_err(map_git2_error)?
+                .tree()
+                .map_err(map_git2_error)?,
+        )
     } else {
         None
     };
@@ -467,7 +678,11 @@ fn commit_touches_path(repo: &Repository, oid: &Oid, file_path: &str) -> GitResu
     let mut diff_options = DiffOptions::new();
     diff_options.pathspec(file_path);
     let diff = repo
-        .diff_tree_to_tree(parent_tree.as_ref(), Some(&current_tree), Some(&mut diff_options))
+        .diff_tree_to_tree(
+            parent_tree.as_ref(),
+            Some(&current_tree),
+            Some(&mut diff_options),
+        )
         .map_err(map_git2_error)?;
 
     Ok(diff.deltas().len() > 0)
@@ -505,7 +720,8 @@ mod tests {
         let (staged, unstaged) = classify_status_presence(Status::WT_MODIFIED);
         assert_eq!((staged, unstaged), (false, true));
 
-        let (staged, unstaged) = classify_status_presence(Status::INDEX_MODIFIED | Status::WT_MODIFIED);
+        let (staged, unstaged) =
+            classify_status_presence(Status::INDEX_MODIFIED | Status::WT_MODIFIED);
         assert_eq!((staged, unstaged), (true, true));
     }
 
@@ -572,7 +788,8 @@ mod tests {
         commit(clone_b_dir.path_str(), "remote").unwrap();
         push(clone_b_dir.path_str()).unwrap();
 
-        let (_ahead_before, behind_before) = branch_divergence(clone_a_dir.path_str()).unwrap_or((0, 0));
+        let (_ahead_before, behind_before) =
+            branch_divergence(clone_a_dir.path_str()).unwrap_or((0, 0));
         assert_eq!(behind_before, 0);
 
         super::fetch(clone_a_dir.path_str()).unwrap();
@@ -584,9 +801,18 @@ mod tests {
 
         let verify_dir = TempDir::new("verify");
         clone_repo(remote_dir.path_str(), verify_dir.path_str()).unwrap();
-        assert_eq!(fs::read_to_string(verify_dir.path().join("base.md")).unwrap(), "base\n");
-        assert_eq!(fs::read_to_string(verify_dir.path().join("local.md")).unwrap(), "local change\n");
-        assert_eq!(fs::read_to_string(verify_dir.path().join("remote.md")).unwrap(), "remote change\n");
+        assert_eq!(
+            fs::read_to_string(verify_dir.path().join("base.md")).unwrap(),
+            "base\n"
+        );
+        assert_eq!(
+            fs::read_to_string(verify_dir.path().join("local.md")).unwrap(),
+            "local change\n"
+        );
+        assert_eq!(
+            fs::read_to_string(verify_dir.path().join("remote.md")).unwrap(),
+            "remote change\n"
+        );
     }
 
     #[test]
@@ -622,7 +848,8 @@ mod tests {
 
     fn connect_origin(repo_path: &Path, remote_path: &Path) {
         let repo = Repository::open(repo_path).unwrap();
-        repo.remote("origin", remote_path.to_str().unwrap()).unwrap();
+        repo.remote("origin", remote_path.to_str().unwrap())
+            .unwrap();
     }
 
     fn write_file(root: &Path, relative_path: &str, content: &str) {

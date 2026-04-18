@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Kbd } from "@radix-ui/themes";
 import {
   AlertCircle,
-  GitBranch,
   RefreshCcw,
   Search as SearchIcon,
   Wand2,
@@ -14,14 +13,13 @@ import type { EditorView } from "prosemirror-view";
 import { CommandPalette } from "./components/CommandPalette";
 import { AccountStatus } from "./components/auth/AccountStatus";
 import { GitEmptyState } from "./components/git/GitEmptyState";
-import { GitOverviewPanel } from "./components/git/GitOverviewPanel";
+import { GitPanel } from "./components/git/GitPanel";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { DocumentOutlineDock } from "./components/editor/DocumentOutlineDock";
 import { FindReplaceBar } from "./components/editor/FindReplaceBar";
 import { TabBar } from "./components/editor/TabBar";
 import { AppLayout } from "./components/layout/AppLayout";
 import { StatusBar } from "./components/layout/StatusBar";
-import { HistoryPanel } from "./components/git/HistoryPanel";
 import { SetupPanel } from "./components/git/SetupPanel";
 import { SyncStatus } from "./components/git/SyncStatus";
 import { FileTree, FileTreeEmptyState } from "./components/sidebar/FileTree";
@@ -154,12 +152,10 @@ function SidebarContent({
 type RightPanelTab = "history" | "setup";
 
 function RightPanelContent({
-  currentFile,
   workspacePath,
   activeTab,
   setActiveTab,
 }: {
-  currentFile: string | null;
   workspacePath: string | null;
   activeTab: RightPanelTab;
   setActiveTab: Dispatch<SetStateAction<RightPanelTab>>;
@@ -168,9 +164,7 @@ function RightPanelContent({
   const openWorkspace = useNoteStore((state) => state.openWorkspace);
   const initRepo = useGitStore((state) => state.initRepo);
   const cloneRepo = useGitStore((state) => state.cloneRepo);
-  const changedFiles = useGitStore((state) => state.changedFiles);
   const syncStatus = useGitStore((state) => state.syncStatus);
-  const syncDetail = useGitStore((state) => state.syncDetail);
   const isRunningAction = useGitStore((state) => state.isRunningAction);
   const errorMessage = useGitStore((state) => state.errorMessage);
 
@@ -204,14 +198,8 @@ function RightPanelContent({
               });
             }}
           />
-        ) : !currentFile ? (
-          <GitOverviewPanel
-            changedFiles={changedFiles}
-            syncStatus={syncStatus}
-            syncDetail={syncDetail}
-          />
         ) : (
-          <HistoryPanel currentFile={currentFile} />
+          <GitPanel />
         )}
       </div>
     </div>
@@ -912,7 +900,6 @@ function WorkspaceShell({
         }
         rightPanel={
           <RightPanelContent
-            currentFile={currentFile}
             workspacePath={workspacePath}
             activeTab={rightPanelTab}
             setActiveTab={setRightPanelTab}

@@ -40,19 +40,32 @@ function mockGitStore(overrides: Record<string, unknown> = {}) {
     cloneRepo: vi.fn(),
     handleSyncEvent: vi.fn(),
     clearError: vi.fn(),
+    fetchBranch: vi.fn(),
+    stageFile: vi.fn(),
+    unstageFile: vi.fn(),
+    stageAll: vi.fn(),
+    commitStaged: vi.fn(),
+    fetchWorkingDiff: vi.fn(),
+    fetchCommitFiles: vi.fn(),
+    fetchCommitFileDiff: vi.fn(),
     errorMessage: null,
+    currentBranch: null,
     ...overrides,
   };
 
-  vi.mocked(useGitStore).mockImplementation((selector: (state: typeof store) => unknown) => {
-    return selector(store);
-  });
+  vi.mocked(useGitStore).mockImplementation(
+    (selector: (state: typeof store) => unknown) => {
+      return selector(store);
+    },
+  );
 }
 
 describe("HistoryPanel", () => {
   it("formats timestamps as relative time", () => {
     const now = new Date("2026-04-14T12:00:00Z").getTime();
-    expect(formatRelativeTime(Math.floor(now / 1000) - 3600, now)).toContain("小时前");
+    expect(formatRelativeTime(Math.floor(now / 1000) - 3600, now)).toContain(
+      "小时前",
+    );
   });
 
   it("renders an empty-state message when no file is open", () => {
@@ -81,7 +94,9 @@ describe("HistoryPanel", () => {
       ],
     });
 
-    const markup = renderToStaticMarkup(<HistoryPanel currentFile="Inbox/Welcome.md" />);
+    const markup = renderToStaticMarkup(
+      <HistoryPanel currentFile="Inbox/Welcome.md" />,
+    );
     expect(markup).toContain("Repository");
     expect(markup).toContain("repo commit");
     expect(markup).toContain("file commit");

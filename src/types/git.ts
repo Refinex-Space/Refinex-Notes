@@ -81,6 +81,7 @@ export interface GitStoreState {
   isLoadingStatus: boolean;
   isRunningAction: boolean;
   errorMessage: string | null;
+  currentBranch: string | null;
 }
 
 export interface GitStoreActions {
@@ -99,6 +100,14 @@ export interface GitStoreActions {
   cloneRepo: (url: string, targetPath: string) => Promise<void>;
   handleSyncEvent: (payload: GitSyncEventPayload) => void;
   clearError: () => void;
+  fetchBranch: () => Promise<void>;
+  stageFile: (path: string) => Promise<void>;
+  unstageFile: (path: string) => Promise<void>;
+  stageAll: () => Promise<void>;
+  commitStaged: (message: string) => Promise<void>;
+  fetchWorkingDiff: (filePath: string) => Promise<string>;
+  fetchCommitFiles: (hash: string) => Promise<GitStatusEntry[]>;
+  fetchCommitFileDiff: (hash: string, filePath: string) => Promise<string>;
 }
 
 export type GitStore = GitStoreState & GitStoreActions;

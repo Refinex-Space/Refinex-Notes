@@ -33,6 +33,11 @@ export const gitService = {
     return invoke<GitStatusEntry[]>("git_get_status", { path });
   },
 
+  async getBranch(path: string) {
+    requireNativeGit();
+    return invoke<string>("git_get_branch", { path });
+  },
+
   async commit(path: string, message: string) {
     requireNativeGit();
     return invoke<string>("git_commit", { path, message });
@@ -60,6 +65,55 @@ export const gitService = {
   async getDiff(path: string, commitHash: string) {
     requireNativeGit();
     return invoke<string>("git_get_diff", { path, commitHash });
+  },
+
+  async stageAll(path: string) {
+    requireNativeGit();
+    await invoke<void>("git_stage_all", { path });
+  },
+
+  async stageFile(repoPath: string, filePath: string) {
+    requireNativeGit();
+    await invoke<void>("git_stage_file", { path: repoPath, filePath });
+  },
+
+  async unstageFile(repoPath: string, filePath: string) {
+    requireNativeGit();
+    await invoke<void>("git_unstage_file", { path: repoPath, filePath });
+  },
+
+  async getWorkingDiff(repoPath: string, filePath: string) {
+    requireNativeGit();
+    return invoke<string>("git_get_working_diff", { path: repoPath, filePath });
+  },
+
+  async commitStaged(path: string, message: string) {
+    requireNativeGit();
+    return invoke<string>("git_commit_staged", { path, message });
+  },
+
+  async getCommitFiles(repoPath: string, commitHash: string) {
+    requireNativeGit();
+    return invoke<import("../types/git").GitStatusEntry[]>(
+      "git_get_commit_files",
+      {
+        path: repoPath,
+        commitHash,
+      },
+    );
+  },
+
+  async getCommitFileDiff(
+    repoPath: string,
+    commitHash: string,
+    filePath: string,
+  ) {
+    requireNativeGit();
+    return invoke<string>("git_get_commit_file_diff", {
+      path: repoPath,
+      commitHash,
+      filePath,
+    });
   },
 
   async startSync(intervalSeconds = 60) {

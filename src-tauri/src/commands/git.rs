@@ -18,6 +18,11 @@ pub fn git_clone_repo(url: String, path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn git_get_branch(path: String) -> Result<String, String> {
+    git::get_branch(&path).map_err(to_command_error)
+}
+
+#[tauri::command]
 pub fn git_get_status(path: String) -> Result<Vec<git::FileStatus>, String> {
     git::get_status(&path).map_err(to_command_error)
 }
@@ -50,6 +55,48 @@ pub fn git_get_log(
 #[tauri::command]
 pub fn git_get_diff(path: String, commit_hash: String) -> Result<String, String> {
     git::get_diff(&path, &commit_hash).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_get_commit_files(
+    path: String,
+    commit_hash: String,
+) -> Result<Vec<git::FileStatus>, String> {
+    git::get_commit_files(&path, &commit_hash).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_get_commit_file_diff(
+    path: String,
+    commit_hash: String,
+    file_path: String,
+) -> Result<String, String> {
+    git::get_commit_file_diff(&path, &commit_hash, &file_path).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_stage_all(path: String) -> Result<(), String> {
+    git::stage_all(&path).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_stage_file(path: String, file_path: String) -> Result<(), String> {
+    git::stage_file(&path, &file_path).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_unstage_file(path: String, file_path: String) -> Result<(), String> {
+    git::unstage_file(&path, &file_path).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_get_working_diff(path: String, file_path: String) -> Result<String, String> {
+    git::get_working_diff(&path, &file_path).map_err(to_command_error)
+}
+
+#[tauri::command]
+pub fn git_commit_staged(path: String, message: String) -> Result<String, String> {
+    git::commit(&path, &message).map_err(to_command_error)
 }
 
 #[tauri::command]
@@ -86,7 +133,13 @@ pub fn git_stop_sync(app_handle: AppHandle, state: State<'_, AppState>) -> Resul
         let workspace_path = guard
             .as_ref()
             .map(|controller| controller.workspace_path().to_path_buf())
-            .or_else(|| state.workspace_path.lock().ok().and_then(|path| path.clone()));
+            .or_else(|| {
+                state
+                    .workspace_path
+                    .lock()
+                    .ok()
+                    .and_then(|path| path.clone())
+            });
         (workspace_path, guard.take())
     };
 

@@ -29,6 +29,7 @@ function createInitialState(): GitStoreState {
     isLoadingStatus: false,
     isRunningAction: false,
     errorMessage: null,
+    currentBranch: null,
   };
 }
 
@@ -96,7 +97,11 @@ function deriveSyncStatus(
   changedFiles: readonly GitStatusEntry[],
   currentStatus: GitSyncPhase,
 ) {
-  if (currentStatus === "fetching" || currentStatus === "merging" || currentStatus === "pushing") {
+  if (
+    currentStatus === "fetching" ||
+    currentStatus === "merging" ||
+    currentStatus === "pushing"
+  ) {
     return currentStatus;
   }
   if (currentStatus === "conflicted") {
@@ -165,6 +170,7 @@ export const useGitStore = create<GitStore>()(
             : "工作区已同步";
           state.isLoadingStatus = false;
         });
+        void get().fetchBranch();
       } catch (error) {
         const message = normalizeError(error);
         set((state) => {
@@ -176,8 +182,12 @@ export const useGitStore = create<GitStore>()(
           state.selectedCommitHash = null;
           state.selectedCommitDiff = null;
           state.errorMessage = detectRepoMissing(message) ? null : message;
-          state.syncStatus = detectRepoMissing(message) ? "not-initialized" : "offline";
-          state.syncDetail = detectRepoMissing(message) ? "当前工作区尚未初始化 Git 仓库" : message;
+          state.syncStatus = detectRepoMissing(message)
+            ? "not-initialized"
+            : "offline";
+          state.syncDetail = detectRepoMissing(message)
+            ? "当前工作区尚未初始化 Git 仓库"
+            : message;
         });
       }
     },
@@ -321,7 +331,9 @@ export const useGitStore = create<GitStore>()(
         set((state) => {
           state.isRunningAction = false;
           state.errorMessage = message;
-          state.syncStatus = /conflict|冲突/i.test(message) ? "conflicted" : "offline";
+          state.syncStatus = /conflict|冲突/i.test(message)
+            ? "conflicted"
+            : "offline";
           state.syncDetail = message;
         });
       }
@@ -482,6 +494,95 @@ export const useGitStore = create<GitStore>()(
       set((state) => {
         state.errorMessage = null;
       });
+    },
+
+    fetchBranch: async () => {
+      const workspacePath = currentWorkspacePath();
+      if (!workspacePath || !gitService.isNativeAvailable()) {
+        return;
+      }
+
+      try {
+        const branch = await gitService.getBranch(workspacePath);
+        set((state) => {
+          state.currentBranch = branch;
+        });
+      } catch {
+        // Branch fetch failure is non-critical; keep existing value
+      }
+    },
+
+    stageFile: async (filePath) => {
+      const workspacePath = ensureWorkspacePath();
+      try {
+        await gitService.stageFile(workspacePath, filePath);
+        await get().refreshStatus();
+      } catch (error) {
+        set((state) => {
+          state.errorMessage = normalizeError(error);
+        });
+      }
+    },
+
+    unstageFile: async (filePath) => {
+      const workspacePath = ensureWorkspacePath();
+      try {
+        await gitService.unstageFile(workspacePath, filePath);
+        await get().refreshStatus();
+      } catch (error) {
+        set((state) => {
+          state.errorMessage = normalizeError(error);
+        });
+      }
+    },
+
+    stageAll: async () => {
+      const workspacePath = ensureWorkspacePath();
+      try {
+        await gitService.stageAll(workspacePath);
+        await get().refreshStatus();
+      } catch (error) {
+        set((state) => {
+          state.errorMessage = normalizeError(error);
+        });
+      }
+    },
+
+    commitStaged: async (message) => {
+      const workspacePath = ensureWorkspacePath();
+      set((state) => {
+        state.isRunningAction = true;
+        state.errorMessage = null;
+      });
+      try {
+        await gitService.commitStaged(workspacePath, message);
+        set((state) => {
+          state.isRunningAction = false;
+          state.syncStatus = "committed";
+          state.syncDetail = "已创建新的提交";
+        });
+        await get().refreshStatus();
+      } catch (error) {
+        set((state) => {
+          state.isRunningAction = false;
+          state.errorMessage = normalizeError(error);
+        });
+      }
+    },
+
+    fetchWorkingDiff: async (filePath) => {
+      const workspacePath = ensureWorkspacePath();
+      return gitService.getWorkingDiff(workspacePath, filePath);
+    },
+
+    fetchCommitFiles: async (hash) => {
+      const workspacePath = ensureWorkspacePath();
+      return gitService.getCommitFiles(workspacePath, hash);
+    },
+
+    fetchCommitFileDiff: async (hash, filePath) => {
+      const workspacePath = ensureWorkspacePath();
+      return gitService.getCommitFileDiff(workspacePath, hash, filePath);
     },
   })),
 );

@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Git Panel Prototype Redesign](exec-plans/completed/2026-04-18-git-panel-prototype-redesign.md) — completed 2026-04-18
+
 ## Completed Plans
 
 - [In-Document Find & Replace](exec-plans/completed/2026-04-18-in-document-find-replace.md) — completed 2026-04-18
