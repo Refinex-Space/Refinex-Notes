@@ -4,7 +4,7 @@
 
 :root {
   color-scheme: light;
-  --color-bg: 248 250 252;
+  --color-bg: 255 255 255;
   --color-fg: 15 23 42;
   --color-muted: 100 116 139;
   --color-accent: 14 165 233;
@@ -19,7 +19,7 @@
 
 html.dark {
   color-scheme: dark;
-  --color-bg: 2 6 23;
+  --color-bg: 0 0 0;
   --color-fg: 248 250 252;
   --color-muted: 148 163 184;
   --color-accent: 34 211 238;
