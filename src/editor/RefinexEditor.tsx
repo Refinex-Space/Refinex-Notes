@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { EditorState, type Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import type { Node as ProseMirrorNode } from "prosemirror-model";
@@ -24,12 +24,16 @@ import {
 import { CodeBlockView } from "./node-views/CodeBlockView";
 import { ImageView } from "./node-views/ImageView";
 import { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
+import { LinkHoverTooltip } from "./ui/LinkHoverTooltip";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { SlashMenu, type SlashMenuRequest } from "./ui/SlashMenu";
 import {
+  findLinkMarkAtPos,
   getLinkEditorRequest,
+  getLinkHoverAnchorRect,
   getSelectionAnchorRect,
   handleImageFileDrop,
+  type PopoverAnchorRect,
 } from "./rich-ui";
 import {
   finishDocumentPerfTrace,
@@ -378,12 +382,37 @@ export function RefinexEditor({
   const onToggleSourceModeRef = useRef(onToggleSourceMode);
   const sourceTextareaRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuChangeRef = useRef((_request: SlashMenuRequest | null) => {});
+  const hideHoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [overlayVersion, setOverlayVersion] = useState(0);
   const [linkPopoverRequest, setLinkPopoverRequest] =
     useState<LinkPopoverRequest | null>(null);
   const [slashMenuRequest, setSlashMenuRequest] =
     useState<SlashMenuRequest | null>(null);
+  const [linkHoverState, setLinkHoverState] = useState<{
+    from: number;
+    to: number;
+    href: string;
+    title: string;
+    anchor: PopoverAnchorRect;
+  } | null>(null);
+
+  const cancelHoverHide = useCallback(() => {
+    if (hideHoverTimerRef.current) {
+      clearTimeout(hideHoverTimerRef.current);
+      hideHoverTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHoverHide = useCallback(() => {
+    if (hideHoverTimerRef.current) {
+      clearTimeout(hideHoverTimerRef.current);
+    }
+    hideHoverTimerRef.current = setTimeout(() => {
+      setLinkHoverState(null);
+      hideHoverTimerRef.current = null;
+    }, 200);
+  }, []);
 
   // Keep refs in sync with latest props without re-triggering effects
   onChangeRef.current = onChange;
@@ -569,6 +598,10 @@ export function RefinexEditor({
       setEditorView(null);
       setLinkPopoverRequest(null);
       setSlashMenuRequest(null);
+      setLinkHoverState(null);
+      if (hideHoverTimerRef.current) {
+        clearTimeout(hideHoverTimerRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // mount-only — intentional: we manage value updates via the effect below
@@ -678,6 +711,7 @@ export function RefinexEditor({
     setOverlayVersion((current) => current + 1);
     setLinkPopoverRequest(null);
     setSlashMenuRequest(null);
+    setLinkHoverState(null);
     reportCursorPositionSafely(
       stateResolution.state,
       onCursorChangeRef.current,
@@ -705,6 +739,55 @@ export function RefinexEditor({
     );
   }, [documentPath, value]);
 
+  const handleEditorMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      const view = viewRef.current;
+      if (!view) return;
+
+      // Skip when text is selected (FloatingToolbar handles that case)
+      if (!view.state.selection.empty) {
+        scheduleHoverHide();
+        return;
+      }
+
+      const coords = { left: event.clientX, top: event.clientY };
+      const result = view.posAtCoords(coords);
+      if (!result) {
+        scheduleHoverHide();
+        return;
+      }
+
+      const linkRange = findLinkMarkAtPos(view.state, result.pos);
+      if (!linkRange) {
+        scheduleHoverHide();
+        return;
+      }
+
+      cancelHoverHide();
+
+      setLinkHoverState((previous) => {
+        if (
+          previous?.from === linkRange.from &&
+          previous?.to === linkRange.to
+        ) {
+          return previous; // same link — no re-render
+        }
+        return {
+          from: linkRange.from,
+          to: linkRange.to,
+          href: (linkRange.mark.attrs.href as string) ?? "",
+          title: (linkRange.mark.attrs.title as string) ?? "",
+          anchor: getLinkHoverAnchorRect(view, linkRange.from, linkRange.to),
+        };
+      });
+    },
+    [cancelHoverHide, scheduleHoverHide],
+  );
+
+  const handleEditorMouseLeave = useCallback(() => {
+    scheduleHoverHide();
+  }, [scheduleHoverHide]);
+
   // Auto-resize the source textarea to fit its content.
   // height: 100% doesn't work in this layout (parent chain uses min-height, not height),
   // so we imperatively set height = scrollHeight instead.
@@ -719,6 +802,8 @@ export function RefinexEditor({
     <div
       className={["min-w-0 relative", className].filter(Boolean).join(" ")}
       data-refinex-editor-shell
+      onMouseMove={!sourceMode ? handleEditorMouseMove : undefined}
+      onMouseLeave={!sourceMode ? handleEditorMouseLeave : undefined}
     >
       {/* ProseMirror mount — always in DOM to preserve EditorView + undo history */}
       <div
@@ -743,6 +828,29 @@ export function RefinexEditor({
             request={slashMenuRequest}
             onClose={() => setSlashMenuRequest(null)}
           />
+          {linkHoverState && !linkPopoverRequest && (
+            <LinkHoverTooltip
+              href={linkHoverState.href}
+              anchor={linkHoverState.anchor}
+              onEdit={() => {
+                setLinkPopoverRequest({
+                  from: linkHoverState.from,
+                  to: linkHoverState.to,
+                  href: linkHoverState.href,
+                  title: linkHoverState.title,
+                  anchor: getSelectionAnchorRect(
+                    viewRef.current!,
+                    linkHoverState.from,
+                    linkHoverState.to,
+                  ),
+                });
+                setLinkHoverState(null);
+              }}
+              onClose={() => setLinkHoverState(null)}
+              onMouseEnter={cancelHoverHide}
+              onMouseLeave={scheduleHoverHide}
+            />
+          )}
         </>
       )}
       {sourceMode && (
