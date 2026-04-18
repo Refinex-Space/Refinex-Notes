@@ -3,9 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Kbd } from "@radix-ui/themes";
 import {
   AlertCircle,
+  ChevronUp,
+  FolderClosed,
+  GitBranch,
+  Plus,
   RefreshCcw,
   Search as SearchIcon,
   Wand2,
+  X,
 } from "lucide-react";
 import { TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
@@ -24,7 +29,6 @@ import { SetupPanel } from "./components/git/SetupPanel";
 import { SyncStatus } from "./components/git/SyncStatus";
 import { FileTree, FileTreeEmptyState } from "./components/sidebar/FileTree";
 import { SearchPanel } from "./components/sidebar/SearchPanel";
-import { WorkspaceSwitcher } from "./components/sidebar/WorkspaceSwitcher";
 import {
   buildCommandPaletteItems,
   countWords,
@@ -74,6 +78,10 @@ const sidebarActionButtonClassName = [
 
 const AUTO_EDITOR_HYDRATION_DELAY_MS = 900;
 
+function getWorkspaceName(path: string) {
+  return path.split(/[\\/]/).findLast(Boolean) ?? path;
+}
+
 function SidebarContent({
   onSelectSearchResult,
   workspacePath,
@@ -92,21 +100,30 @@ function SidebarContent({
   >["recentWorkspaces"];
 }) {
   const hasFiles = useNoteStore((state) => state.files.length > 0);
+  const currentBranch = useGitStore((state) => state.currentBranch);
+  const changedFiles = useGitStore((state) => state.changedFiles);
   const sidebarSurfaceClassName = "bg-[rgb(var(--color-bg)/0.9)]";
+
+  const addedCount = changedFiles.filter(
+    (f) => f.status === "added" || f.status === "untracked",
+  ).length;
+  const modifiedCount = changedFiles.filter(
+    (f) => f.status === "modified",
+  ).length;
+  const orderedRecentWorkspaces = useMemo(() => {
+    if (!workspacePath) return recentWorkspaces;
+    const current = recentWorkspaces.find((e) => e.path === workspacePath);
+    const others = recentWorkspaces.filter((e) => e.path !== workspacePath);
+    return current ? [current, ...others] : others;
+  }, [recentWorkspaces, workspacePath]);
 
   return (
     <div className={`flex h-full min-h-0 flex-col ${sidebarSurfaceClassName}`}>
-      <section className="shrink-0 border-b border-border/70 px-3 py-3">
-        <TooltipProvider>
-          <div className="flex items-center gap-2">
-            <WorkspaceSwitcher
-              workspacePath={workspacePath}
-              recentWorkspaces={recentWorkspaces}
-              onOpenWorkspace={onOpenWorkspace}
-              onSelectWorkspace={onSelectWorkspace}
-              onRemoveWorkspace={onRemoveWorkspace}
-            />
-
+      {/* Header: 文件 label + search + open-directory button */}
+      <section className="flex shrink-0 items-center justify-between px-3 py-1">
+        <span className="text-[11px] font-semibold text-muted">文件</span>
+        <div className="flex items-center gap-0.5">
+          <TooltipProvider>
             <SearchPanel
               workspacePath={workspacePath}
               onSelectResult={onSelectSearchResult}
@@ -117,14 +134,28 @@ function SidebarContent({
                   aria-label="搜索项目"
                   className={sidebarActionButtonClassName}
                 >
-                  <SearchIcon className="h-4 w-4" />
+                  <SearchIcon className="h-3.5 w-3.5" />
                 </button>
               }
             />
-          </div>
-        </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="打开目录"
+                  className={sidebarActionButtonClassName}
+                  onClick={onOpenWorkspace}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">打开目录</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </section>
 
+      {/* File tree */}
       {hasFiles ? (
         <section
           className={`flex min-h-0 flex-1 flex-col ${sidebarSurfaceClassName}`}
@@ -145,6 +176,97 @@ function SidebarContent({
           <FileTreeEmptyState workspacePath={workspacePath} />
         </section>
       )}
+
+      {/* Bottom: workspace switcher + git strip */}
+      <div className="shrink-0 border-t border-border/70">
+        {/* Workspace switcher — hover the name strip to reveal history list */}
+        <div className="group/ws">
+          {/* History list — expands upward on hover of the group/ws area */}
+          <div
+            className={[
+              "overflow-hidden transition-all duration-200",
+              "max-h-0 pointer-events-none",
+              "group-hover/ws:max-h-52 group-hover/ws:pointer-events-auto",
+            ].join(" ")}
+          >
+            <div className="space-y-0.5 px-2 py-1.5">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11px] text-muted transition-colors hover:bg-fg/[0.06] hover:text-fg"
+                onClick={onOpenWorkspace}
+              >
+                <Plus className="h-3 w-3 shrink-0" />
+                打开工作区...
+              </button>
+              {orderedRecentWorkspaces.map((ws) => {
+                const isCurrent = ws.path === workspacePath;
+                return (
+                  <div
+                    key={ws.path}
+                    className={[
+                      "flex items-center gap-1 rounded-md px-2 py-1 transition-colors",
+                      isCurrent ? "bg-accent/[0.08]" : "hover:bg-fg/[0.06]",
+                    ].join(" ")}
+                  >
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left"
+                      onClick={() => onSelectWorkspace(ws.path)}
+                    >
+                      <span
+                        className={`block truncate text-[12px] font-medium ${
+                          isCurrent ? "text-accent" : "text-fg"
+                        }`}
+                      >
+                        {getWorkspaceName(ws.path)}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`移除 ${getWorkspaceName(ws.path)}`}
+                      className="shrink-0 text-muted/40 transition-colors hover:text-rose-400"
+                      onClick={() => onRemoveWorkspace(ws.path)}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Always-visible current workspace name strip */}
+          <div className="flex cursor-default items-center gap-1.5 px-3 py-1.5 text-[11px] text-muted">
+            <FolderClosed className="h-3 w-3 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">
+              {workspacePath
+                ? getWorkspaceName(workspacePath)
+                : "打开工作区..."}
+            </span>
+            <ChevronUp className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover/ws:opacity-50" />
+          </div>
+        </div>
+
+        {/* Git branch + counts strip */}
+        <div className="flex items-center gap-1.5 border-t border-border/50 px-3 py-1.5 text-[11px] text-muted">
+          <GitBranch className="h-3 w-3 shrink-0" />
+          <span className="truncate">{currentBranch ?? "—"}</span>
+          {addedCount > 0 && (
+            <span className="ml-auto shrink-0 text-emerald-400">
+              {addedCount} +
+            </span>
+          )}
+          {modifiedCount > 0 && (
+            <span
+              className={`shrink-0 text-amber-400 ${
+                addedCount === 0 ? "ml-auto" : ""
+              }`}
+            >
+              {modifiedCount} ●
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

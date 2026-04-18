@@ -19,7 +19,7 @@ const ContextMenuSubTrigger = React.forwardRef<
     ref={ref}
     className={[
       "flex cursor-default select-none items-center rounded-xl px-3 py-2 text-sm outline-none transition",
-      "focus:bg-accent/12 focus:text-fg data-[state=open]:bg-accent/12 data-[state=open]:text-fg",
+      "data-[highlighted]:bg-fg/[0.08] data-[highlighted]:text-fg data-[state=open]:bg-fg/[0.08] data-[state=open]:text-fg",
       inset ? "pl-8" : "",
       className,
     ]
@@ -86,7 +86,7 @@ const ContextMenuItem = React.forwardRef<
     ref={ref}
     className={[
       "relative flex cursor-default select-none items-center rounded-xl px-3 py-2 text-sm outline-none transition",
-      "focus:bg-accent/12 focus:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "data-[highlighted]:bg-fg/[0.08] data-[highlighted]:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       inset ? "pl-8" : "",
       className,
     ]
@@ -106,7 +106,7 @@ const ContextMenuCheckboxItem = React.forwardRef<
     ref={ref}
     className={[
       "relative flex cursor-default select-none items-center rounded-xl py-2 pl-8 pr-3 text-sm outline-none transition",
-      "focus:bg-accent/12 focus:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "data-[highlighted]:bg-fg/[0.08] data-[highlighted]:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     ]
       .filter(Boolean)
@@ -165,7 +165,10 @@ const ContextMenuShortcut = ({
   ...props
 }: React.HTMLAttributes<HTMLSpanElement>) => (
   <span
-    className={["ml-auto text-xs uppercase tracking-[0.2em] text-muted", className]
+    className={[
+      "ml-auto text-xs uppercase tracking-[0.2em] text-muted",
+      className,
+    ]
       .filter(Boolean)
       .join(" ")}
     {...props}

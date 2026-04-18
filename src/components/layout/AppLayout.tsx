@@ -341,7 +341,7 @@ export function AppLayout({
         style={{ gridTemplateColumns }}
       >
         <div className="h-full min-h-0 min-w-0 overflow-hidden">
-          <Collapsible open={!sidebarCollapsed}>
+          <Collapsible open={!sidebarCollapsed} className="h-full min-h-0">
             <CollapsibleContent
               forceMount
               className={[
@@ -391,7 +391,10 @@ export function AppLayout({
         </section>
 
         <div className="h-full min-h-0 min-w-0 overflow-hidden">
-          <Collapsible open={activeRightPanel !== null}>
+          <Collapsible
+            open={activeRightPanel !== null}
+            className="h-full min-h-0"
+          >
             <CollapsibleContent
               forceMount
               className={[

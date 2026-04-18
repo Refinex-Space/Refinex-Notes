@@ -10,6 +10,8 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Sidebar Prototype Redesign](exec-plans/completed/2026-04-18-sidebar-prototype-redesign.md) — completed 2026-04-18
+
 - [In-Document Find & Replace](exec-plans/completed/2026-04-18-in-document-find-replace.md) — completed 2026-04-18
 
 - [Header TitleBar Refactor](exec-plans/completed/2026-04-18-header-titlebar-refactor.md) — completed 2026-04-18

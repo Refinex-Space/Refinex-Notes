@@ -1,6 +1,5 @@
 import {
   ChevronRight,
-  Circle,
   FileText,
   FolderClosed,
   FolderOpenDot,
@@ -50,6 +49,26 @@ export function gitStatusTone(status: FileGitStatus | undefined) {
   }
 }
 
+function gitStatusLabel(status: FileGitStatus | undefined): string {
+  switch (status) {
+    case "added":
+    case "untracked":
+      return "A";
+    case "modified":
+      return "M";
+    case "deleted":
+      return "D";
+    case "renamed":
+      return "R";
+    case "typechange":
+      return "T";
+    case "conflicted":
+      return "C";
+    default:
+      return "";
+  }
+}
+
 async function copyPath(path: string) {
   if (!navigator.clipboard) {
     return;
@@ -76,8 +95,8 @@ export function FileTreeEmptyState({
   const caption = isLoading
     ? "先显示工作区外壳，目录会按需补全"
     : workspacePath
-    ? "新建 Markdown 后会出现在这里"
-    : "本地 Markdown / Git 仓库";
+      ? "新建 Markdown 后会出现在这里"
+      : "本地 Markdown / Git 仓库";
 
   return (
     <div className="w-full bg-[rgb(var(--color-bg)/0.9)] px-6 py-8">
@@ -117,7 +136,8 @@ function FileRow({
   const isCurrent = currentFile === node.path;
   const directoryPath = getNodeDirectoryPath(node);
   const effectiveGitStatus = statusByPath[node.path] ?? node.gitStatus;
-  const isDirectoryLoading = node.isDir && loadingDirectories.includes(node.path);
+  const isDirectoryLoading =
+    node.isDir && loadingDirectories.includes(node.path);
   const canLoadDirectory = node.isDir && node.hasChildren && !node.isLoaded;
 
   const row = node.isDir ? (
@@ -139,6 +159,8 @@ function FileRow({
             className={[
               "!rounded-lg px-2.5 !py-1 !text-[13px] !font-medium !leading-[1.1rem]",
               "text-muted hover:bg-white/[0.04] hover:text-fg data-[state=open]:bg-white/[0.05] data-[state=open]:text-fg",
+              // hide the built-in trailing chevron from accordion.tsx
+              "[&>svg:last-child]:hidden",
               isCurrent ? "bg-accent/10 text-fg" : "",
             ]
               .filter(Boolean)
@@ -146,6 +168,8 @@ function FileRow({
             style={indentation}
           >
             <span className="flex min-w-0 items-center gap-1.5">
+              {/* chevron left of folder icon, rotates 90° when open */}
+              <ChevronRight className="h-[11px] w-[11px] shrink-0 text-muted/50 transition-transform duration-150 group-data-[state=open]:rotate-90" />
               <span className="relative flex h-4 w-4 shrink-0 items-center justify-center text-fg/75">
                 <FolderClosed className="h-3.5 w-3.5 group-data-[state=open]:hidden" />
                 <FolderOpen className="hidden h-3.5 w-3.5 group-data-[state=open]:block" />
@@ -202,15 +226,21 @@ function FileRow({
       }}
       title={node.path}
     >
-      <FileText className="h-3.5 w-3.5 shrink-0 text-fg/55" />
+      {/* spacer matches ChevronRight width (w-[11px]) so file icon aligns with folder icon */}
+      <span className="w-[11px] shrink-0" />
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        <FileText className="h-3.5 w-3.5 text-fg/55" />
+      </span>
       <span className="truncate">{node.name}</span>
       {shouldRenderGitStatus(effectiveGitStatus) ? (
-        <Circle
+        <span
           className={[
-            "ml-auto h-2 w-2 shrink-0 fill-current",
+            "ml-auto shrink-0 text-[10px] font-bold leading-none",
             gitStatusTone(effectiveGitStatus),
           ].join(" ")}
-        />
+        >
+          {gitStatusLabel(effectiveGitStatus)}
+        </span>
       ) : null}
     </button>
   );
