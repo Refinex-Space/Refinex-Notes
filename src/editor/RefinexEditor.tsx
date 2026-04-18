@@ -411,7 +411,7 @@ export function RefinexEditor({
     hideHoverTimerRef.current = setTimeout(() => {
       setLinkHoverState(null);
       hideHoverTimerRef.current = null;
-    }, 200);
+    }, 500);
   }, []);
 
   // Keep refs in sync with latest props without re-triggering effects

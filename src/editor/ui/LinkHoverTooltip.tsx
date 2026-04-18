@@ -77,13 +77,13 @@ export function LinkHoverTooltip({
         side="bottom"
         align="start"
         sideOffset={6}
-        className="w-auto max-w-[22rem] rounded-2xl p-0"
+        className="w-auto max-w-[22rem] rounded-xl p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
-        <div className="flex items-center gap-1.5 px-3 py-2">
+        <div className="flex items-center gap-1 px-2 py-1.5">
           {/* Globe icon */}
           <Globe className="h-3.5 w-3.5 flex-none text-muted" />
 
@@ -100,24 +100,24 @@ export function LinkHoverTooltip({
           </a>
 
           {/* Divider */}
-          <span className="mx-0.5 h-4 w-px bg-border/60 flex-none" />
+          <span className="mx-0.5 h-3.5 w-px bg-border/60 flex-none" />
 
           {/* Copy button */}
           <button
             type="button"
-            className="inline-flex h-7 w-7 flex-none items-center justify-center rounded-xl text-muted transition hover:bg-accent/10 hover:text-fg"
+            className="inline-flex h-6 w-6 flex-none items-center justify-center rounded-lg text-muted transition hover:bg-accent/10 hover:text-fg"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleCopy}
             title="复制链接"
             aria-label="复制链接"
           >
-            <Copy className="h-3.5 w-3.5" />
+            <Copy className="h-3 w-3" />
           </button>
 
           {/* Edit button */}
           <button
             type="button"
-            className="inline-flex h-7 flex-none items-center justify-center rounded-xl px-2 text-sm text-muted transition hover:bg-accent/10 hover:text-fg"
+            className="inline-flex h-6 flex-none items-center justify-center rounded-lg px-1.5 text-xs text-muted transition hover:bg-accent/10 hover:text-fg"
             onMouseDown={(e) => e.preventDefault()}
             onClick={handleEdit}
             aria-label="编辑链接"

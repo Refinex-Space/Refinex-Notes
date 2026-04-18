@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { EditorView } from "prosemirror-view";
 
@@ -6,7 +7,11 @@ import {
   PopoverAnchor,
   PopoverContent,
 } from "../../components/ui/popover";
-import { applyLinkMark, type LinkEditorRequest, type PopoverAnchorRect } from "../rich-ui";
+import {
+  applyLinkMark,
+  type LinkEditorRequest,
+  type PopoverAnchorRect,
+} from "../rich-ui";
 
 export type LinkPopoverRequest = LinkEditorRequest & {
   anchor: PopoverAnchorRect;
@@ -19,7 +24,7 @@ export interface LinkPopoverProps {
 }
 
 const inputClasses = [
-  "h-10 w-full rounded-2xl border border-border/70 bg-bg/80 px-3 text-sm text-fg outline-none transition",
+  "h-10 w-full rounded border border-border/70 bg-bg/80 px-3 text-sm text-fg outline-none transition",
   "focus:border-accent/60 focus:ring-2 focus:ring-accent/20",
 ].join(" ");
 
@@ -29,14 +34,20 @@ const actionButtonClasses = [
 ].join(" ");
 
 export function LinkPopover({ view, request, onClose }: LinkPopoverProps) {
+  const [displayText, setDisplayText] = useState("");
   const [href, setHref] = useState("");
   const [title, setTitle] = useState("");
   const hrefInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (request && view) {
+      setDisplayText(view.state.doc.textBetween(request.from, request.to));
+    } else {
+      setDisplayText("");
+    }
     setHref(request?.href ?? "");
     setTitle(request?.title ?? "");
-  }, [request]);
+  }, [request, view]);
 
   if (!view || !request) {
     return null;
@@ -61,7 +72,7 @@ export function LinkPopover({ view, request, onClose }: LinkPopoverProps) {
         side="top"
         align="center"
         sideOffset={16}
-        className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-3xl p-4"
+        className="w-[28rem] max-w-[calc(100vw-2rem)] rounded-3xl p-2"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           hrefInputRef.current?.focus();
@@ -77,7 +88,7 @@ export function LinkPopover({ view, request, onClose }: LinkPopoverProps) {
         }}
       >
         <form
-          className="space-y-4"
+          className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
             applyLinkMark(view.state, view.dispatch, {
@@ -85,14 +96,27 @@ export function LinkPopover({ view, request, onClose }: LinkPopoverProps) {
               to: request.to,
               href,
               title,
+              text: displayText,
             });
             onClose();
             view.focus();
           }}
         >
-          <div className="space-y-2">
+          {/* Editable display text */}
+          <div className="space-y-1.5">
             <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-muted">
-              URL
+              显示文字
+            </label>
+            <input
+              className={inputClasses}
+              value={displayText}
+              onChange={(event) => setDisplayText(event.target.value)}
+              placeholder="链接显示文字"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-muted">
+              页面或 URL
             </label>
             <input
               ref={hrefInputRef}
@@ -102,9 +126,9 @@ export function LinkPopover({ view, request, onClose }: LinkPopoverProps) {
               placeholder="https://example.com"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="block text-xs font-semibold uppercase tracking-[0.24em] text-muted">
-              标题（可选）
+              链接标题
             </label>
             <input
               className={inputClasses}
@@ -113,26 +137,50 @@ export function LinkPopover({ view, request, onClose }: LinkPopoverProps) {
               placeholder="链接标题"
             />
           </div>
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-between gap-2 pt-1">
+            {/* Remove link — left side */}
             <button
               type="button"
-              className={[actionButtonClasses, "text-muted hover:bg-accent/10"].join(" ")}
+              className="inline-flex items-center gap-1.5 rounded-xl px-2 py-1.5 text-sm text-red-400/80 transition hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
               onClick={() => {
+                applyLinkMark(view.state, view.dispatch, {
+                  from: request.from,
+                  to: request.to,
+                  href: "",
+                  title: "",
+                });
                 onClose();
                 view.focus();
               }}
             >
-              取消
+              <Trash2 className="h-3.5 w-3.5" />
+              移除链接
             </button>
-            <button
-              type="submit"
-              className={[
-                actionButtonClasses,
-                "bg-accent/15 text-fg hover:bg-accent/25",
-              ].join(" ")}
-            >
-              应用链接
-            </button>
+            {/* Cancel + Apply — right side */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={[
+                  actionButtonClasses,
+                  "text-muted hover:bg-accent/10",
+                ].join(" ")}
+                onClick={() => {
+                  onClose();
+                  view.focus();
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                className={[
+                  actionButtonClasses,
+                  "bg-accent/15 text-fg hover:bg-accent/25",
+                ].join(" ")}
+              >
+                应用链接
+              </button>
+            </div>
           </div>
         </form>
       </PopoverContent>

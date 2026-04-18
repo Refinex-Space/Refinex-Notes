@@ -88,6 +88,14 @@ Renders a `Popover open` with `PopoverAnchor` positioned at `anchor.bottom` / `a
 
 | Step | Status | Evidence | Notes |
 |------|--------|----------|-------|
-| 1    | ⏳     | | |
-| 2    | ⏳     | | |
-| 3    | ⏳     | | |
+| 1    | ✅     | 143 tests pass (new findLinkMarkAtPos test added); build OK | |
+| 2    | ✅     | TS compiles, build OK | |
+| 3    | ✅     | 143/143 tests, npm run build OK | |
+
+## Completion Summary
+
+Completed: 2026-04-18
+Duration: 3 steps
+All acceptance criteria: PASS
+
+Summary: Delivered link hover tooltip for the ProseMirror editor. Added `findLinkMarkAtPos` and `getLinkHoverAnchorRect` to `rich-ui.ts` with a new unit test. Created `LinkHoverTooltip.tsx` with globe icon, truncated URL (≤40 chars), copy button, and "编辑" button. Wired hover state into `RefinexEditor.tsx` via `onMouseMove`/`onMouseLeave` on the shell div; tooltip hides with 200ms debounce to allow mouse movement from link to tooltip; clicking "编辑" opens the existing `LinkPopover` edit form pre-filled; tooltip suppressed in source mode, while text is selected, and while edit popover is open.

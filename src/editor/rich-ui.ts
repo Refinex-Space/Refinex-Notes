@@ -32,6 +32,8 @@ export type LinkEditorRequest = {
   to: number;
   href: string;
   title: string;
+  /** Optional replacement display text for the link range */
+  text?: string;
 };
 
 export type SlashTriggerMatch = {
@@ -221,12 +223,29 @@ export function applyLinkMark(
   const linkMark = refinexSchema.marks.link;
   const href = request.href.trim();
   const title = request.title.trim();
-  const transaction = state.tr.removeMark(request.from, request.to, linkMark);
+
+  let transaction = state.tr;
+  let to = request.to;
+
+  // Replace display text if provided and different from current
+  if (request.text !== undefined) {
+    const currentText = state.doc.textBetween(request.from, request.to);
+    if (request.text !== currentText) {
+      transaction = transaction.insertText(
+        request.text,
+        request.from,
+        request.to,
+      );
+      to = request.from + request.text.length;
+    }
+  }
+
+  transaction = transaction.removeMark(request.from, to, linkMark);
 
   if (href.length > 0) {
-    transaction.addMark(
+    transaction = transaction.addMark(
       request.from,
-      request.to,
+      to,
       linkMark.create({
         href,
         title: title.length > 0 ? title : null,
