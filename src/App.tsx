@@ -17,6 +17,7 @@ import { GitEmptyState } from "./components/git/GitEmptyState";
 import { GitOverviewPanel } from "./components/git/GitOverviewPanel";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { DocumentOutlineDock } from "./components/editor/DocumentOutlineDock";
+import { FindReplaceBar } from "./components/editor/FindReplaceBar";
 import { TabBar } from "./components/editor/TabBar";
 import { AppLayout } from "./components/layout/AppLayout";
 import { StatusBar } from "./components/layout/StatusBar";
@@ -276,11 +277,7 @@ function LoadingEditorState({ path }: { path: string }) {
   );
 }
 
-function InstantDocumentPreview({
-  onActivate,
-}: {
-  onActivate: () => void;
-}) {
+function InstantDocumentPreview({ onActivate }: { onActivate: () => void }) {
   return (
     <button
       type="button"
@@ -335,11 +332,14 @@ function WorkspaceShell({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("history");
   const [outlineVisible, setOutlineVisible] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [pendingSearchJump, setPendingSearchJump] = useState<{
     path: string;
     query: string;
   } | null>(null);
-  const [renderedDocument, setRenderedDocument] = useState<NoteDocument | null>(null);
+  const [renderedDocument, setRenderedDocument] = useState<NoteDocument | null>(
+    null,
+  );
   const [hydratedEditorPaths, setHydratedEditorPaths] = useState<Set<string>>(
     () => new Set(),
   );
@@ -378,7 +378,9 @@ function WorkspaceShell({
   const editorScrollRef = useRef<HTMLDivElement | null>(null);
   const editorViewRegistryRef = useRef<Record<string, EditorView | null>>({});
   const pendingFocusEditorPathRef = useRef<string | null>(null);
-  const pendingHydrationTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
+  const pendingHydrationTimerRef = useRef<ReturnType<
+    typeof globalThis.setTimeout
+  > | null>(null);
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
   const isCurrentFileOpening = Boolean(
@@ -387,11 +389,15 @@ function WorkspaceShell({
   const editorDocument = currentDocument ?? renderedDocument;
   const loadedOpenDocuments = openFiles
     .map((path: string) => documents[path] ?? null)
-    .filter((document: NoteDocument | null): document is NoteDocument => document !== null);
+    .filter(
+      (document: NoteDocument | null): document is NoteDocument =>
+        document !== null,
+    );
   const hydratedOpenDocuments = loadedOpenDocuments.filter((document) =>
     hydratedEditorPaths.has(document.path),
   );
-  const activeEditorPath = currentDocument?.path ?? renderedDocument?.path ?? null;
+  const activeEditorPath =
+    currentDocument?.path ?? renderedDocument?.path ?? null;
   const isActiveEditorHydrated = activeEditorPath
     ? hydratedEditorPaths.has(activeEditorPath)
     : false;
@@ -417,7 +423,8 @@ function WorkspaceShell({
       return;
     }
 
-    editorViewRef.current = editorViewRegistryRef.current[activeEditorPath] ?? null;
+    editorViewRef.current =
+      editorViewRegistryRef.current[activeEditorPath] ?? null;
   }, [activeEditorPath]);
 
   useEffect(() => {
@@ -477,7 +484,11 @@ function WorkspaceShell({
         mode: isActiveEditorHydrated ? "editor" : "preview",
       };
       if (trace) {
-        finishDocumentPerfTrace(currentDocument.path, "app.currentDocument.ready", details);
+        finishDocumentPerfTrace(
+          currentDocument.path,
+          "app.currentDocument.ready",
+          details,
+        );
       } else {
         logDocumentPerfStep("app.currentDocument.ready", {
           path: currentDocument.path,
@@ -537,7 +548,9 @@ function WorkspaceShell({
     };
 
     scheduleUpdate();
-    scrollContainer?.addEventListener("scroll", scheduleUpdate, { passive: true });
+    scrollContainer?.addEventListener("scroll", scheduleUpdate, {
+      passive: true,
+    });
     window.addEventListener("resize", scheduleUpdate);
 
     return () => {
@@ -685,10 +698,32 @@ function WorkspaceShell({
 
   const handleSelectHeading = (heading: OutlineHeading) => {
     const view = editorViewRef.current;
+    const scrollContainer = editorScrollRef.current;
     if (!view) {
       return;
     }
 
+    // Prefer DOM-based scroll for accurate positioning — offsetTop matches
+    // what resolveActiveIndex uses, so there is no coordinate mismatch.
+    if (scrollContainer) {
+      const headingNodes = Array.from(
+        view.dom.querySelectorAll("h1, h2, h3, h4, h5, h6"),
+      );
+      const domNode = headingNodes.find(
+        (n) =>
+          n.tagName === `H${heading.level}` &&
+          (n as HTMLElement).textContent?.trim() === heading.text,
+      ) as HTMLElement | undefined;
+
+      if (domNode) {
+        const top = domNode.offsetTop - 16;
+        scrollContainer.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        view.focus();
+        return;
+      }
+    }
+
+    // Fallback: ProseMirror position-based scroll
     const position = findHeadingPosition(view.state.doc, heading);
     if (position === null) {
       return;
@@ -759,91 +794,100 @@ function WorkspaceShell({
               <div
                 ref={editorScrollRef}
                 data-refinex-editor-scroll="true"
-                className="h-full min-w-0 overflow-auto"
+                className="flex h-full min-h-0 min-w-0 overflow-auto"
               >
-                {!isActiveEditorHydrated && currentDocument ? (
-                  <InstantDocumentPreview
-                    onActivate={() => {
-                      if (pendingHydrationTimerRef.current) {
-                        globalThis.clearTimeout(pendingHydrationTimerRef.current);
-                        pendingHydrationTimerRef.current = null;
-                      }
-                      pendingFocusEditorPathRef.current = currentDocument.path;
-                      setHydratedEditorPaths((previous) => {
-                        if (previous.has(currentDocument.path)) {
-                          return previous;
+                <div className="min-h-full min-w-0 flex-1">
+                  {!isActiveEditorHydrated && currentDocument ? (
+                    <InstantDocumentPreview
+                      onActivate={() => {
+                        if (pendingHydrationTimerRef.current) {
+                          globalThis.clearTimeout(
+                            pendingHydrationTimerRef.current,
+                          );
+                          pendingHydrationTimerRef.current = null;
                         }
+                        pendingFocusEditorPathRef.current =
+                          currentDocument.path;
+                        setHydratedEditorPaths((previous) => {
+                          if (previous.has(currentDocument.path)) {
+                            return previous;
+                          }
 
-                        const next = new Set(previous);
-                        next.add(currentDocument.path);
-                        return next;
-                      });
-                    }}
-                  />
+                          const next = new Set(previous);
+                          next.add(currentDocument.path);
+                          return next;
+                        });
+                      }}
+                    />
+                  ) : null}
+                  {hydratedOpenDocuments.map((document: NoteDocument) => {
+                    const isVisible = activeEditorPath === document.path;
+                    const isLoadingShell =
+                      isCurrentFileOpening &&
+                      renderedDocument?.path === document.path;
+
+                    return (
+                      <div
+                        key={document.path}
+                        className={
+                          isVisible && isActiveEditorHydrated
+                            ? "block min-h-full min-w-0"
+                            : "hidden min-h-full min-w-0"
+                        }
+                      >
+                        <RefinexEditor
+                          documentPath={document.path}
+                          value={document.content}
+                          className="min-h-full min-w-0 px-6 py-5"
+                          readOnly={isLoadingShell}
+                          onChange={(markdown) => {
+                            updateFileContent(document.path, markdown);
+
+                            if (markdown === document.savedContent) {
+                              markClean(document.path);
+                              return;
+                            }
+
+                            markDirty(document.path);
+                          }}
+                          onCursorChange={(cursor) => {
+                            if (activeEditorPath === document.path) {
+                              setCursorPosition(cursor);
+                            }
+                          }}
+                          onEditorView={(view) => {
+                            editorViewRegistryRef.current[document.path] = view;
+                            if (activeEditorPath === document.path) {
+                              editorViewRef.current = view;
+                            }
+                            if (
+                              view &&
+                              pendingFocusEditorPathRef.current ===
+                                document.path
+                            ) {
+                              view.focus();
+                              pendingFocusEditorPathRef.current = null;
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                {currentDocument &&
+                !isCurrentFileOpening &&
+                isActiveEditorHydrated &&
+                outlineVisible ? (
+                  <div className="sticky top-0 self-start max-h-full w-[200px] flex-none overflow-y-auto border-l border-border/60 bg-[rgb(var(--color-bg)/0.9)]">
+                    <DocumentOutlineDock
+                      markdown={currentDocument.content}
+                      editorViewRef={editorViewRef}
+                      scrollContainerRef={editorScrollRef}
+                      onSelectHeading={handleSelectHeading}
+                    />
+                  </div>
                 ) : null}
-                {hydratedOpenDocuments.map((document: NoteDocument) => {
-                  const isVisible = activeEditorPath === document.path;
-                  const isLoadingShell =
-                    isCurrentFileOpening && renderedDocument?.path === document.path;
-
-                  return (
-                    <div
-                      key={document.path}
-                      className={
-                        isVisible && isActiveEditorHydrated
-                          ? "block min-h-full min-w-0"
-                          : "hidden min-h-full min-w-0"
-                      }
-                    >
-                      <RefinexEditor
-                        documentPath={document.path}
-                        value={document.content}
-                        className="min-h-full min-w-0 px-6 py-5"
-                        readOnly={isLoadingShell}
-                        onChange={(markdown) => {
-                          updateFileContent(document.path, markdown);
-
-                          if (markdown === document.savedContent) {
-                            markClean(document.path);
-                            return;
-                          }
-
-                          markDirty(document.path);
-                        }}
-                        onCursorChange={(cursor) => {
-                          if (activeEditorPath === document.path) {
-                            setCursorPosition(cursor);
-                          }
-                        }}
-                        onEditorView={(view) => {
-                          editorViewRegistryRef.current[document.path] = view;
-                          if (activeEditorPath === document.path) {
-                            editorViewRef.current = view;
-                          }
-                          if (
-                            view &&
-                            pendingFocusEditorPathRef.current === document.path
-                          ) {
-                            view.focus();
-                            pendingFocusEditorPathRef.current = null;
-                          }
-                        }}
-                      />
-                    </div>
-                  );
-                })}
               </div>
-              {currentDocument &&
-              !isCurrentFileOpening &&
-              isActiveEditorHydrated &&
-              outlineVisible ? (
-                <DocumentOutlineDock
-                  markdown={currentDocument.content}
-                  editorViewRef={editorViewRef}
-                  scrollContainerRef={editorScrollRef}
-                  onSelectHeading={handleSelectHeading}
-                />
-              ) : null}
               {isCurrentFileOpening && currentFile ? (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-[rgb(var(--color-bg)/0.82)] backdrop-blur-sm">
                   <section className="w-full max-w-md rounded-[1.6rem] border border-border/70 bg-[rgb(var(--color-bg)/0.94)] px-6 py-5 text-center shadow-[0_20px_80px_rgba(15,23,42,0.18)]">
@@ -853,7 +897,9 @@ function WorkspaceShell({
                     <p className="mt-4 text-sm font-semibold tracking-tight text-fg">
                       正在切换文档
                     </p>
-                    <p className="mt-2 text-xs leading-6 text-muted">{currentFile}</p>
+                    <p className="mt-2 text-xs leading-6 text-muted">
+                      {currentFile}
+                    </p>
                   </section>
                 </div>
               ) : null}
@@ -899,6 +945,16 @@ function WorkspaceShell({
         outlineVisible={outlineVisible}
         onOutlineToggle={() => setOutlineVisible((v) => !v)}
         onSettingsClick={() => setSettingsOpen(true)}
+        searchOpen={searchOpen}
+        onSearchToggle={() => setSearchOpen((s) => !s)}
+        findReplaceBar={
+          searchOpen ? (
+            <FindReplaceBar
+              editorViewRef={editorViewRef}
+              onClose={() => setSearchOpen(false)}
+            />
+          ) : null
+        }
       />
 
       <CommandPalette

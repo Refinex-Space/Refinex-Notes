@@ -1,13 +1,27 @@
-export {
-  RefinexEditor,
-  serializeEditorState,
-} from "./RefinexEditor";
+export { RefinexEditor, serializeEditorState } from "./RefinexEditor";
 export type { RefinexEditorProps } from "./RefinexEditor";
 export { refinexInputRules } from "./plugins/input-rules";
+export {
+  findReplacePlugin,
+  findReplaceKey,
+  computeMatches,
+  dispatchFindQuery,
+  dispatchFindNext,
+  dispatchFindPrev,
+  dispatchReplaceOne,
+  dispatchReplaceAll,
+} from "./plugins/find-replace";
+export type {
+  FindReplaceMatch,
+  FindReplaceState,
+} from "./plugins/find-replace";
 export { inlineSyncPlugin, refinexInlineSyncKey } from "./plugins/inline-sync";
 export { refinexKeymap, type RefinexKeymapOptions } from "./plugins/keymap";
 export { slashMenuPlugin, refinexSlashMenuKey } from "./plugins/slash-menu";
-export { placeholderPlugin, refinexPlaceholderKey } from "./plugins/placeholder";
+export {
+  placeholderPlugin,
+  refinexPlaceholderKey,
+} from "./plugins/placeholder";
 export {
   viewportBlocksPlugin,
   refinexViewportBlocksKey,
@@ -34,7 +48,10 @@ export {
   resolveCodeBlockLanguageSupport,
 } from "./node-views/CodeBlockView";
 export { ImageView } from "./node-views/ImageView";
-export { ViewportTextBlockView, createViewportTextBlockShell } from "./node-views/ViewportTextBlockView";
+export {
+  ViewportTextBlockView,
+  createViewportTextBlockShell,
+} from "./node-views/ViewportTextBlockView";
 export { ViewportContainerBlockView } from "./node-views/ViewportContainerBlockView";
 export { ViewportTableCellView } from "./node-views/ViewportTableCellView";
 export { ViewportTableRowView } from "./node-views/ViewportTableRowView";

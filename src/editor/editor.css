@@ -443,6 +443,30 @@
 }
 
 /* ============================================================
+   Find & replace highlights
+   ============================================================ */
+
+.refinex-find-match {
+  background: rgba(253, 224, 71, 0.45);
+  border-radius: 2px;
+}
+
+.refinex-find-match-active {
+  background: rgba(251, 146, 60, 0.6);
+  border-radius: 2px;
+  outline: 1px solid rgb(251, 146, 60);
+}
+
+.dark .refinex-find-match {
+  background: rgba(234, 179, 8, 0.35);
+}
+
+.dark .refinex-find-match-active {
+  background: rgba(234, 88, 12, 0.55);
+  outline-color: rgb(234, 88, 12);
+}
+
+/* ============================================================
    Selection
    ============================================================ */
 

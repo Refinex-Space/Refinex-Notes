@@ -13,6 +13,7 @@ import { refinexParser, parseMarkdown } from "./parser";
 import { inlineSyncPlugin } from "./plugins/inline-sync";
 import { refinexKeymap } from "./plugins/keymap";
 import { placeholderPlugin } from "./plugins/placeholder";
+import { findReplacePlugin } from "./plugins/find-replace";
 import { slashMenuPlugin } from "./plugins/slash-menu";
 import { viewportBlocksPlugin } from "./plugins/viewport-blocks";
 import { refinexSerializer, serializeMarkdown } from "./serializer";
@@ -80,7 +81,9 @@ function requestIdleFlush(callback: () => void) {
   if ("requestIdleCallback" in window) {
     return {
       kind: "idle" as const,
-      id: window.requestIdleCallback(callback, { timeout: MARKDOWN_FLUSH_DELAY_MS }),
+      id: window.requestIdleCallback(callback, {
+        timeout: MARKDOWN_FLUSH_DELAY_MS,
+      }),
     };
   }
 
@@ -90,7 +93,9 @@ function requestIdleFlush(callback: () => void) {
   };
 }
 
-function cancelIdleFlush(handle: { kind: "idle" | "timeout"; id: IdleHandle } | null) {
+function cancelIdleFlush(
+  handle: { kind: "idle" | "timeout"; id: IdleHandle } | null,
+) {
   if (!handle) {
     return;
   }
@@ -110,10 +115,7 @@ export function getDocumentCacheKey(
   return `${documentPath ?? "__anonymous__"}\u0000${value}`;
 }
 
-function rememberParsedDocument(
-  cacheKey: string,
-  doc: ProseMirrorNode,
-) {
+function rememberParsedDocument(cacheKey: string, doc: ProseMirrorNode) {
   if (parsedDocumentCache.has(cacheKey)) {
     parsedDocumentCache.delete(cacheKey);
   }
@@ -155,7 +157,9 @@ function getParsedDocument(
     doc,
     parseCacheHit: false,
     parseDurationMs: Number(
-      ((globalThis.performance?.now() ?? Date.now()) - parseStartedAt).toFixed(2),
+      ((globalThis.performance?.now() ?? Date.now()) - parseStartedAt).toFixed(
+        2,
+      ),
     ),
   };
 }
@@ -216,7 +220,9 @@ function getOrCreateEditorState(
     parseCacheHit,
     parseDurationMs,
     createStateDurationMs: Number(
-      ((globalThis.performance?.now() ?? Date.now()) - createStateStartedAt).toFixed(2),
+      (
+        (globalThis.performance?.now() ?? Date.now()) - createStateStartedAt
+      ).toFixed(2),
     ),
   };
 }
@@ -367,9 +373,7 @@ export function RefinexEditor({
   const editorPluginsRef = useRef<Plugin[]>([]);
   const editorStateCacheRef = useRef<Map<string, EditorState>>(new Map());
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
-  const slashMenuChangeRef = useRef(
-    (_request: SlashMenuRequest | null) => {},
-  );
+  const slashMenuChangeRef = useRef((_request: SlashMenuRequest | null) => {});
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [overlayVersion, setOverlayVersion] = useState(0);
   const [linkPopoverRequest, setLinkPopoverRequest] =
@@ -423,7 +427,9 @@ export function RefinexEditor({
     logDocumentPerfStep("editor.flush.end", {
       path: viewDocumentPathRef.current ?? "__anonymous__",
       durationMs: Number(
-        ((globalThis.performance?.now() ?? Date.now()) - flushStartedAt).toFixed(2),
+        (
+          (globalThis.performance?.now() ?? Date.now()) - flushStartedAt
+        ).toFixed(2),
       ),
       markdownLength: markdown.length,
     });
@@ -461,7 +467,11 @@ export function RefinexEditor({
             trigger
               ? {
                   ...trigger,
-                  anchor: getSelectionAnchorRect(view, trigger.from, trigger.to),
+                  anchor: getSelectionAnchorRect(
+                    view,
+                    trigger.from,
+                    trigger.to,
+                  ),
                 }
               : null,
           );
@@ -470,6 +480,7 @@ export function RefinexEditor({
       trailingNodePlugin(),
       placeholderPlugin(),
       viewportBlocksPlugin(),
+      findReplacePlugin(),
       history(),
       dropCursor(),
       gapCursor(),
@@ -516,25 +527,32 @@ export function RefinexEditor({
           new ViewportContainerBlockView(node, decorations),
         table_row: (node, _view, _getPos, decorations) =>
           new ViewportTableRowView(node, decorations),
-        code_block: (node, view, getPos) => new CodeBlockView(node, view, getPos),
+        code_block: (node, view, getPos) =>
+          new CodeBlockView(node, view, getPos),
         image: (node, view, getPos) => new ImageView(node, view, getPos),
       },
       dispatchTransaction(transaction) {
         const result = view.state.applyTransaction(transaction);
         view.updateState(result.state);
-        const needsOverlayRefresh = result.transactions.some((nextTransaction) =>
-          shouldRefreshOverlay(
-            nextTransaction.selectionSet,
-            nextTransaction.storedMarksSet,
-            !result.state.selection.empty,
-          ),
+        const needsOverlayRefresh = result.transactions.some(
+          (nextTransaction) =>
+            shouldRefreshOverlay(
+              nextTransaction.selectionSet,
+              nextTransaction.storedMarksSet,
+              !result.state.selection.empty,
+            ),
         );
         if (needsOverlayRefresh) {
           setOverlayVersion((current) => current + 1);
         }
         reportCursorPositionSafely(result.state, onCursorChangeRef.current);
 
-        if (result.transactions.some((nextTransaction) => nextTransaction.docChanged) && onChangeRef.current) {
+        if (
+          result.transactions.some(
+            (nextTransaction) => nextTransaction.docChanged,
+          ) &&
+          onChangeRef.current
+        ) {
           scheduleMarkdownFlush();
         }
       },
@@ -548,7 +566,9 @@ export function RefinexEditor({
     logDocumentPerfStep("editor.mount.end", {
       path: documentPath ?? "__anonymous__",
       durationMs: Number(
-        ((globalThis.performance?.now() ?? Date.now()) - mountStartedAt).toFixed(2),
+        (
+          (globalThis.performance?.now() ?? Date.now()) - mountStartedAt
+        ).toFixed(2),
       ),
       editorStateCacheHit: stateResolution.editorStateCacheHit,
       parseCacheHit: stateResolution.parseCacheHit,
@@ -597,7 +617,8 @@ export function RefinexEditor({
           new ViewportTableRowView(node, decorations),
         code_block: (node, innerView, getPos) =>
           new CodeBlockView(node, innerView, getPos),
-        image: (node, innerView, getPos) => new ImageView(node, innerView, getPos),
+        image: (node, innerView, getPos) =>
+          new ImageView(node, innerView, getPos),
       },
     });
   }, [readOnly]);
@@ -677,20 +698,31 @@ export function RefinexEditor({
     setOverlayVersion((current) => current + 1);
     setLinkPopoverRequest(null);
     setSlashMenuRequest(null);
-    reportCursorPositionSafely(stateResolution.state, onCursorChangeRef.current);
-    finishDocumentPerfTrace(documentPath ?? "__anonymous__", "editor.externalSync.end", {
-      durationMs: Number(
-        ((globalThis.performance?.now() ?? Date.now()) - syncStartedAt).toFixed(2),
-      ),
-      editorStateCacheHit: stateResolution.editorStateCacheHit,
-      parseCacheHit: stateResolution.parseCacheHit,
-      parseDurationMs: stateResolution.parseDurationMs,
-      createStateDurationMs: stateResolution.createStateDurationMs,
-      updateStateDurationMs: Number(
-        ((globalThis.performance?.now() ?? Date.now()) - updateStateStartedAt).toFixed(2),
-      ),
-      valueLength: value.length,
-    });
+    reportCursorPositionSafely(
+      stateResolution.state,
+      onCursorChangeRef.current,
+    );
+    finishDocumentPerfTrace(
+      documentPath ?? "__anonymous__",
+      "editor.externalSync.end",
+      {
+        durationMs: Number(
+          (
+            (globalThis.performance?.now() ?? Date.now()) - syncStartedAt
+          ).toFixed(2),
+        ),
+        editorStateCacheHit: stateResolution.editorStateCacheHit,
+        parseCacheHit: stateResolution.parseCacheHit,
+        parseDurationMs: stateResolution.parseDurationMs,
+        createStateDurationMs: stateResolution.createStateDurationMs,
+        updateStateDurationMs: Number(
+          (
+            (globalThis.performance?.now() ?? Date.now()) - updateStateStartedAt
+          ).toFixed(2),
+        ),
+        valueLength: value.length,
+      },
+    );
   }, [documentPath, value]);
 
   return (

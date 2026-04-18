@@ -7,7 +7,6 @@ import {
   Settings,
   Sparkles,
   Sun,
-  X,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -57,6 +56,12 @@ export interface AppLayoutProps {
   onOutlineToggle?: () => void;
   /** Called when the user clicks the settings button. */
   onSettingsClick?: () => void;
+  /** Whether the inline find/replace bar is open. Controlled externally. */
+  searchOpen?: boolean;
+  /** Called when the search button is clicked (to toggle open state externally). */
+  onSearchToggle?: () => void;
+  /** Content rendered as the inline find/replace bar when `searchOpen` is true. */
+  findReplaceBar?: ReactNode;
 }
 
 export function isMacLikePlatform(platform = "", userAgent = "") {
@@ -91,13 +96,26 @@ export function AppLayout({
   outlineVisible = true,
   onOutlineToggle,
   onSettingsClick,
+  searchOpen: externalSearchOpen,
+  onSearchToggle,
+  findReplaceBar,
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   /** null = collapsed; 'git' | 'ai' = open with that panel active */
-  const [activeRightPanel, setActiveRightPanel] = useState<
-    "git" | "ai" | null
-  >(null);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [activeRightPanel, setActiveRightPanel] = useState<"git" | "ai" | null>(
+    null,
+  );
+  const [internalSearchOpen, setInternalSearchOpen] = useState(false);
+  // If caller controls search state externally, use that; otherwise use internal
+  const searchOpen =
+    externalSearchOpen !== undefined ? externalSearchOpen : internalSearchOpen;
+  function handleSearchToggle() {
+    if (onSearchToggle) {
+      onSearchToggle();
+    } else {
+      setInternalSearchOpen((s) => !s);
+    }
+  }
   const [sidebarWidth, setSidebarWidth] = useState(
     clamp(defaultSidebarWidth, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH),
   );
@@ -171,10 +189,6 @@ export function AppLayout({
     return isMacLikePlatform(navigator.platform, navigator.userAgent);
   }, []);
 
-  // Shared inline-search-bar input style
-  const searchBarInputClassName =
-    "flex-1 border-none bg-transparent text-[13px] text-fg outline-none placeholder:text-muted/50";
-
   /** Six right-side header buttons, shared across mac and non-mac layouts. */
   const rightActionButtons = (
     <div className="flex items-center gap-0.5">
@@ -183,7 +197,7 @@ export function AppLayout({
         title="搜索"
         aria-label="搜索"
         className={tbtnClass(searchOpen)}
-        onClick={() => setSearchOpen((s) => !s)}
+        onClick={handleSearchToggle}
       >
         <Search className="h-[15px] w-[15px]" />
       </button>
@@ -273,9 +287,7 @@ export function AppLayout({
                   </span>
                 </>
               ) : (
-                <span className="text-[10px] text-muted/50">
-                  Refinex-Notes
-                </span>
+                <span className="text-[10px] text-muted/50">Refinex-Notes</span>
               )}
             </div>
 
@@ -311,9 +323,7 @@ export function AppLayout({
                   </span>
                 </>
               ) : (
-                <span className="text-[10px] text-muted/50">
-                  Refinex-Notes
-                </span>
+                <span className="text-[10px] text-muted/50">Refinex-Notes</span>
               )}
             </div>
 
@@ -323,26 +333,7 @@ export function AppLayout({
         )}
 
         {/* Inline search bar — appears below the title row when searchOpen */}
-        {searchOpen ? (
-          <div className="flex items-center gap-2 border-t border-border/70 bg-bg/90 px-4 py-2">
-            <Search className="h-3.5 w-3.5 shrink-0 text-muted/60" />
-            <input
-              autoFocus
-              type="text"
-              placeholder="搜索文档..."
-              className={searchBarInputClassName}
-            />
-            <span className="shrink-0 text-[11px] text-muted/60">0 结果</span>
-            <button
-              type="button"
-              aria-label="关闭搜索"
-              className="inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-muted/60 hover:text-muted"
-              onClick={() => setSearchOpen(false)}
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : null}
+        {searchOpen ? (findReplaceBar ?? null) : null}
       </header>
 
       <div
