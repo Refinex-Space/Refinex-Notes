@@ -376,6 +376,7 @@ export function RefinexEditor({
   const editorStateCacheRef = useRef<Map<string, EditorState>>(new Map());
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
   const onToggleSourceModeRef = useRef(onToggleSourceMode);
+  const sourceTextareaRef = useRef<HTMLTextAreaElement>(null);
   const slashMenuChangeRef = useRef((_request: SlashMenuRequest | null) => {});
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [overlayVersion, setOverlayVersion] = useState(0);
@@ -704,14 +705,15 @@ export function RefinexEditor({
     );
   }, [documentPath, value]);
 
-  const handleSourceKeyDown = (
-    event: React.KeyboardEvent<HTMLTextAreaElement>,
-  ) => {
-    if ((event.metaKey || event.ctrlKey) && event.key === "/") {
-      event.preventDefault();
-      onToggleSourceModeRef.current?.();
-    }
-  };
+  // Auto-resize the source textarea to fit its content.
+  // height: 100% doesn't work in this layout (parent chain uses min-height, not height),
+  // so we imperatively set height = scrollHeight instead.
+  useEffect(() => {
+    const el = sourceTextareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [sourceMode, value]);
 
   return (
     <div
@@ -745,10 +747,10 @@ export function RefinexEditor({
       )}
       {sourceMode && (
         <textarea
+          ref={sourceTextareaRef}
           className="refinex-source-editor"
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
-          onKeyDown={handleSourceKeyDown}
           autoFocus
           spellCheck={false}
           autoComplete="off"
