@@ -23,16 +23,6 @@ export {
   refinexPlaceholderKey,
 } from "./plugins/placeholder";
 export {
-  viewportBlocksPlugin,
-  refinexViewportBlocksKey,
-  isViewportSkeletonNode,
-  summarizeViewportText,
-  isViewportBlockVisible,
-  countViewportWords,
-  collectViewportHeadingItems,
-  estimateViewportShellMetrics,
-} from "./plugins/viewport-blocks";
-export {
   ensureTrailingParagraph,
   stripTrailingParagraph,
   trailingNodePlugin,
@@ -48,13 +38,6 @@ export {
   resolveCodeBlockLanguageSupport,
 } from "./node-views/CodeBlockView";
 export { ImageView } from "./node-views/ImageView";
-export {
-  ViewportTextBlockView,
-  createViewportTextBlockShell,
-} from "./node-views/ViewportTextBlockView";
-export { ViewportContainerBlockView } from "./node-views/ViewportContainerBlockView";
-export { ViewportTableCellView } from "./node-views/ViewportTableCellView";
-export { ViewportTableRowView } from "./node-views/ViewportTableRowView";
 export { FloatingToolbar } from "./ui/FloatingToolbar";
 export { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 export { SlashMenu, type SlashMenuRequest } from "./ui/SlashMenu";

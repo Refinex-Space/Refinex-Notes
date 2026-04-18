@@ -240,28 +240,6 @@
   color: #64748b;
 }
 
-.refinex-viewport-block-shell {
-  display: block;
-  color: #475569;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  overflow: hidden;
-}
-
-.refinex-viewport-block-shell.is-heading {
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.refinex-viewport-block-live {
-  min-height: 2.4rem;
-}
-
-.refinex-viewport-container-shell {
-  padding-top: 0.45rem;
-  padding-bottom: 0.45rem;
-}
-
 /* ============================================================
    Horizontal rule
    ============================================================ */
@@ -536,46 +514,6 @@
 
 .dark .refinex-code-block-summary-meta {
   color: #94a3b8;
-}
-
-.dark .refinex-viewport-block-shell {
-  color: #94a3b8;
-}
-
-.dark .refinex-viewport-block-shell.is-heading {
-  color: #e2e8f0;
-}
-
-.refinex-viewport-table-row-shell td {
-  padding: 0.55rem 0.75rem;
-  color: #64748b;
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: rgba(148, 163, 184, 0.06);
-}
-
-.dark .refinex-viewport-table-row-shell td {
-  color: #94a3b8;
-  background: rgba(148, 163, 184, 0.12);
-}
-
-.refinex-viewport-table-cell-shell {
-  padding: 0.45rem 0.65rem;
-  color: #64748b;
-  font-size: 0.8125rem;
-  line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: rgba(148, 163, 184, 0.04);
-}
-
-.dark .refinex-viewport-table-cell-shell {
-  color: #94a3b8;
-  background: rgba(148, 163, 184, 0.08);
 }
 
 .dark .ProseMirror hr {
