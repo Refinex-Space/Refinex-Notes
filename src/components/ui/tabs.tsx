@@ -9,10 +9,7 @@ const TabsList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
-    className={[
-      "inline-flex h-10 items-center gap-1.5 rounded-[1.15rem] border border-border/60 bg-bg/75 p-0.5 text-muted",
-      className,
-    ]
+    className={["inline-flex items-stretch", className]
       .filter(Boolean)
       .join(" ")}
     {...props}
@@ -28,7 +25,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={[
-      "inline-flex items-center justify-center whitespace-nowrap rounded-[0.95rem] px-2.5 py-1.5 text-[13px] font-medium outline-none",
+      "inline-flex items-center justify-center whitespace-nowrap px-2.5 py-1.5 text-[13px] font-medium outline-none",
       "transition-[background-color,border-color,color,transform] duration-150 ease-out",
       "data-[state=active]:bg-accent/10 data-[state=active]:text-fg",
       "focus-visible:ring-2 focus-visible:ring-accent/40 disabled:pointer-events-none disabled:opacity-50",
@@ -48,10 +45,7 @@ const TabsContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    className={[
-      "mt-0 flex-1 outline-none focus-visible:ring-0",
-      className,
-    ]
+    className={["mt-0 flex-1 outline-none focus-visible:ring-0", className]
       .filter(Boolean)
       .join(" ")}
     {...props}

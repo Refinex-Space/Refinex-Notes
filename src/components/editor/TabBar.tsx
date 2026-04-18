@@ -1,5 +1,14 @@
-import { FileText, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Trash2,
+  X,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { useEditorStore } from "../../stores/editorStore";
@@ -13,6 +22,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "../ui/context-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
 type DropPosition = "before" | "after";
@@ -30,14 +40,13 @@ interface PointerDragState {
   active: boolean;
 }
 
-export const TAB_RAIL_CLASS_NAME =
-  "flex h-auto w-full justify-start overflow-x-auto rounded-[1.35rem] border-border/60 bg-[rgb(var(--color-bg)/0.82)] px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+export const TAB_RAIL_CLASS_NAME = "flex h-9 w-full items-stretch";
 
 export const TAB_WRAPPER_CLASS_NAME =
-  "group/tab relative flex min-w-[132px] max-w-[260px] shrink-0 items-stretch";
+  "group/tab relative flex min-w-[100px] max-w-[200px] shrink-0 items-stretch";
 
 export const TAB_TRIGGER_CLASS_NAME =
-  "relative flex h-8 w-full items-center justify-start rounded-[0.95rem] border border-transparent bg-transparent pl-2.5 pr-8 text-[12.5px] leading-4 text-muted";
+  "relative flex h-full w-full items-center gap-1.5 bg-transparent pl-3 pr-7 text-[12.5px] leading-4 text-muted transition-colors";
 
 export function getTabActionAvailability(
   openFiles: readonly string[],
@@ -117,10 +126,13 @@ export function TabBar() {
   const setActiveTab = useEditorStore((state) => state.setActiveTab);
 
   const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const tabsListRef = useRef<HTMLDivElement | null>(null);
   const [pointerDrag, setPointerDrag] = useState<PointerDragState | null>(null);
   const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(
     null,
   );
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
 
   const activeValue = activeTab ?? currentFile ?? undefined;
   const hasMultipleTabs = openFiles.length > 1;
@@ -128,6 +140,24 @@ export function TabBar() {
   const syncActiveTab = () => {
     setActiveTab(useNoteStore.getState().currentFile);
   };
+
+  // Detect tab overflow on every tab list change.
+  useLayoutEffect(() => {
+    const el = tabsListRef.current;
+    if (!el) return;
+    setHasOverflow(el.scrollWidth > el.clientWidth);
+  }, [openFiles]);
+
+  // Recheck on container resize (e.g. sidebar toggle, window resize).
+  useEffect(() => {
+    const el = tabsListRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setHasOverflow(el.scrollWidth > el.clientWidth);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!activeValue) {
@@ -315,9 +345,11 @@ export function TabBar() {
               value={path}
               className={[
                 TAB_TRIGGER_CLASS_NAME,
-                "hover:border-border/45 hover:bg-white/[0.05] hover:text-fg",
+                "border-b-[2px]",
+                isActive
+                  ? "border-accent bg-fg/[0.055] text-fg"
+                  : "border-transparent hover:bg-fg/[0.04] hover:text-fg",
                 "focus-visible:ring-accent/25",
-                isActive ? "border-border/70 bg-white/[0.08] text-fg" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -366,27 +398,31 @@ export function TabBar() {
           </div>
         </ContextMenuTrigger>
 
-        <ContextMenuContent className="w-48">
+        <ContextMenuContent className="w-52">
           <ContextMenuLabel>标签操作</ContextMenuLabel>
           <ContextMenuItem onSelect={() => void tabAction("close", path)}>
+            <X className="mr-2 h-3.5 w-3.5 opacity-60" />
             关闭当前
           </ContextMenuItem>
           <ContextMenuItem
             disabled={!actionAvailability.canCloseOthers}
             onSelect={() => void tabAction("closeOthers", path)}
           >
+            <XCircle className="mr-2 h-3.5 w-3.5 opacity-60" />
             关闭其他
           </ContextMenuItem>
           <ContextMenuItem
             disabled={!actionAvailability.canCloseLeft}
             onSelect={() => void tabAction("closeLeft", path)}
           >
+            <ChevronLeft className="mr-2 h-3.5 w-3.5 opacity-60" />
             关闭左侧
           </ContextMenuItem>
           <ContextMenuItem
             disabled={!actionAvailability.canCloseRight}
             onSelect={() => void tabAction("closeRight", path)}
           >
+            <ChevronRight className="mr-2 h-3.5 w-3.5 opacity-60" />
             关闭右侧
           </ContextMenuItem>
           <ContextMenuSeparator />
@@ -394,6 +430,7 @@ export function TabBar() {
             disabled={!actionAvailability.canCloseAll}
             onSelect={() => void tabAction("closeAll", path)}
           >
+            <Trash2 className="mr-2 h-3.5 w-3.5 opacity-60" />
             关闭全部
           </ContextMenuItem>
         </ContextMenuContent>
@@ -408,16 +445,102 @@ export function TabBar() {
   }
 
   return (
-    <Tabs
-      value={activeValue}
-      onValueChange={(path) => {
-        setDocumentPerfSourceHint(path, "tab-bar");
-        void openFile(path);
-        setActiveTab(path);
-      }}
-    >
-      <TabsList className={TAB_RAIL_CLASS_NAME}>{renderedTabs}</TabsList>
-    </Tabs>
+    <div className="flex min-w-0 items-stretch">
+      {/* overflow-x-auto here is the true scroll container; scrollbar is hidden visually */}
+      <div
+        ref={tabsListRef}
+        className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <Tabs
+          value={activeValue}
+          onValueChange={(path) => {
+            setDocumentPerfSourceHint(path, "tab-bar");
+            void openFile(path);
+            setActiveTab(path);
+          }}
+          className="h-full w-full"
+        >
+          <TabsList className={TAB_RAIL_CLASS_NAME}>{renderedTabs}</TabsList>
+        </Tabs>
+      </div>
+
+      {/* Overflow dropdown — visible when tabs exceed container width */}
+      {hasOverflow && (
+        <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="显示全部标签"
+              className={[
+                "flex h-9 w-8 shrink-0 items-center justify-center border-l border-border/60",
+                "text-muted transition hover:bg-fg/[0.05] hover:text-fg",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+                overflowOpen ? "bg-fg/[0.06] text-fg" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              <ChevronDown
+                className={[
+                  "h-3.5 w-3.5 transition-transform duration-150",
+                  overflowOpen ? "rotate-180" : "",
+                ].join(" ")}
+              />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            alignOffset={-8}
+            sideOffset={4}
+            className="w-60 p-1.5"
+          >
+            <p className="px-3 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted/70">
+              已打开的文件
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {openFiles.map((path) => {
+                const doc = documents[path];
+                if (!doc) return null;
+                const isActive = activeValue === path;
+                const isDirty = unsavedChanges.has(path);
+                return (
+                  <button
+                    key={path}
+                    type="button"
+                    onClick={() => {
+                      setDocumentPerfSourceHint(path, "tab-bar");
+                      void openFile(path);
+                      setActiveTab(path);
+                      setOverflowOpen(false);
+                    }}
+                    className={[
+                      "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[12.5px] transition",
+                      isActive
+                        ? "bg-accent/10 text-fg"
+                        : "text-muted hover:bg-fg/[0.06] hover:text-fg",
+                    ].join(" ")}
+                  >
+                    <FileText
+                      className={[
+                        "h-3.5 w-3.5 shrink-0",
+                        isActive ? "text-accent" : "text-accent/70",
+                      ].join(" ")}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{doc.name}</span>
+                    {isDirty && (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent/90" />
+                    )}
+                    {isActive && (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
   );
 }
 

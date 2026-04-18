@@ -41,7 +41,7 @@ const ContextMenuSubContent = React.forwardRef<
   <ContextMenuPrimitive.SubContent
     ref={ref}
     className={[
-      "z-50 min-w-[12rem] overflow-hidden rounded-2xl border border-border/70 bg-bg/95 p-1 text-fg shadow-panel backdrop-blur",
+      "z-50 min-w-[12rem] overflow-hidden rounded-xl border border-border/70 bg-bg/95 p-1 text-fg shadow-panel backdrop-blur",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
@@ -62,7 +62,7 @@ const ContextMenuContent = React.forwardRef<
     <ContextMenuPrimitive.Content
       ref={ref}
       className={[
-        "z-50 min-w-[12rem] overflow-hidden rounded-2xl border border-border/70 bg-bg/95 p-1 text-fg shadow-panel backdrop-blur",
+        "z-50 min-w-[12rem] overflow-hidden rounded-xl border border-border/70 bg-bg/95 p-1 text-fg shadow-panel backdrop-blur",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className,

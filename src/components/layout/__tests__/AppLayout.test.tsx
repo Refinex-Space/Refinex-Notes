@@ -19,7 +19,7 @@ describe("AppLayout", () => {
     expect(markup).toContain("overflow-hidden");
     expect(markup).toContain("grid min-h-0 flex-1 overflow-hidden");
     expect(markup).toContain("min-h-0 flex-1 overflow-hidden");
-    expect(markup).toContain("px-2.5 py-1.5");
+    expect(markup).toContain("border-b border-border/70");
   });
 
   it("still renders editor content when the right panel starts collapsed", () => {
@@ -57,6 +57,8 @@ describe("AppLayout", () => {
   it("detects mac platforms for titlebar inset handling", () => {
     expect(isMacLikePlatform("MacIntel", "")).toBe(true);
     expect(isMacLikePlatform("", "Mozilla/5.0 (Mac OS X 14_0)")).toBe(true);
-    expect(isMacLikePlatform("Win32", "Mozilla/5.0 (Windows NT 10.0)")).toBe(false);
+    expect(isMacLikePlatform("Win32", "Mozilla/5.0 (Windows NT 10.0)")).toBe(
+      false,
+    );
   });
 });

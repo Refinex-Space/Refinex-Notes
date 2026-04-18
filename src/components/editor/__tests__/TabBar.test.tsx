@@ -10,11 +10,11 @@ import {
 
 describe("TabBar", () => {
   it("exposes compact rail classes for the tab surface", () => {
-    expect(TAB_RAIL_CLASS_NAME).toContain("rounded-[1.35rem]");
-    expect(TAB_RAIL_CLASS_NAME).toContain("px-1 py-1");
-    expect(TAB_WRAPPER_CLASS_NAME).toContain("min-w-[132px]");
-    expect(TAB_TRIGGER_CLASS_NAME).toContain("h-8");
-    expect(TAB_TRIGGER_CLASS_NAME).toContain("pr-8");
+    expect(TAB_RAIL_CLASS_NAME).toContain("h-9");
+    expect(TAB_RAIL_CLASS_NAME).toContain("w-full");
+    expect(TAB_WRAPPER_CLASS_NAME).toContain("min-w-[100px]");
+    expect(TAB_TRIGGER_CLASS_NAME).toContain("h-full");
+    expect(TAB_TRIGGER_CLASS_NAME).toContain("pr-7");
   });
 
   it("reports context action availability from tab position", () => {
