@@ -31,12 +31,12 @@
 
 ## Acceptance Criteria
 
-- [ ] AC-1: Pressing Cmd+/ (macOS) or Ctrl+/ (other OS) while the rich editor is focused toggles to raw source textarea showing the serialized Markdown.
-- [ ] AC-2: Pressing Cmd+/ again switches back to ProseMirror rendering with the latest markdown content (round-trip preserved).
-- [ ] AC-3: Edits made in source mode are reflected in the rich editor after switching back (textarea value flows through `onChange` → `value` prop → ProseMirror external sync).
-- [ ] AC-4: The shortcut also fires from the source textarea (`onKeyDown`) and from the global `window` keydown handler.
-- [ ] AC-5: Switching active tabs resets source mode to `false`.
-- [ ] AC-6: `npm test -- --run` passes (≥ baseline test count); `cargo test` 36/36; `npm run build` succeeds.
+- [x] AC-1: Pressing Cmd+/ (macOS) or Ctrl+/ (other OS) while the rich editor is focused toggles to raw source textarea showing the serialized Markdown.
+- [x] AC-2: Pressing Cmd+/ again switches back to ProseMirror rendering with the latest markdown content (round-trip preserved).
+- [x] AC-3: Edits made in source mode are reflected in the rich editor after switching back (textarea value flows through `onChange` → `value` prop → ProseMirror external sync).
+- [x] AC-4: The shortcut also fires from the source textarea (`onKeyDown`) and from the global `window` keydown handler.
+- [x] AC-5: Switching active tabs resets source mode to `false`.
+- [x] AC-6: `npm test -- --run` passes (≥ baseline test count); `cargo test` 36/36; `npm run build` succeeds.
 
 ---
 
@@ -85,11 +85,11 @@ Files: `src/App.tsx`
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1    | ⬜     |          |       |
-| 2    | ⬜     |          |       |
-| 3    | ⬜     |          |       |
-| 4    | ⬜     |          |       |
-| 5    | ⬜     |          |       |
+| 1    | ✅     | `sourceMode`, `setSourceMode`, `toggleSourceMode` in `src/types/editor.ts`; `setActiveTab` now resets `sourceMode: false`. | |
+| 2    | ✅     | `Mod-/` binding in `createRefinexKeyBindings`; `onToggleSourceMode` in `RefinexKeymapOptions`. | |
+| 3    | ✅     | `sourceMode`/`onToggleSourceMode` props added to `RefinexEditorProps`; flush effect added; JSX updated with `hidden` ProseMirror div + conditional textarea. | Also fixed pre-existing `d.type` TS error in find-replace.test.ts (TD-003 re-fix). |
+| 4    | ✅     | `.refinex-source-editor` CSS added with light+dark mode rules. | |
+| 5    | ✅     | `sourceMode`/`toggleSourceMode` pulled from editorStore; global `window` keydown Mod+/ handler added; per-editor props wired in document map. | |
 
 ---
 
@@ -105,4 +105,10 @@ Files: `src/App.tsx`
 
 ## Completion Summary
 
-<!-- Filled during archival -->
+Completed: 2026-04-18
+All ACs: PASS
+Tests: 142/142 frontend (baseline unchanged), 36/36 cargo, `npm run build` clean.
+
+Delivered: `editorStore.sourceMode` boolean (resets on tab switch); `Mod-/` in ProseMirror keymap; `sourceMode` prop + raw textarea in `RefinexEditor` (ProseMirror EditorView stays mounted hidden to preserve undo history); monospace `.refinex-source-editor` CSS (light+dark); global `window` keydown handler in App.tsx; per-editor props wired in document map.
+
+Deviation: re-applied the pre-existing TD-003 `find-replace.test.ts` type-cast fix which had been lost in the previous session's stash mishap.
