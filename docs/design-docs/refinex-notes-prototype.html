@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refinex-Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+:root{
+  --f:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  --ef:'Noto Serif SC',Georgia,serif;
+  --mf:'JetBrains Mono',monospace;
+  --bg:#fff;--sf:#fafafa;--tx:#1a1a1a;--t2:#6b6b6b;--t3:#9e9e9e;
+  --bd:#e8e8e8;--hv:#f3f3f3;--sl:#ebebeb;--ac:#5b5fc7;--al:#ededfc;
+  --cb:#f6f6f6;--sb:#f5f5f5;
+}
+[data-theme=dark]{
+  --bg:#1a1a1a;--sf:#222;--tx:#e4e4e4;--t2:#999;--t3:#666;
+  --bd:#333;--hv:#2a2a2a;--sl:#333;--ac:#7b7ff0;--al:#2a2a40;
+  --cb:#262626;--sb:#1e1e1e;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%}
+body{font-family:var(--f);background:#111;overflow:hidden}
+#root{width:100%;height:100%}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+::selection{background:var(--al)}
+button,input,select,textarea{font:inherit}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// Minimal React via createElement - no Babel needed
+const h=React.createElement, {useState,useEffect,useRef}=React;
+
+// SVG Icons as functions returning React elements
+const IC={
+  file:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M4 1.5h5.5L13 5v9.5a1 1 0 01-1 1H4a1 1 0 01-1-1v-13a1 1 0 011-1z',stroke:c,strokeWidth:1.2}),
+    h('path',{d:'M9 1.5V5h3.5',stroke:c,strokeWidth:1.2})),
+  folder:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M1.5 3.5A1 1 0 012.5 2.5h3l1.5 1.5h6a1 1 0 011 1v7.5a1 1 0 01-1 1h-11a1 1 0 01-1-1v-9z',stroke:c,strokeWidth:1.2})),
+  chevR:(s=11,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 12 12',fill:'none'},
+    h('path',{d:'M4.5 2.5l3.5 3.5-3.5 3.5',stroke:c,strokeWidth:1.3,strokeLinecap:'round',strokeLinejoin:'round'})),
+  chevD:(s=11,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 12 12',fill:'none'},
+    h('path',{d:'M2.5 4.5l3.5 3.5 3.5-3.5',stroke:c,strokeWidth:1.3,strokeLinecap:'round',strokeLinejoin:'round'})),
+  search:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('circle',{cx:7,cy:7,r:4.5,stroke:c,strokeWidth:1.3}),h('path',{d:'M10.5 10.5L14 14',stroke:c,strokeWidth:1.3,strokeLinecap:'round'})),
+  git:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('circle',{cx:5,cy:4,r:1.5,stroke:c,strokeWidth:1.2}),h('circle',{cx:5,cy:12,r:1.5,stroke:c,strokeWidth:1.2}),
+    h('circle',{cx:11,cy:7,r:1.5,stroke:c,strokeWidth:1.2}),h('path',{d:'M5 5.5v5M5 8.5c0-2 2-3 4.5-2',stroke:c,strokeWidth:1.2})),
+  ai:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5z',stroke:c,strokeWidth:1.2,strokeLinejoin:'round'})),
+  gear:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('circle',{cx:8,cy:8,r:2,stroke:c,strokeWidth:1.2}),
+    h('path',{d:'M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41',stroke:c,strokeWidth:1.2,strokeLinecap:'round'})),
+  bold:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M4 2.5h5a2.5 2.5 0 010 5H4zm0 5h5.5a2.5 2.5 0 010 5H4z',stroke:c,strokeWidth:1.5})),
+  italic:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M6 13.5l4-11M5 13.5h5M6 2.5h5',stroke:c,strokeWidth:1.3,strokeLinecap:'round'})),
+  code:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M5 4L1.5 8 5 12M11 4l3.5 4L11 12',stroke:c,strokeWidth:1.3,strokeLinecap:'round',strokeLinejoin:'round'})),
+  link:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M6.5 9.5a3 3 0 004.24 0l2-2a3 3 0 00-4.24-4.24l-1 1',stroke:c,strokeWidth:1.2,strokeLinecap:'round'}),
+    h('path',{d:'M9.5 6.5a3 3 0 00-4.24 0l-2 2a3 3 0 004.24 4.24l1-1',stroke:c,strokeWidth:1.2,strokeLinecap:'round'})),
+  table:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('rect',{x:1.5,y:2.5,width:13,height:11,rx:1,stroke:c,strokeWidth:1.2}),
+    h('path',{d:'M1.5 6.5h13M1.5 10.5h13M6 2.5v11',stroke:c,strokeWidth:1.2})),
+  list:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M5.5 4H14M5.5 8H14M5.5 12H14',stroke:c,strokeWidth:1.2,strokeLinecap:'round'}),
+    h('circle',{cx:2.5,cy:4,r:1,fill:c}),h('circle',{cx:2.5,cy:8,r:1,fill:c}),h('circle',{cx:2.5,cy:12,r:1,fill:c})),
+  quote:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M2 3v10',stroke:c,strokeWidth:2.5,strokeLinecap:'round'}),
+    h('path',{d:'M6 5.5H14M6 8.5H12M6 11.5H10',stroke:c,strokeWidth:1.2,strokeLinecap:'round'})),
+  heading:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M3 3v10M13 3v10M3 8h10',stroke:c,strokeWidth:1.5,strokeLinecap:'round'})),
+  plus:(s=14,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M8 3v10M3 8h10',stroke:c,strokeWidth:1.3,strokeLinecap:'round'})),
+  send:(s=14,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M2 2l12 6-12 6V9.5L10 8 2 6.5z',fill:c})),
+  x:(s=14,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M4 4l8 8M12 4l-8 8',stroke:c,strokeWidth:1.3,strokeLinecap:'round'})),
+  outline:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M2.5 3H7M2.5 6.5H13.5M4.5 10H13.5M4.5 13.5H10',stroke:c,strokeWidth:1.2,strokeLinecap:'round'})),
+  sidebar:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('rect',{x:1.5,y:2,width:13,height:12,rx:1.5,stroke:c,strokeWidth:1.2}),h('path',{d:'M6 2v12',stroke:c,strokeWidth:1.2})),
+  moon:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M13.5 9.5a6 6 0 01-7-7 6 6 0 107 7z',stroke:c,strokeWidth:1.2})),
+  sun:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('circle',{cx:8,cy:8,r:3,stroke:c,strokeWidth:1.2}),
+    h('path',{d:'M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4',stroke:c,strokeWidth:1.2,strokeLinecap:'round'})),
+  sync:(s=14,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('path',{d:'M2 8a6 6 0 0110.5-4M14 8a6 6 0 01-10.5 4',stroke:c,strokeWidth:1.2,strokeLinecap:'round'})),
+  img:(s=15,c='currentColor')=>h('svg',{width:s,height:s,viewBox:'0 0 16 16',fill:'none'},
+    h('rect',{x:1.5,y:2.5,width:13,height:11,rx:1,stroke:c,strokeWidth:1.2}),h('circle',{cx:5,cy:6,r:1.25,stroke:c,strokeWidth:1})),
+};
+
+// Helpers
+const D='div',S='span',B='button',INP='input';
+const st=(s)=>({style:s});
+const hov=(el,prop='background',val='var(--hv)')=>{
+  el.onMouseEnter=e=>e.currentTarget.style[prop]=val;
+  el.onMouseLeave=e=>e.currentTarget.style[prop]='transparent';
+};
+
+// ── FileTreeItem ──
+function FTI(p){
+  const[exp,setExp]=useState(p.exp||false);
+  const isF=p.type==='folder';
+  const gc={M:'#c08b30',A:'#3fb950'};
+  return h(D,null,
+    h(D,{onClick:()=>{if(isF)setExp(!exp);if(p.onSel)p.onSel(p.name)},
+      onMouseEnter:e=>{if(!p.sel)e.currentTarget.style.background='var(--hv)'},
+      onMouseLeave:e=>{if(!p.sel)e.currentTarget.style.background='transparent'},
+      style:{display:'flex',alignItems:'center',gap:4,padding:`3px 8px 3px ${12+(p.d||0)*16}px`,
+        cursor:'pointer',fontSize:13,fontWeight:p.sel?500:400,
+        background:p.sel?'var(--sl)':'transparent',color:p.sel?'var(--tx)':'var(--t2)',
+        borderRadius:5,margin:'0 4px'}},
+      isF?h(S,{style:{opacity:.5,display:'flex'}},exp?IC.chevD():IC.chevR()):h(S,{style:{width:11}}),
+      h(S,{style:{display:'flex',opacity:.6}},isF?IC.folder(14):IC.file(14)),
+      h(S,{style:{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},p.name),
+      p.git?h(S,{style:{fontSize:11,fontWeight:600,color:gc[p.git]}},p.git):null),
+    isF&&exp?p.children:null);
+}
+
+// ── FileTree ──
+function FT({sel,onSel}){
+  return h(D,{style:{padding:'4px 0',fontSize:13}},
+    h(FTI,{name:'Refinex-Notes',type:'folder',d:0,exp:true,onSel},
+      h(FTI,{name:'docs',type:'folder',d:1,exp:true,onSel},
+        h(FTI,{name:'README.md',type:'file',d:2,sel:sel==='README.md',onSel}),
+        h(FTI,{name:'architecture.md',type:'file',d:2,git:'M',sel:sel==='architecture.md',onSel}),
+        h(FTI,{name:'api-reference.md',type:'file',d:2,git:'A',onSel})),
+      h(FTI,{name:'notes',type:'folder',d:1,exp:true,onSel},
+        h(FTI,{name:'项目计划.md',type:'file',d:2,onSel}),
+        h(FTI,{name:'技术调研.md',type:'file',d:2,git:'M',sel:sel==='技术调研.md',onSel}),
+        h(FTI,{name:'会议记录',type:'folder',d:2,onSel},
+          h(FTI,{name:'2026-04-18.md',type:'file',d:3,git:'A',onSel}))),
+      h(FTI,{name:'CHANGELOG.md',type:'file',d:1,onSel})));
+}
+
+// ── Outline ──
+function OL(){
+  const items=[{l:1,t:'Refinex-Notes 技术架构文档'},{l:2,t:'一、桌面端框架：Tauri 2.0'},{l:3,t:'核心性能数据对比'},{l:3,t:'关键新能力'},{l:2,t:'二、UI 组件层'}];
+  const[a,setA]=useState(1);
+  return h(D,{style:{padding:'12px 0',fontSize:13}},
+    h(D,{style:{padding:'0 12px 8px',fontSize:11,fontWeight:600,color:'var(--t3)',letterSpacing:.5}},'大纲'),
+    items.map((it,i)=>h(D,{key:i,onClick:()=>setA(i),style:{
+      padding:`4px 12px 4px ${12+(it.l-1)*14}px`,cursor:'pointer',
+      color:i===a?'var(--ac)':'var(--t2)',fontWeight:i===a?500:400,fontSize:it.l===1?13:12.5,
+      borderLeft:i===a?'2px solid var(--ac)':'2px solid transparent'}},it.t)));
+}
+
+// ── Editor Toolbar ──
+function TB(){
+  const tools=[['heading','标题'],['bold','粗体'],['italic','斜体'],['code','代码'],null,
+    ['link','链接'],['img','图片'],['table','表格'],null,['list','列表'],['quote','引用']];
+  return h(D,{style:{display:'flex',alignItems:'center',gap:2,padding:'4px 16px',borderBottom:'1px solid var(--bd)',flexShrink:0}},
+    tools.map((t,i)=>t===null?
+      h(D,{key:i,style:{width:1,height:16,background:'var(--bd)',margin:'0 4px'}}):
+      h(B,{key:i,title:t[1],style:{width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',
+        border:'none',background:'none',borderRadius:5,cursor:'pointer',color:'var(--t2)'},
+        onMouseEnter:e=>{e.currentTarget.style.background='var(--hv)';e.currentTarget.style.color='var(--tx)'},
+        onMouseLeave:e=>{e.currentTarget.style.background='none';e.currentTarget.style.color='var(--t2)'}},
+        IC[t[0]]())));
+}
+
+// ── Editor Content ──
+function EC(){
+  return h(D,{style:{flex:1,overflow:'auto',padding:'32px 54px',fontFamily:'var(--ef)',fontSize:15.5,lineHeight:1.75,color:'var(--tx)',maxWidth:860,margin:'0 auto',width:'100%'}},
+    h('h1',{style:{fontSize:28,fontWeight:700,marginBottom:16,lineHeight:1.3}},'Refinex-Notes 技术架构文档'),
+    h('p',{style:{marginBottom:16}},h('strong',null,'Tauri 2.0 + React + Radix UI + Tailwind CSS + 自研 Refinex Editor'),' 是构建下一代所见即所得 Markdown 笔记软件的最优技术栈组合。'),
+    h('hr',{style:{border:'none',borderTop:'1px solid var(--bd)',margin:'24px 0'}}),
+    h('h2',{style:{fontSize:22,fontWeight:600,marginBottom:12,marginTop:32}},'一、桌面端框架：Tauri 2.0'),
+    h('p',{style:{marginBottom:16}},'Tauri 2.0 于 2024 年 10 月正式发布稳定版，截至 2026 年初已迭代至 ',h('strong',null,'v2.10.3'),'，稳定性已得到充分验证。'),
+    h('h3',{style:{fontSize:17,fontWeight:600,marginTop:24,marginBottom:12}},'核心性能数据对比'),
+    h('table',{style:{width:'100%',borderCollapse:'collapse',marginBottom:20,fontSize:14}},
+      h('thead',null,h('tr',{style:{borderBottom:'2px solid var(--bd)'}},
+        ['指标','Tauri 2.0','Electron','优势'].map(x=>h('th',{key:x,style:{textAlign:'left',padding:'8px 12px',fontWeight:600}},x)))),
+      h('tbody',null,
+        [['安装包','<10 MB','100-165 MB','15-28x'],['内存','30-40 MB','200-300 MB','5-8x'],['启动','<0.5 秒','1-2 秒','2-4x']].map((r,i)=>
+          h('tr',{key:i,style:{borderBottom:'1px solid var(--bd)'}},
+            r.map((c,j)=>h('td',{key:j,style:{padding:'8px 12px',fontWeight:j===1?600:400}},c)))))),
+    h('blockquote',{style:{borderLeft:'3px solid var(--ac)',padding:'8px 16px',margin:'16px 0',color:'var(--t2)',background:'var(--hv)',borderRadius:'0 6px 6px 0'}},
+      h('strong',null,'注意：'),' 首次编译时间较长（~80秒），但热更新极快。'),
+    h('h3',{style:{fontSize:17,fontWeight:600,marginTop:24,marginBottom:12}},'关键新能力'),
+    h('ol',{style:{paddingLeft:24,marginBottom:16}},
+      [['移动端支持','iOS/Android 一等公民'],['权限系统','Capability 细粒度权限'],['IPC 机制','自定义 URI scheme'],['官方插件','25+ 核心插件']].map((x,i)=>
+        h('li',{key:i,style:{marginBottom:6}},h('strong',null,x[0]),' — ',x[1]))),
+    h('pre',{style:{background:'var(--cb)',borderRadius:8,padding:'16px 20px',fontSize:13.5,lineHeight:1.6,fontFamily:'var(--mf)',border:'1px solid var(--bd)',overflow:'auto'}},
+      h('code',null,`#[tauri::command]\nasync fn save_document(\n    path: String, content: String\n) -> Result<(), String> {\n    std::fs::write(&path, &content)\n        .map_err(|e| e.to_string())\n}`)),
+    h('h2',{style:{fontSize:22,fontWeight:600,marginBottom:12,marginTop:32}},'二、UI 组件层'),
+    h('p',null,'Radix UI 是前端组件层的核心——',h('strong',null,'headless、可访问性优先'),'的 React 原语组件库。'),
+    h(S,{style:{display:'inline-block',width:2,height:20,background:'var(--ac)',animation:'blink 1s step-end infinite',verticalAlign:'text-bottom'}}));
+}
+
+// ── AI Panel ──
+function AI({onClose}){
+  const[msgs,setMsgs]=useState([{r:'a',c:'你好！我是 Refinex AI 助手，可以帮你改写、翻译、总结。'}]);
+  const[inp,setInp]=useState('');
+  const[model,setModel]=useState('Claude 4 Sonnet');
+  const[mp,setMp]=useState(false);
+  const[typing,setTyping]=useState(false);
+  const models=['Claude 4 Sonnet','Claude 4 Opus','GPT-4o','DeepSeek V3','Qwen 3'];
+  const send=()=>{
+    if(!inp.trim())return;
+    setMsgs(m=>[...m,{r:'u',c:inp}]);setInp('');setTyping(true);
+    setTimeout(()=>{setTyping(false);setMsgs(m=>[...m,{r:'a',c:'建议增加路径验证防止遍历攻击，用 tokio::fs 替代同步操作。需要我帮你完善吗？'}])},1200);
+  };
+  return h(D,{style:{width:320,borderLeft:'1px solid var(--bd)',display:'flex',flexDirection:'column',background:'var(--sf)',flexShrink:0}},
+    h(D,{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderBottom:'1px solid var(--bd)'}},
+      h(D,{style:{display:'flex',alignItems:'center',gap:6}},IC.ai(14,'var(--ac)'),h(S,{style:{fontSize:13,fontWeight:600}},'AI 助手')),
+      h(B,{onClick:onClose,style:{border:'none',background:'none',cursor:'pointer',color:'var(--t3)',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:5}},IC.x())),
+    h(D,{style:{padding:'8px 12px',borderBottom:'1px solid var(--bd)',position:'relative'}},
+      h(B,{onClick:()=>setMp(!mp),style:{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',border:'1px solid var(--bd)',borderRadius:6,background:'var(--bg)',cursor:'pointer',fontSize:12,color:'var(--tx)',width:'100%'}},
+        h(S,{style:{width:7,height:7,borderRadius:'50%',background:'#3fb950'}}),h(S,{style:{flex:1,textAlign:'left'}},model),IC.chevD(10,'var(--t3)')),
+      mp?h(D,{style:{position:'absolute',top:'100%',left:12,right:12,zIndex:20,background:'var(--sf)',border:'1px solid var(--bd)',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',padding:4}},
+        models.map(m=>h(D,{key:m,onClick:()=>{setModel(m);setMp(false)},
+          onMouseEnter:e=>e.currentTarget.style.background='var(--hv)',
+          onMouseLeave:e=>e.currentTarget.style.background=m===model?'var(--sl)':'transparent',
+          style:{padding:'6px 10px',fontSize:12,borderRadius:5,cursor:'pointer',background:m===model?'var(--sl)':'transparent',color:'var(--tx)'}},m))):null),
+    h(D,{style:{flex:1,overflow:'auto',padding:12,display:'flex',flexDirection:'column',gap:10}},
+      msgs.map((m,i)=>h(D,{key:i,style:{display:'flex',flexDirection:'column',alignItems:m.r==='u'?'flex-end':'flex-start'}},
+        h(D,{style:{maxWidth:'90%',padding:'8px 12px',borderRadius:10,fontSize:13,lineHeight:1.6,whiteSpace:'pre-wrap',
+          background:m.r==='u'?'var(--ac)':'var(--hv)',color:m.r==='u'?'#fff':'var(--tx)',
+          borderBottomRightRadius:m.r==='u'?3:10,borderBottomLeftRadius:m.r==='u'?10:3}},m.c))),
+      typing?h(D,{style:{display:'flex',gap:4,padding:8}},[0,1,2].map(i=>h(D,{key:i,style:{width:6,height:6,borderRadius:'50%',background:'var(--t3)',animation:`bounce 1.2s ${i*0.15}s infinite`}}))):null),
+    h(D,{style:{padding:'4px 12px',display:'flex',gap:6,flexWrap:'wrap'}},
+      ['润色文本','翻译为英文','生成摘要','续写'].map(a=>h(B,{key:a,onClick:()=>setInp(a),style:{padding:'4px 10px',fontSize:11,border:'1px solid var(--bd)',borderRadius:12,background:'var(--bg)',cursor:'pointer',color:'var(--t2)',fontFamily:'var(--f)'}},a))),
+    h(D,{style:{padding:'8px 12px 12px',display:'flex',gap:8}},
+      h(INP,{value:inp,onChange:e=>setInp(e.target.value),onKeyDown:e=>e.key==='Enter'&&send(),placeholder:'输入消息...',
+        style:{flex:1,padding:'8px 12px',border:'1px solid var(--bd)',borderRadius:8,fontSize:13,outline:'none',background:'var(--bg)',color:'var(--tx)',fontFamily:'var(--f)'}}),
+      h(B,{onClick:send,style:{width:34,height:34,borderRadius:8,border:'none',background:'var(--ac)',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:inp.trim()?1:.5}},IC.send())));
+}
+
+// ── Git Panel ──
+function GP({onClose}){
+  const[tab,setTab]=useState('changes');
+  const ch=[{f:'architecture.md',s:'M',st:true},{f:'技术调研.md',s:'M',st:false},{f:'api-reference.md',s:'A',st:true},{f:'2026-04-18.md',s:'A',st:false}];
+  const cm=[{h:'a3f2d1c',m:'更新技术架构文档',t:'2 小时前'},{h:'b7e4a2f',m:'添加 API 参考文档',t:'5 小时前'},{h:'c9d1e3a',m:'重构编辑器模块',t:'昨天'},{h:'d2f5b7c',m:'feat: AI 写作助手',t:'2 天前'}];
+  const sc={M:'#c08b30',A:'#3fb950'};const sl={M:'已修改',A:'新增'};
+  const fItem=(c,i)=>h(D,{key:i,
+    onMouseEnter:e=>e.currentTarget.style.background='var(--hv)',onMouseLeave:e=>e.currentTarget.style.background='transparent',
+    style:{display:'flex',alignItems:'center',gap:8,padding:'5px 12px',fontSize:12.5,cursor:'pointer'}},
+    IC.file(13,'var(--t3)'),h(S,{style:{flex:1,color:'var(--tx)'}},c.f),h(S,{style:{fontSize:10,color:sc[c.s],fontWeight:600}},sl[c.s]));
+  return h(D,{style:{width:280,borderLeft:'1px solid var(--bd)',display:'flex',flexDirection:'column',background:'var(--sf)',flexShrink:0}},
+    h(D,{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderBottom:'1px solid var(--bd)'}},
+      h(D,{style:{display:'flex',alignItems:'center',gap:6}},IC.git(14,'var(--ac)'),h(S,{style:{fontSize:13,fontWeight:600}},'Git'),
+        h(S,{style:{fontSize:11,padding:'1px 8px',borderRadius:10,background:'var(--hv)',color:'var(--t2)'}},'main')),
+      h(B,{onClick:onClose,style:{border:'none',background:'none',cursor:'pointer',color:'var(--t3)',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:5}},IC.x())),
+    h(D,{style:{display:'flex',borderBottom:'1px solid var(--bd)'}},
+      ['changes','history'].map(t=>h(B,{key:t,onClick:()=>setTab(t),style:{flex:1,padding:'8px 0',fontSize:12,fontWeight:500,border:'none',background:'none',cursor:'pointer',fontFamily:'var(--f)',
+        color:tab===t?'var(--ac)':'var(--t3)',borderBottom:tab===t?'2px solid var(--ac)':'2px solid transparent'}},t==='changes'?`变更 (${ch.length})`:'历史'))),
+    h(D,{style:{flex:1,overflow:'auto'}},
+      tab==='changes'?h(D,null,
+        h(D,{style:{padding:'8px 12px 4px',fontSize:11,fontWeight:600,color:'var(--t3)'}},'已暂存 ('+ch.filter(c=>c.st).length+')'),
+        ch.filter(c=>c.st).map(fItem),
+        h(D,{style:{padding:'12px 12px 4px',fontSize:11,fontWeight:600,color:'var(--t3)'}},'未暂存 ('+ch.filter(c=>!c.st).length+')'),
+        ch.filter(c=>!c.st).map(fItem),
+        h(D,{style:{padding:12,marginTop:8,borderTop:'1px solid var(--bd)'}},
+          h('textarea',{placeholder:'提交信息...',style:{width:'100%',height:50,padding:'8px 10px',border:'1px solid var(--bd)',borderRadius:6,resize:'none',fontSize:12.5,fontFamily:'var(--f)',outline:'none',background:'var(--bg)',color:'var(--tx)',boxSizing:'border-box'}}),
+          h(D,{style:{display:'flex',gap:8,marginTop:8}},
+            h(B,{style:{flex:1,padding:'7px 0',fontSize:12,fontWeight:500,border:'none',borderRadius:6,cursor:'pointer',background:'var(--ac)',color:'#fff',fontFamily:'var(--f)'}},'提交'),
+            h(B,{style:{padding:'7px 12px',border:'1px solid var(--bd)',borderRadius:6,cursor:'pointer',background:'none',color:'var(--t2)',display:'flex',alignItems:'center',justifyContent:'center'}},IC.sync())))
+      ):h(D,null,cm.map((c,i)=>h(D,{key:i,
+        onMouseEnter:e=>e.currentTarget.style.background='var(--hv)',onMouseLeave:e=>e.currentTarget.style.background='transparent',
+        style:{padding:'8px 12px',cursor:'pointer',borderBottom:'1px solid var(--bd)'}},
+        h(D,{style:{fontSize:12.5,fontWeight:500,color:'var(--tx)',marginBottom:3}},c.m),
+        h(D,{style:{fontSize:11,color:'var(--t3)',display:'flex',gap:8}},h(S,{style:{fontFamily:'var(--mf)'}},c.h),h(S,null,c.t)))))));
+}
+
+// ── Settings ──
+function ST({onClose}){
+  const[tab,setTab]=useState('general');
+  const[tg,setTg]=useState({auto:true,ol:true,sp:false,strict:true,al:true,math:true,hl:true,mm:true,actx:true,ast:true,acm:false,fa:true});
+  const t=k=>setTg(p=>({...p,[k]:!p[k]}));
+  const Tgl=({on,k})=>h(D,{onClick:()=>t(k),style:{width:36,height:20,borderRadius:10,cursor:'pointer',background:on?'var(--ac)':'var(--bd)',transition:'background 0.2s',position:'relative'}},
+    h(D,{style:{width:16,height:16,borderRadius:'50%',background:'#fff',position:'absolute',top:2,left:on?18:2,transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}));
+  const Sel=({v,o})=>h('select',{defaultValue:v,style:{padding:'5px 8px',fontSize:12,border:'1px solid var(--bd)',borderRadius:6,background:'var(--bg)',color:'var(--tx)',fontFamily:'var(--f)',outline:'none'}},o.map(x=>h('option',{key:x},x)));
+  const SR=({l,d,children})=>h(D,{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--bd)'}},
+    h(D,null,h(D,{style:{fontSize:13.5,fontWeight:500,color:'var(--tx)'}},l),d?h(D,{style:{fontSize:12,color:'var(--t3)',marginTop:2}},d):null),h(D,null,children));
+  
+  const tabs=[['general','通用'],['editor','编辑器'],['ai','AI 助手'],['git','Git'],['appearance','外观']];
+  const contents={
+    general:h(D,null,
+      h(SR,{l:'启动选项'},h(Sel,{v:'上次打开的目录',o:['上次打开的目录','新建文档']})),
+      h(SR,{l:'大纲',d:'显示侧边栏大纲'},h(Tgl,{on:tg.ol,k:'ol'})),
+      h(SR,{l:'自动保存',d:'切换文件时自动保存'},h(Tgl,{on:tg.auto,k:'auto'})),
+      h(SR,{l:'语言'},h(Sel,{v:'简体中文',o:['简体中文','English']}))),
+    editor:h(D,null,
+      h(SR,{l:'字体'},h(Sel,{v:'Noto Serif SC',o:['Noto Serif SC','PingFang SC','Georgia']})),
+      h(SR,{l:'字号'},h(Sel,{v:'15px',o:['13px','14px','15px','16px','18px']})),
+      h(SR,{l:'行高'},h(Sel,{v:'1.75',o:['1.5','1.6','1.75','2.0']})),
+      h(SR,{l:'代码字体'},h(Sel,{v:'JetBrains Mono',o:['JetBrains Mono','Fira Code','SF Mono']}))),
+    ai:h(D,null,
+      h(SR,{l:'默认模型'},h(Sel,{v:'Claude 4 Sonnet',o:['Claude 4 Sonnet','GPT-4o','DeepSeek V3','Qwen 3']})),
+      h(SR,{l:'API Provider'},h(Sel,{v:'Anthropic',o:['Anthropic','OpenAI','DeepSeek']})),
+      h(SR,{l:'发送上下文',d:'自动发送当前文档'},h(Tgl,{on:tg.actx,k:'actx'})),
+      h(SR,{l:'流式输出'},h(Tgl,{on:tg.ast,k:'ast'}))),
+    git:h(D,null,
+      h(SR,{l:'GitHub 账户'},h(B,{style:{padding:'5px 12px',fontSize:12,border:'1px solid var(--bd)',borderRadius:6,background:'var(--bg)',color:'var(--ac)',cursor:'pointer',fontWeight:500}},'已连接: @user')),
+      h(SR,{l:'自动提交',d:'保存时自动提交'},h(Tgl,{on:tg.acm,k:'acm'})),
+      h(SR,{l:'文件树标注',d:'显示 Git 状态'},h(Tgl,{on:tg.fa,k:'fa'}))),
+    appearance:h(D,null,
+      h(SR,{l:'主题'},h(Sel,{v:'自动',o:['亮色','暗色','自动']})),
+      h(SR,{l:'编辑器主题'},h(Sel,{v:'Refinex Light',o:['Refinex Light','Refinex Dark','Dracula']})),
+      h(SR,{l:'代码块主题'},h(Sel,{v:'One Dark',o:['One Dark','GitHub','Nord']}))),
+  };
+
+  return h(D,{style:{position:'fixed',inset:0,zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}},
+    h(D,{onClick:onClose,style:{position:'absolute',inset:0,background:'rgba(0,0,0,.3)',backdropFilter:'blur(4px)'}}),
+    h(D,{style:{position:'relative',width:640,height:440,background:'var(--sf)',borderRadius:14,boxShadow:'0 20px 60px rgba(0,0,0,.2)',display:'flex',overflow:'hidden',border:'1px solid var(--bd)'}},
+      h(D,{style:{width:160,borderRight:'1px solid var(--bd)',padding:'16px 8px',background:'var(--bg)',display:'flex',flexDirection:'column',gap:2}},
+        h(D,{style:{padding:'0 8px 12px',fontSize:14,fontWeight:700,color:'var(--tx)'}},'设置'),
+        tabs.map(([id,lb])=>h(D,{key:id,onClick:()=>setTab(id),
+          onMouseEnter:e=>{if(tab!==id)e.currentTarget.style.background='var(--hv)'},
+          onMouseLeave:e=>{if(tab!==id)e.currentTarget.style.background='transparent'},
+          style:{padding:'7px 10px',borderRadius:7,cursor:'pointer',fontSize:13,
+            background:tab===id?'var(--sl)':'transparent',color:tab===id?'var(--tx)':'var(--t2)',fontWeight:tab===id?500:400}},lb))),
+      h(D,{style:{flex:1,overflow:'auto',padding:'24px 28px'}},
+        h('h3',{style:{fontSize:16,fontWeight:600,marginBottom:8,color:'var(--tx)'}},tabs.find(t=>t[0]===tab)?.[1]),
+        contents[tab])));
+}
+
+// ── TitleBtn ──
+function TBtn({ic,active,onClick,tip}){
+  return h(B,{onClick,title:tip,
+    onMouseEnter:e=>e.currentTarget.style.background=active?'var(--sl)':'var(--hv)',
+    onMouseLeave:e=>e.currentTarget.style.background=active?'var(--sl)':'transparent',
+    style:{width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center',
+      border:'none',borderRadius:6,cursor:'pointer',background:active?'var(--sl)':'transparent',
+      color:active?'var(--ac)':'var(--t2)',transition:'all .12s'}},ic);
+}
+
+// ── Main App ──
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"light","accentColor":"#5b5fc7"}/*EDITMODE-END*/;
+
+function App(){
+  const[tw,setTw]=useState(TWEAK_DEFAULTS);
+  const[sb,setSb]=useState(true);
+  const[ai,setAi]=useState(false);
+  const[gt,setGt]=useState(false);
+  const[st,setSt]=useState(false);
+  const[ol,setOl]=useState(true);
+  const[sel,setSel]=useState('architecture.md');
+  const[sr,setSr]=useState(false);
+  const[tv,setTv]=useState(false);
+  const dark=tw.theme==='dark';
+
+  useEffect(()=>{
+    document.documentElement.style.setProperty('--ac', tw.accentColor || '#5b5fc7');
+  }, [tw.accentColor]);
+
+  useEffect(()=>{
+    const handler=e=>{
+      if(e.data?.type==='__activate_edit_mode')setTv(true);
+      if(e.data?.type==='__deactivate_edit_mode')setTv(false);
+    };
+    window.addEventListener('message',handler);
+    try{ window.parent && window.parent.postMessage({type:'__edit_mode_available'},'*'); }catch(e){}
+    return()=>window.removeEventListener('message',handler);
+  },[]);
+
+  useEffect(()=>{
+    const handler=e=>{
+      if((e.metaKey||e.ctrlKey)&&e.key===','){e.preventDefault();setSt(s=>!s)}
+      if((e.metaKey||e.ctrlKey)&&e.key==='f'){e.preventDefault();setSr(s=>!s)}
+    };
+    window.addEventListener('keydown',handler);
+    return()=>window.removeEventListener('keydown',handler);
+  },[]);
+
+  const applyTw=(k,v)=>{
+    setTw(p=>({...p,[k]:v}));
+    try{ window.parent && window.parent.postMessage({type:'__edit_mode_set_keys',edits:{[k]:v}},'*'); }catch(e){}
+  };
+
+  return h(D,{
+    'data-theme':dark?'dark':'light',
+    style:{width:'100vw',height:'100vh',display:'flex',flexDirection:'column',background:'var(--bg)',fontFamily:'var(--f)',color:'var(--tx)',overflow:'hidden'}},
+
+    // Title bar
+    h(D,{style:{height:38,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 12px',borderBottom:'1px solid var(--bd)',background:'var(--sf)',flexShrink:0}},
+      h(D,{style:{display:'flex',alignItems:'center',gap:8}},
+        h(D,{style:{display:'flex',gap:7,marginRight:8}},
+          ['#ff5f57','#febc2e','#28c840'].map(c=>h(D,{key:c,style:{width:12,height:12,borderRadius:'50%',background:c}}))),
+        h(TBtn,{ic:IC.sidebar(),active:sb,onClick:()=>setSb(s=>!s),tip:'侧边栏'})),
+      h(D,{style:{fontSize:12.5,fontWeight:500,color:'var(--t2)',display:'flex',alignItems:'center',gap:6}},
+        h(S,null,sel),h(S,{style:{fontSize:10,color:'var(--t3)'}},'— Refinex-Notes')),
+      h(D,{style:{display:'flex',alignItems:'center',gap:2}},
+        h(TBtn,{ic:IC.search(),onClick:()=>setSr(s=>!s),tip:'搜索'}),
+        h(TBtn,{ic:IC.ai(),active:ai,onClick:()=>{setAi(s=>!s);setGt(false)},tip:'AI'}),
+        h(TBtn,{ic:IC.git(),active:gt,onClick:()=>{setGt(s=>!s);setAi(false)},tip:'Git'}),
+        h(TBtn,{ic:IC.outline(),active:ol,onClick:()=>setOl(s=>!s),tip:'大纲'}),
+        h(TBtn,{ic:IC.gear(),onClick:()=>setSt(true),tip:'设置'}),
+        h(TBtn,{ic:dark?IC.sun():IC.moon(),onClick:()=>applyTw('theme',dark?'light':'dark'),tip:'主题'}))),
+
+    // Search
+    sr?h(D,{style:{padding:'8px 16px',borderBottom:'1px solid var(--bd)',background:'var(--sf)',display:'flex',alignItems:'center',gap:8}},
+      IC.search(14,'var(--t3)'),
+      h(INP,{autoFocus:true,placeholder:'搜索文档...',style:{flex:1,border:'none',outline:'none',fontSize:13,background:'transparent',color:'var(--tx)',fontFamily:'var(--f)'}}),
+      h(S,{style:{fontSize:11,color:'var(--t3)'}},'0 结果'),
+      h(B,{onClick:()=>setSr(false),style:{border:'none',background:'none',cursor:'pointer',color:'var(--t3)'}},IC.x(12))):null,
+
+    // Main
+    h(D,{style:{flex:1,display:'flex',overflow:'hidden'}},
+      // Sidebar
+      sb?h(D,{style:{width:240,borderRight:'1px solid var(--bd)',background:'var(--sb)',display:'flex',flexDirection:'column',flexShrink:0}},
+        h(D,{style:{padding:'8px 12px',display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          h(S,{style:{fontSize:11,fontWeight:600,color:'var(--t3)',letterSpacing:.5}},'文件'),
+          h(B,{style:{border:'none',background:'none',cursor:'pointer',color:'var(--t3)',width:22,height:22,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:4}},IC.plus())),
+        h(D,{style:{flex:1,overflow:'auto'}},h(FT,{sel,onSel:setSel})),
+        h(D,{style:{padding:'6px 12px',borderTop:'1px solid var(--bd)',display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--t3)'}},
+          IC.git(12,'var(--t3)'),h(S,null,'main'),h(S,{style:{marginLeft:'auto'}},'2 ↑ 4 ●'))):null,
+
+      // Editor
+      h(D,{style:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}},
+        h(D,{style:{display:'flex',alignItems:'center',borderBottom:'1px solid var(--bd)',background:'var(--sf)',flexShrink:0}},
+          ['architecture.md','README.md','技术调研.md'].map(f=>
+            h(D,{key:f,onClick:()=>setSel(f),style:{padding:'7px 14px',fontSize:12.5,cursor:'pointer',
+              borderRight:'1px solid var(--bd)',background:sel===f?'var(--bg)':'transparent',
+              color:sel===f?'var(--tx)':'var(--t3)',fontWeight:sel===f?500:400,
+              display:'flex',alignItems:'center',gap:6,
+              borderBottom:sel===f?'2px solid var(--ac)':'2px solid transparent',marginBottom:-1}},
+              h(S,null,f),
+              f==='architecture.md'?h(S,{style:{width:6,height:6,borderRadius:'50%',background:'#c08b30'}}):null))),
+        h(TB,null),
+        h(D,{style:{flex:1,display:'flex',overflow:'hidden'}},
+          h(EC,null),
+          ol?h(D,{style:{width:200,borderLeft:'1px solid var(--bd)',background:'var(--sf)',flexShrink:0,overflow:'auto'}},h(OL,null)):null)),
+
+      ai?h(AI,{onClose:()=>setAi(false)}):null,
+      gt?h(GP,{onClose:()=>setGt(false)}):null),
+
+    // Status bar
+    h(D,{style:{height:24,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 12px',borderTop:'1px solid var(--bd)',background:'var(--sf)',flexShrink:0,fontSize:11,color:'var(--t3)'}},
+      h(D,{style:{display:'flex',alignItems:'center',gap:12}},
+        h(S,{style:{display:'flex',alignItems:'center',gap:4}},h(S,{style:{width:6,height:6,borderRadius:'50%',background:'#3fb950'}}),'main'),
+        h(S,null,'已同步')),
+      h(D,{style:{display:'flex',alignItems:'center',gap:12}},
+        h(S,null,'Markdown'),h(S,null,'UTF-8'),h(S,null,'3,424 字'),h(S,null,'行 42, 列 18'))),
+
+    st?h(ST,{onClose:()=>setSt(false)}):null,
+
+    // Tweaks
+    tv?h(D,{style:{position:'fixed',bottom:16,right:16,zIndex:999,background:'var(--sf)',border:'1px solid var(--bd)',borderRadius:12,boxShadow:'0 8px 32px rgba(0,0,0,.15)',padding:16,width:220}},
+      h(D,{style:{fontSize:13,fontWeight:700,marginBottom:12}},'Tweaks'),
+      h(D,{style:{marginBottom:12}},
+        h(D,{style:{fontSize:11,fontWeight:600,color:'var(--t3)',marginBottom:6}},'主题'),
+        h(D,{style:{display:'flex',gap:6}},
+          ['light','dark'].map(t=>h(B,{key:t,onClick:()=>applyTw('theme',t),style:{flex:1,padding:'5px 0',fontSize:12,
+            border:'1px solid',borderColor:tw.theme===t?'var(--ac)':'var(--bd)',borderRadius:6,cursor:'pointer',
+            background:tw.theme===t?'var(--al)':'var(--bg)',color:tw.theme===t?'var(--ac)':'var(--t2)',fontWeight:500}},
+            t==='light'?'亮色':'暗色')))),
+      h(D,null,
+        h(D,{style:{fontSize:11,fontWeight:600,color:'var(--t3)',marginBottom:6}},'强调色'),
+        h(D,{style:{display:'flex',gap:6}},
+          [{l:'靛蓝',v:'#5b5fc7'},{l:'翠绿',v:'#2d9d78'},{l:'琥珀',v:'#c08b30'},{l:'玫红',v:'#c74882'},{l:'石墨',v:'#555'}].map(a=>
+            h(D,{key:a.v,onClick:()=>applyTw('accentColor',a.v),title:a.l,style:{width:26,height:26,borderRadius:'50%',background:a.v,cursor:'pointer',
+              border:tw.accentColor===a.v?'2px solid var(--tx)':'2px solid transparent'}}))))):null);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
