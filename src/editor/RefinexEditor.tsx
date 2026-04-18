@@ -411,8 +411,26 @@ export function RefinexEditor({
     hideHoverTimerRef.current = setTimeout(() => {
       setLinkHoverState(null);
       hideHoverTimerRef.current = null;
-    }, 500);
+    }, 1500);
   }, []);
+
+  // Dismiss the hover tooltip immediately on any scroll while it's visible.
+  useEffect(() => {
+    if (!linkHoverState) return;
+    const dismiss = () => {
+      if (hideHoverTimerRef.current) {
+        clearTimeout(hideHoverTimerRef.current);
+        hideHoverTimerRef.current = null;
+      }
+      setLinkHoverState(null);
+    };
+    window.addEventListener("scroll", dismiss, {
+      capture: true,
+      passive: true,
+    });
+    return () =>
+      window.removeEventListener("scroll", dismiss, { capture: true });
+  }, [linkHoverState]);
 
   // Keep refs in sync with latest props without re-triggering effects
   onChangeRef.current = onChange;

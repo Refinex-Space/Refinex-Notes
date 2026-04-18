@@ -44,7 +44,8 @@ export const CODE_BLOCK_LANGUAGE_OPTIONS = [
   { value: "markdown", label: "Markdown" },
 ] as const;
 
-export type CodeBlockLanguage = (typeof CODE_BLOCK_LANGUAGE_OPTIONS)[number]["value"];
+export type CodeBlockLanguage =
+  (typeof CODE_BLOCK_LANGUAGE_OPTIONS)[number]["value"];
 
 const LANGUAGE_ALIASES: Record<string, CodeBlockLanguage> = {
   "": "plaintext",
@@ -93,12 +94,15 @@ const codeMirrorTheme = CodeMirrorView.theme({
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "currentColor",
   },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection": {
-    backgroundColor: "rgba(59, 130, 246, 0.18)",
-  },
+  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection":
+    {
+      backgroundColor: "rgba(59, 130, 246, 0.18)",
+    },
 });
 
-export function normalizeCodeBlockLanguage(language: string | null | undefined): CodeBlockLanguage {
+export function normalizeCodeBlockLanguage(
+  language: string | null | undefined,
+): CodeBlockLanguage {
   const normalized = (language ?? "").trim().toLowerCase();
   return LANGUAGE_ALIASES[normalized] ?? "plaintext";
 }
@@ -123,7 +127,9 @@ export function summarizeCodeBlock(doc: string) {
   };
 }
 
-export function resolveCodeBlockLanguageSupport(language: string | null | undefined): Extension {
+export function resolveCodeBlockLanguageSupport(
+  language: string | null | undefined,
+): Extension {
   switch (normalizeCodeBlockLanguage(language)) {
     case "javascript":
       return javascript();
@@ -147,7 +153,10 @@ export function resolveCodeBlockLanguageSupport(language: string | null | undefi
   }
 }
 
-export function isCodeBlockSelectionOnLastLine(doc: string, head: number): boolean {
+export function isCodeBlockSelectionOnLastLine(
+  doc: string,
+  head: number,
+): boolean {
   const clampedHead = Math.max(0, Math.min(head, doc.length));
   return doc.indexOf("\n", clampedHead) === -1;
 }
@@ -158,7 +167,10 @@ export function createCodeBlockContentTransaction(
   node: ProseMirrorNode,
   nextText: string,
 ): Transaction | null {
-  if (node.type !== refinexSchema.nodes.code_block || node.textContent === nextText) {
+  if (
+    node.type !== refinexSchema.nodes.code_block ||
+    node.textContent === nextText
+  ) {
     return null;
   }
 
@@ -209,6 +221,9 @@ export class CodeBlockView implements NodeView {
   private readonly languageSelect: HTMLSelectElement;
 
   private readonly languageCompartment = new Compartment();
+
+  /** Compartment used to switch between read-only (preview) and editable (active) mode. */
+  private readonly editableCompartment = new Compartment();
 
   private codeMirrorView: CodeMirrorView | null = null;
 
@@ -267,10 +282,24 @@ export class CodeBlockView implements NodeView {
     );
 
     this.languageSelect.addEventListener("change", this.handleLanguageChange);
-    this.summaryElement.addEventListener("mousedown", this.handleSummaryPointerDown);
+    this.summaryElement.addEventListener(
+      "mousedown",
+      this.handleSummaryPointerDown,
+    );
     this.summaryElement.addEventListener("keydown", this.handleSummaryKeyDown);
-    this.previewElement.addEventListener("mousedown", this.handlePreviewPointerDown);
+    this.previewElement.addEventListener(
+      "mousedown",
+      this.handlePreviewPointerDown,
+    );
     this.previewElement.addEventListener("keydown", this.handlePreviewKeyDown);
+    // Intercept clicks/keys on the CM preview mount so activation happens before CM
+    // processes the event (capture phase = fires before CM's own handlers).
+    this.editorMount.addEventListener(
+      "mousedown",
+      this.handleEditorMountPointerDown,
+      true,
+    );
+    this.editorMount.addEventListener("keydown", this.handleEditorMountKeyDown);
     this.setupViewportObservation();
     this.refreshPassiveSurfaces();
     this.syncPresentation();
@@ -284,7 +313,9 @@ export class CodeBlockView implements NodeView {
     this.node = node;
 
     this.languageSelect.disabled = !this.pmView.editable;
-    const nextLanguage = normalizeCodeBlockLanguage(node.attrs.language as string);
+    const nextLanguage = normalizeCodeBlockLanguage(
+      node.attrs.language as string,
+    );
     if (this.languageSelect.value !== nextLanguage) {
       this.languageSelect.value = nextLanguage;
     }
@@ -302,7 +333,11 @@ export class CodeBlockView implements NodeView {
       if (!this.isSyncingFromCodeMirror && currentText !== node.textContent) {
         this.isSyncingFromProseMirror = true;
         this.codeMirrorView.dispatch({
-          changes: { from: 0, to: currentText.length, insert: node.textContent },
+          changes: {
+            from: 0,
+            to: currentText.length,
+            insert: node.textContent,
+          },
         });
         this.isSyncingFromProseMirror = false;
       }
@@ -329,65 +364,108 @@ export class CodeBlockView implements NodeView {
   }
 
   destroy() {
-    this.languageSelect.removeEventListener("change", this.handleLanguageChange);
-    this.summaryElement.removeEventListener("mousedown", this.handleSummaryPointerDown);
-    this.summaryElement.removeEventListener("keydown", this.handleSummaryKeyDown);
-    this.previewElement.removeEventListener("mousedown", this.handlePreviewPointerDown);
-    this.previewElement.removeEventListener("keydown", this.handlePreviewKeyDown);
+    this.languageSelect.removeEventListener(
+      "change",
+      this.handleLanguageChange,
+    );
+    this.summaryElement.removeEventListener(
+      "mousedown",
+      this.handleSummaryPointerDown,
+    );
+    this.summaryElement.removeEventListener(
+      "keydown",
+      this.handleSummaryKeyDown,
+    );
+    this.previewElement.removeEventListener(
+      "mousedown",
+      this.handlePreviewPointerDown,
+    );
+    this.previewElement.removeEventListener(
+      "keydown",
+      this.handlePreviewKeyDown,
+    );
+    this.editorMount.removeEventListener(
+      "mousedown",
+      this.handleEditorMountPointerDown,
+      true,
+    );
+    this.editorMount.removeEventListener(
+      "keydown",
+      this.handleEditorMountKeyDown,
+    );
     this.viewportObserver?.disconnect();
     this.codeMirrorView?.destroy();
   }
 
+  /**
+   * Mount a read-only CodeMirror instance for syntax-highlighted preview.
+   * Called when the block enters the viewport, before any user interaction.
+   */
+  private mountPassiveCodeMirror() {
+    if (this.codeMirrorView) return;
+    this.codeMirrorView = new CodeMirrorView({
+      parent: this.editorMount,
+      state: CodeMirrorState.create({
+        doc: this.node.textContent,
+        extensions: [
+          this.editableCompartment.of([
+            CodeMirrorState.readOnly.of(true),
+            CodeMirrorView.editable.of(false),
+          ]),
+          CodeMirrorView.lineWrapping,
+          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+          this.languageCompartment.of(
+            resolveCodeBlockLanguageSupport(this.node.attrs.language as string),
+          ),
+          keymap.of(this.createKeyBindings()),
+          CodeMirrorView.updateListener.of((update) => {
+            if (!update.docChanged || this.isSyncingFromProseMirror) {
+              return;
+            }
+
+            const position = this.readPosition();
+            if (position == null) {
+              return;
+            }
+
+            const transaction = createCodeBlockContentTransaction(
+              this.pmView.state,
+              position,
+              this.node,
+              update.state.doc.toString(),
+            );
+
+            if (!transaction) {
+              return;
+            }
+
+            this.isSyncingFromCodeMirror = true;
+            this.pmView.dispatch(transaction);
+            this.isSyncingFromCodeMirror = false;
+          }),
+          codeMirrorTheme,
+        ],
+      }),
+    });
+  }
+
   private activateCodeMirror(shouldFocus: boolean) {
     if (!this.codeMirrorView) {
-      this.codeMirrorView = new CodeMirrorView({
-        parent: this.editorMount,
-        state: CodeMirrorState.create({
-          doc: this.node.textContent,
-          extensions: [
-            CodeMirrorState.readOnly.of(!this.pmView.editable),
-            CodeMirrorView.editable.of(this.pmView.editable),
-            CodeMirrorView.lineWrapping,
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-            this.languageCompartment.of(
-              resolveCodeBlockLanguageSupport(this.node.attrs.language as string),
-            ),
-            keymap.of(this.createKeyBindings()),
-            CodeMirrorView.updateListener.of((update) => {
-              if (!update.docChanged || this.isSyncingFromProseMirror) {
-                return;
-              }
-
-              const position = this.readPosition();
-              if (position == null) {
-                return;
-              }
-
-              const transaction = createCodeBlockContentTransaction(
-                this.pmView.state,
-                position,
-                this.node,
-                update.state.doc.toString(),
-              );
-
-              if (!transaction) {
-                return;
-              }
-
-              this.isSyncingFromCodeMirror = true;
-              this.pmView.dispatch(transaction);
-              this.isSyncingFromCodeMirror = false;
-            }),
-            codeMirrorTheme,
-          ],
-        }),
-      });
+      this.mountPassiveCodeMirror();
     }
+
+    // Switch from read-only preview to fully editable.
+    this.codeMirrorView!.dispatch({
+      effects: this.editableCompartment.reconfigure([
+        CodeMirrorState.readOnly.of(!this.pmView.editable),
+        CodeMirrorView.editable.of(this.pmView.editable),
+      ]),
+    });
 
     this.isActive = true;
     this.syncPresentation();
     if (shouldFocus) {
-      this.codeMirrorView.focus();
+      this.codeMirrorView!.focus();
     }
   }
 
@@ -395,10 +473,12 @@ export class CodeBlockView implements NodeView {
     this.dom.classList.toggle("is-active", this.isActive);
     const showPreview = !this.isActive && this.isInViewport;
     const showSummary = !this.isActive && !this.isInViewport;
+    // When CodeMirror is mounted in preview mode, it handles display instead of <pre>.
+    const cmInPreview = showPreview && this.codeMirrorView !== null;
     this.toolbar.hidden = !showPreview && !this.isActive;
     this.summaryElement.hidden = !showSummary;
-    this.previewElement.hidden = !showPreview;
-    this.editorMount.hidden = !this.isActive;
+    this.previewElement.hidden = !showPreview || cmInPreview;
+    this.editorMount.hidden = !this.isActive && !cmInPreview;
   }
 
   private refreshPassiveSurfaces() {
@@ -440,6 +520,10 @@ export class CodeBlockView implements NodeView {
         }
 
         this.isInViewport = nextInViewport;
+        if (nextInViewport) {
+          // Eagerly mount read-only CodeMirror for instant syntax highlighting.
+          this.mountPassiveCodeMirror();
+        }
         this.refreshPassiveSurfaces();
         this.syncPresentation();
       },
@@ -487,6 +571,31 @@ export class CodeBlockView implements NodeView {
       return;
     }
 
+    event.preventDefault();
+    this.activateCodeMirror(true);
+  };
+
+  /**
+   * Fired in the capture phase on editorMount — switches CM from read-only preview
+   * to editable BEFORE CodeMirror's own mousedown handler runs, so the cursor
+   * lands at the clicked position naturally.
+   */
+  private readonly handleEditorMountPointerDown = (_event: MouseEvent) => {
+    if (this.isActive) return;
+    this.codeMirrorView?.dispatch({
+      effects: this.editableCompartment.reconfigure([
+        CodeMirrorState.readOnly.of(!this.pmView.editable),
+        CodeMirrorView.editable.of(this.pmView.editable),
+      ]),
+    });
+    this.isActive = true;
+    this.syncPresentation();
+    // No focus() call — CM focuses itself naturally from the mousedown event.
+  };
+
+  private readonly handleEditorMountKeyDown = (event: KeyboardEvent) => {
+    if (this.isActive) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     this.activateCodeMirror(true);
   };

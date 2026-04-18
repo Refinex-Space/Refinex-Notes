@@ -80,6 +80,7 @@ export function LinkHoverTooltip({
         className="w-auto max-w-[22rem] rounded-xl p-0"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
+        onInteractOutside={onClose}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
