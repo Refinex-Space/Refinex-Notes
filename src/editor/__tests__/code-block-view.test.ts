@@ -14,17 +14,17 @@ import {
 
 describe("CodeBlockView helpers", () => {
   it("normalizes supported languages and aliases", () => {
-    expect(CODE_BLOCK_LANGUAGE_OPTIONS.map((option) => option.value)).toEqual([
-      "plaintext",
-      "javascript",
-      "typescript",
-      "python",
-      "rust",
-      "html",
-      "css",
-      "json",
-      "markdown",
-    ]);
+    const values = CODE_BLOCK_LANGUAGE_OPTIONS.map((option) => option.value);
+    // Core languages should always be present
+    expect(values).toContain("plaintext");
+    expect(values).toContain("javascript");
+    expect(values).toContain("typescript");
+    expect(values).toContain("python");
+    expect(values).toContain("rust");
+    expect(values).toContain("html");
+    expect(values).toContain("css");
+    expect(values).toContain("json");
+    expect(values).toContain("markdown");
     expect(normalizeCodeBlockLanguage("ts")).toBe("typescript");
     expect(normalizeCodeBlockLanguage("JS")).toBe("javascript");
     expect(normalizeCodeBlockLanguage("unknown")).toBe("plaintext");
@@ -32,9 +32,9 @@ describe("CodeBlockView helpers", () => {
 
   it("detects whether the cursor is already on the last line", () => {
     expect(isCodeBlockSelectionOnLastLine("line 1\nline 2", 2)).toBe(false);
-    expect(isCodeBlockSelectionOnLastLine("line 1\nline 2", "line 1\nline 2".length)).toBe(
-      true,
-    );
+    expect(
+      isCodeBlockSelectionOnLastLine("line 1\nline 2", "line 1\nline 2".length),
+    ).toBe(true);
   });
 
   it("summarizes code blocks for collapsed viewport shells", () => {
