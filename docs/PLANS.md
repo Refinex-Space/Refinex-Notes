@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Header TitleBar Refactor](exec-plans/active/2026-04-18-header-titlebar-refactor.md) — started 2026-04-18
+
 ## Completed Plans
 
 - [Fix Viewport Scroll Placeholder Gap](exec-plans/completed/2026-04-16-fix-viewport-scroll-placeholder-gap.md) — completed 2026-04-16

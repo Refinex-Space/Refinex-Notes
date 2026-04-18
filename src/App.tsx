@@ -217,6 +217,18 @@ function RightPanelContent({
   );
 }
 
+function AiPanelPlaceholder() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+      <Wand2 className="h-8 w-8 text-muted/40" />
+      <p className="text-sm font-medium text-muted">AI 写作助手</p>
+      <p className="text-xs leading-5 text-muted/60">
+        AI 助手功能正在开发中，敬请期待。
+      </p>
+    </div>
+  );
+}
+
 function EmptyEditorState() {
   return (
     <div className="relative flex h-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(14,165,233,0.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0))] dark:bg-[radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.08),transparent_18%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]">
@@ -322,6 +334,7 @@ function WorkspaceShell({
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("history");
+  const [outlineVisible, setOutlineVisible] = useState(true);
   const [pendingSearchJump, setPendingSearchJump] = useState<{
     path: string;
     query: string;
@@ -822,7 +835,8 @@ function WorkspaceShell({
               </div>
               {currentDocument &&
               !isCurrentFileOpening &&
-              isActiveEditorHydrated ? (
+              isActiveEditorHydrated &&
+              outlineVisible ? (
                 <DocumentOutlineDock
                   markdown={currentDocument.content}
                   editorViewRef={editorViewRef}
@@ -876,8 +890,15 @@ function WorkspaceShell({
             }
           />
         }
+        aiPanel={<AiPanelPlaceholder />}
         sidebarTitle=""
         rightPanelTitle=""
+        activeTitle={currentDocument?.name ?? undefined}
+        theme={theme}
+        onThemeToggle={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+        outlineVisible={outlineVisible}
+        onOutlineToggle={() => setOutlineVisible((v) => !v)}
+        onSettingsClick={() => setSettingsOpen(true)}
       />
 
       <CommandPalette
