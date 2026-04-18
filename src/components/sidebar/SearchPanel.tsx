@@ -208,7 +208,10 @@ export function SearchPanel({
         </Tooltip>
       </TooltipProvider>
 
-      <DialogContent className="overflow-hidden p-0" hideClose>
+      <DialogContent
+        className="w-[calc(100vw-2rem)] max-w-5xl overflow-hidden p-0"
+        hideClose
+      >
         <div className="bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.98))] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
           <div className="flex items-center gap-3 border-b border-border/70 px-6 py-3">
             <div className="relative flex-1">
