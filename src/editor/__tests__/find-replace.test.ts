@@ -223,7 +223,9 @@ describe("findReplacePlugin decorations", () => {
     const decos = getDecorations(plugin, state);
     const all = decos?.find() ?? [];
     const active = all.filter((d) =>
-      (d.type as unknown as { attrs: { class: string } }).attrs.class.includes(
+      (
+        d as unknown as { type: { attrs: { class: string } } }
+      ).type.attrs.class.includes(
         "refinex-find-match-active",
       ),
     );

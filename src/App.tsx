@@ -474,6 +474,8 @@ function WorkspaceShell({
   const activeTab = useEditorStore((state) => state.activeTab);
   const unsavedChanges = useEditorStore((state) => state.unsavedChanges);
   const cursorPosition = useEditorStore((state) => state.cursorPosition);
+  const sourceMode = useEditorStore((state) => state.sourceMode);
+  const toggleSourceMode = useEditorStore((state) => state.toggleSourceMode);
   const setActiveTab = useEditorStore((state) => state.setActiveTab);
   const markDirty = useEditorStore((state) => state.markDirty);
   const markClean = useEditorStore((state) => state.markClean);
@@ -683,6 +685,24 @@ function WorkspaceShell({
     saveCurrentFile,
     updateFileContent,
   ]);
+
+  // Global Cmd/Ctrl+/ — toggle source mode from anywhere in the window
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key !== "/") {
+        return;
+      }
+      // Only fire when an editor document is active
+      if (!activeTab) {
+        return;
+      }
+      event.preventDefault();
+      toggleSourceMode();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeTab, toggleSourceMode]);
 
   useEffect(() => {
     void hydrateRecentWorkspaces();
@@ -901,6 +921,10 @@ function WorkspaceShell({
                           value={document.content}
                           className="min-h-full min-w-0 px-6 py-5"
                           readOnly={isLoadingShell}
+                          sourceMode={isVisible ? sourceMode : false}
+                          onToggleSourceMode={
+                            isVisible ? toggleSourceMode : undefined
+                          }
                           onChange={(markdown) => {
                             updateFileContent(document.path, markdown);
 

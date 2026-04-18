@@ -9,7 +9,11 @@ import {
 } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
-import { liftListItem, sinkListItem, splitListItem } from "prosemirror-schema-list";
+import {
+  liftListItem,
+  sinkListItem,
+  splitListItem,
+} from "prosemirror-schema-list";
 import type { Command, EditorState } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
@@ -18,6 +22,7 @@ import { refinexSchema } from "../schema";
 
 export type RefinexKeymapOptions = {
   onOpenLinkPopover?: (view: EditorView) => boolean;
+  onToggleSourceMode?: () => void;
 };
 
 export function refinexKeymap(options: RefinexKeymapOptions = {}) {
@@ -72,5 +77,12 @@ export function createRefinexKeyBindings(
     "Mod-y": redo,
     "Ctrl-y": redo,
     "Mod-a": selectAll,
+    "Mod-/": (_state, _dispatch, _view) => {
+      if (options.onToggleSourceMode) {
+        options.onToggleSourceMode();
+        return true;
+      }
+      return false;
+    },
   };
 }

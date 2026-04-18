@@ -57,6 +57,10 @@ export interface RefinexEditorProps {
   onCursorChange?: (position: EditorCursorPosition) => void;
   /** EditorView 生命周期回调 */
   onEditorView?: (view: EditorView | null) => void;
+  /** 是否展示原始 Markdown 源码模式（raw textarea） */
+  sourceMode?: boolean;
+  /** 切换源码/富文本模式时的回调 */
+  onToggleSourceMode?: () => void;
 }
 
 const MARKDOWN_FLUSH_DELAY_MS = 120;
@@ -351,6 +355,8 @@ export function RefinexEditor({
   className,
   onCursorChange,
   onEditorView,
+  sourceMode = false,
+  onToggleSourceMode,
 }: RefinexEditorProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -369,6 +375,7 @@ export function RefinexEditor({
   const editorPluginsRef = useRef<Plugin[]>([]);
   const editorStateCacheRef = useRef<Map<string, EditorState>>(new Map());
   const openLinkPopoverRef = useRef<(view: EditorView) => boolean>(() => false);
+  const onToggleSourceModeRef = useRef(onToggleSourceMode);
   const slashMenuChangeRef = useRef((_request: SlashMenuRequest | null) => {});
   const [editorView, setEditorView] = useState<EditorView | null>(null);
   const [overlayVersion, setOverlayVersion] = useState(0);
@@ -382,6 +389,7 @@ export function RefinexEditor({
   readOnlyRef.current = readOnly;
   onCursorChangeRef.current = onCursorChange;
   onEditorViewRef.current = onEditorView;
+  onToggleSourceModeRef.current = onToggleSourceMode;
   openLinkPopoverRef.current = (view) => {
     const request = getLinkEditorRequest(view.state);
     if (!request) {
@@ -453,6 +461,7 @@ export function RefinexEditor({
     const plugins = [
       refinexKeymap({
         onOpenLinkPopover: (view) => openLinkPopoverRef.current(view),
+        onToggleSourceMode: () => onToggleSourceModeRef.current?.(),
       }),
       keymap(baseKeymap),
       refinexInputRules(),
@@ -582,6 +591,17 @@ export function RefinexEditor({
     });
   }, [readOnly]);
 
+  // When switching TO source mode, flush any pending markdown so the textarea
+  // immediately shows the fully up-to-date content.
+  useEffect(() => {
+    if (!sourceMode) return;
+    const view = viewRef.current;
+    if (view) {
+      flushPendingMarkdown(view.state);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceMode]);
+
   // Sync value prop into ProseMirror when it changes externally
   // Only replace the document when the incoming text differs from the
   // current serialized state (avoids an infinite update loop).
@@ -684,27 +704,58 @@ export function RefinexEditor({
     );
   }, [documentPath, value]);
 
+  const handleSourceKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "/") {
+      event.preventDefault();
+      onToggleSourceModeRef.current?.();
+    }
+  };
+
   return (
     <div
-      className={["min-w-0", className].filter(Boolean).join(" ")}
+      className={["min-w-0 relative", className].filter(Boolean).join(" ")}
       data-refinex-editor-shell
     >
-      <div ref={mountRef} data-refinex-editor />
-      <FloatingToolbar
-        view={editorView}
-        version={overlayVersion}
-        onRequestLinkEdit={(view) => openLinkPopoverRef.current(view)}
+      {/* ProseMirror mount — always in DOM to preserve EditorView + undo history */}
+      <div
+        ref={mountRef}
+        data-refinex-editor
+        className={sourceMode ? "hidden" : undefined}
       />
-      <LinkPopover
-        view={editorView}
-        request={linkPopoverRequest}
-        onClose={() => setLinkPopoverRequest(null)}
-      />
-      <SlashMenu
-        view={editorView}
-        request={slashMenuRequest}
-        onClose={() => setSlashMenuRequest(null)}
-      />
+      {!sourceMode && (
+        <>
+          <FloatingToolbar
+            view={editorView}
+            version={overlayVersion}
+            onRequestLinkEdit={(view) => openLinkPopoverRef.current(view)}
+          />
+          <LinkPopover
+            view={editorView}
+            request={linkPopoverRequest}
+            onClose={() => setLinkPopoverRequest(null)}
+          />
+          <SlashMenu
+            view={editorView}
+            request={slashMenuRequest}
+            onClose={() => setSlashMenuRequest(null)}
+          />
+        </>
+      )}
+      {sourceMode && (
+        <textarea
+          className="refinex-source-editor"
+          value={value}
+          onChange={(event) => onChange?.(event.target.value)}
+          onKeyDown={handleSourceKeyDown}
+          autoFocus
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          data-refinex-source-editor
+        />
+      )}
     </div>
   );
 }
