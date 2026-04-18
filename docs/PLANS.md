@@ -6,10 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Remove Viewport Progressive Rendering](exec-plans/active/2026-04-18-remove-viewport-progressive-rendering.md) — started 2026-04-18
-
 ## Completed Plans
 
+- [Remove Viewport Progressive Rendering](exec-plans/completed/2026-04-18-remove-viewport-progressive-rendering.md) — completed 2026-04-18
 - [StatusBar Prototype Alignment](exec-plans/completed/2026-04-18-statusbar-prototype-alignment.md) — completed 2026-04-18
 - [Git Panel Prototype Redesign](exec-plans/completed/2026-04-18-git-panel-prototype-redesign.md) — completed 2026-04-18
 
