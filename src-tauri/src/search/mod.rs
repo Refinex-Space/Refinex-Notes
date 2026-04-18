@@ -6,14 +6,16 @@ use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use comrak::nodes::NodeValue;
-use comrak::{Arena, Options, parse_document};
+use comrak::{parse_document, Arena, Options};
 use serde::Serialize;
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::schema::{
     DateOptions, Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, Value,
 };
-use tantivy::{DateTime, Index, IndexReader, IndexWriter, ReloadPolicy, TantivyDocument, Term, doc};
+use tantivy::{
+    doc, DateTime, Index, IndexReader, IndexWriter, ReloadPolicy, TantivyDocument, Term,
+};
 use walkdir::WalkDir;
 
 const INDEX_WRITER_MEMORY_BYTES: usize = 30_000_000;
@@ -88,11 +90,15 @@ pub fn build_index(workspace_path: &Path) -> Result<WorkspaceSearchIndex, String
     })
 }
 
-pub fn update_index(search_index: &mut WorkspaceSearchIndex, file_path: &Path) -> Result<(), String> {
+pub fn update_index(
+    search_index: &mut WorkspaceSearchIndex,
+    file_path: &Path,
+) -> Result<(), String> {
     let relative_path = to_relative_path(&search_index.workspace_path, file_path)?;
-    search_index
-        .writer
-        .delete_term(Term::from_field_text(search_index.fields.path, &relative_path));
+    search_index.writer.delete_term(Term::from_field_text(
+        search_index.fields.path,
+        &relative_path,
+    ));
 
     if file_path.exists() && is_markdown_path(file_path) {
         add_or_replace_document(
@@ -244,7 +250,11 @@ pub fn extract_tags(markdown: &str) -> String {
 
         for token in trimmed.split_whitespace() {
             if token.starts_with('#') && token.len() > 1 {
-                tags.push(token.trim_matches(|ch: char| !ch.is_alphanumeric() && ch != '#').to_string());
+                tags.push(
+                    token
+                        .trim_matches(|ch: char| !ch.is_alphanumeric() && ch != '#')
+                        .to_string(),
+                );
             }
         }
     }
@@ -253,20 +263,16 @@ pub fn extract_tags(markdown: &str) -> String {
 }
 
 fn build_schema() -> Schema {
-    let text_with_positions = TextOptions::default()
-        .set_stored()
-        .set_indexing_options(
-            TextFieldIndexing::default()
-                .set_tokenizer("default")
-                .set_index_option(IndexRecordOption::WithFreqsAndPositions),
-        );
-    let path_options = TextOptions::default()
-        .set_stored()
-        .set_indexing_options(
-            TextFieldIndexing::default()
-                .set_tokenizer("raw")
-                .set_index_option(IndexRecordOption::WithFreqsAndPositions),
-        );
+    let text_with_positions = TextOptions::default().set_stored().set_indexing_options(
+        TextFieldIndexing::default()
+            .set_tokenizer("default")
+            .set_index_option(IndexRecordOption::WithFreqsAndPositions),
+    );
+    let path_options = TextOptions::default().set_stored().set_indexing_options(
+        TextFieldIndexing::default()
+            .set_tokenizer("raw")
+            .set_index_option(IndexRecordOption::WithFreqsAndPositions),
+    );
     let date_options = DateOptions::default().set_indexed().set_stored().set_fast();
 
     let mut builder = Schema::builder();
@@ -306,9 +312,12 @@ fn markdown_files(workspace_path: &Path) -> Vec<PathBuf> {
         .filter(|path| {
             path.is_file()
                 && is_markdown_path(path)
-                && !path
-                    .components()
-                    .any(|component| matches!(component.as_os_str().to_str(), Some(".git" | "node_modules")))
+                && !path.components().any(|component| {
+                    matches!(
+                        component.as_os_str().to_str(),
+                        Some(".git" | "node_modules")
+                    )
+                })
         })
         .collect()
 }
@@ -342,7 +351,8 @@ fn add_or_replace_document(
 }
 
 fn file_modified_datetime(file_path: &Path) -> Result<DateTime, String> {
-    let metadata = fs::metadata(file_path).map_err(|error| format!("读取文件元数据失败: {error}"))?;
+    let metadata =
+        fs::metadata(file_path).map_err(|error| format!("读取文件元数据失败: {error}"))?;
     let modified = metadata
         .modified()
         .map_err(|error| format!("读取文件修改时间失败: {error}"))?;
@@ -377,8 +387,20 @@ fn build_snippet(body: &str, query: &str) -> String {
     let lower_body = plain_body.to_lowercase();
     let lower_query = query.to_lowercase();
     if let Some(position) = lower_body.find(&lower_query) {
-        let start = position.saturating_sub(48);
-        let end = (position + query.len() + 72).min(plain_body.len());
+        // Byte offsets from saturating_sub / + len may land inside a multi-byte
+        // UTF-8 character (e.g. CJK 3-byte chars).  Snap both boundaries to the
+        // nearest valid char boundary before slicing.
+        let raw_start = position.saturating_sub(48);
+        let start = (0..=raw_start)
+            .rev()
+            .find(|&i| plain_body.is_char_boundary(i))
+            .unwrap_or(0);
+
+        let raw_end = (position + lower_query.len() + 72).min(plain_body.len());
+        let end = (raw_end..=plain_body.len())
+            .find(|&i| plain_body.is_char_boundary(i))
+            .unwrap_or(plain_body.len());
+
         return plain_body[start..end].trim().to_string();
     }
 
@@ -417,7 +439,10 @@ fn is_markdown_path(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_index, extract_tags, markdown_to_plain_text, search_files, search_fulltext, update_index};
+    use super::{
+        build_index, extract_tags, markdown_to_plain_text, search_files, search_fulltext,
+        update_index,
+    };
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -469,7 +494,11 @@ mod tests {
             "Inbox/Quick Note.md",
             "# Quick Note\n\nIncremental update works after edit.\n",
         );
-        update_index(&mut search_index, &workspace.path().join("Inbox/Quick Note.md")).unwrap();
+        update_index(
+            &mut search_index,
+            &workspace.path().join("Inbox/Quick Note.md"),
+        )
+        .unwrap();
         let updated = search_fulltext(&search_index, "incremental", 10).unwrap();
         assert_eq!(updated[0].path, "Inbox/Quick Note.md");
     }

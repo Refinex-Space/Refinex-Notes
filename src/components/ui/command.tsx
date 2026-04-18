@@ -38,14 +38,16 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0">
+      <DialogContent
+        className="overflow-hidden p-0"
+        style={{ maxWidth: "800px", width: "calc(100vw - 2rem)" }}
+        hideClose
+      >
         <div className="sr-only">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </div>
-        <Command className="[&_svg]:shrink-0">
-          {children}
-        </Command>
+        <Command className="[&_svg]:shrink-0">{children}</Command>
       </DialogContent>
     </Dialog>
   );
@@ -53,20 +55,23 @@ function CommandDialog({
 
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => (
-  <div className="flex items-center gap-3 border-b border-border/70 px-4 py-3">
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input> & {
+    endAdornment?: React.ReactNode;
+  }
+>(({ className, endAdornment, ...props }, ref) => (
+  <div className="flex items-center gap-2.5 border-b border-border/70 px-3.5 py-2">
     <Search className="h-4 w-4 text-muted" />
     <CommandPrimitive.Input
       ref={ref}
       className={[
-        "flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-9 w-full bg-transparent text-[13px] outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50 pr-8",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
       {...props}
     />
+    {endAdornment}
   </div>
 ));
 
@@ -78,7 +83,10 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={["max-h-[360px] overflow-y-auto overflow-x-hidden p-2", className]
+    className={[
+      "max-h-[400px] overflow-y-auto overflow-x-hidden p-1.5",
+      className,
+    ]
       .filter(Boolean)
       .join(" ")}
     {...props}
@@ -109,7 +117,7 @@ const CommandGroup = React.forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={[
-      "overflow-hidden p-2 text-fg [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-2 [&_[cmdk-group-heading]]:text-xs",
+      "overflow-hidden px-1.5 py-1 text-fg [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[10.5px]",
       "[&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.24em]",
       "[&_[cmdk-group-heading]]:text-muted",
       className,
@@ -142,7 +150,7 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={[
-      "relative flex cursor-default select-none items-center gap-3 rounded-2xl px-3 py-3 text-sm outline-none transition",
+      "relative flex cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none transition",
       "data-[selected=true]:bg-accent/12 data-[selected=true]:text-fg",
       "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
       className,

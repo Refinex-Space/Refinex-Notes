@@ -6,6 +6,7 @@ import {
   MoonStar,
   Settings2,
   SunMedium,
+  X,
 } from "lucide-react";
 
 import type { CommandPaletteItem } from "../types";
@@ -41,7 +42,8 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<CommandPaletteItem[]>(files);
+  const [searchResults, setSearchResults] =
+    useState<CommandPaletteItem[]>(files);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -119,6 +121,16 @@ export function CommandPalette({
         placeholder="搜索文件、命令..."
         value={query}
         onValueChange={setQuery}
+        endAdornment={
+          <button
+            type="button"
+            aria-label="关闭"
+            onClick={() => setOpen(false)}
+            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-fg/[0.07] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        }
       />
       <CommandList>
         <CommandEmpty>没有匹配结果。</CommandEmpty>
@@ -137,7 +149,9 @@ export function CommandPalette({
               <FolderOpen className="h-4 w-4 text-accent" />
               <div className="flex min-w-0 flex-col">
                 <span className="truncate">{item.title}</span>
-                <span className="truncate text-xs text-muted">{item.description}</span>
+                <span className="truncate text-xs text-muted">
+                  {item.description}
+                </span>
               </div>
             </CommandItem>
           ))}

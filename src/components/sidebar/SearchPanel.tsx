@@ -1,9 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import {
-  FileSearch,
-  Search as SearchIcon,
-  Sparkles,
-} from "lucide-react";
+import { FileSearch, Search as SearchIcon, X } from "lucide-react";
 
 import { searchService } from "../../services/searchService";
 import type { SearchResult } from "../../types/search";
@@ -50,7 +46,9 @@ export function mergeSearchResults(
   }
 
   return Array.from(merged.values()).sort((left, right) => {
-    return right.score - left.score || left.path.localeCompare(right.path, "en");
+    return (
+      right.score - left.score || left.path.localeCompare(right.path, "en")
+    );
   });
 }
 
@@ -88,7 +86,10 @@ export function highlightTokens(text: string, query: string) {
     }
 
     segments.push({
-      value: text.slice(nextMatch.index, nextMatch.index + nextMatch.token.length),
+      value: text.slice(
+        nextMatch.index,
+        nextMatch.index + nextMatch.token.length,
+      ),
       highlighted: true,
     });
     cursor = nextMatch.index + nextMatch.token.length;
@@ -144,7 +145,9 @@ export function SearchPanel({
           }
         } catch (error) {
           if (!cancelled) {
-            setErrorMessage(error instanceof Error ? error.message : "搜索失败");
+            setErrorMessage(
+              error instanceof Error ? error.message : "搜索失败",
+            );
             setResults([]);
           }
         } finally {
@@ -205,39 +208,35 @@ export function SearchPanel({
         </Tooltip>
       </TooltipProvider>
 
-      <DialogContent className="max-w-3xl overflow-hidden p-0">
+      <DialogContent className="overflow-hidden p-0" hideClose>
         <div className="bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.98))] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
-          <DialogHeader className="border-b border-border/70 px-6 py-5">
-            <div className="flex items-start gap-3">
-              <div className="rounded-full border border-cyan-300/30 bg-cyan-50 p-2 text-cyan-600 dark:border-cyan-300/20 dark:bg-cyan-400/10 dark:text-cyan-100">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <DialogTitle>项目搜索</DialogTitle>
-                <DialogDescription>
-                  统一检索文件名、标题与正文内容。短查询优先模糊匹配，长查询会合并全文结果。
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="border-b border-border/70 px-6 py-4">
-            <div className="relative">
+          <div className="flex items-center gap-3 border-b border-border/70 px-6 py-3">
+            <div className="relative flex-1">
               <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input
                 autoFocus
                 value={query}
                 placeholder="搜索文件名、标题或正文内容…"
-                className="w-full rounded-[1.6rem] border border-border/70 bg-white/80 py-3 pl-11 pr-4 text-sm text-fg outline-none transition placeholder:text-muted focus:border-accent/40 focus:bg-white dark:bg-white/[0.04] dark:focus:bg-white/[0.06]"
+                className="w-full rounded-[0.5rem] border border-border/70 bg-white/80 py-3 pl-11 pr-4 text-sm text-fg outline-none transition placeholder:text-muted focus:border-accent/40 focus:bg-white dark:bg-white/[0.04] dark:focus:bg-white/[0.06]"
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
+            {/* <button
+              type="button"
+              aria-label="关闭搜索"
+              onClick={() => setOpen(false)}
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-fg/[0.07] hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            >
+              <X className="h-4 w-4" />
+            </button> */}
           </div>
 
           <div className="max-h-[60vh] overflow-auto px-4 py-4">
             {results.length === 0 ? (
               <div className="flex min-h-[240px] items-center justify-center px-6 py-10 text-center">
-                <p className="max-w-md text-sm leading-7 text-muted">{emptyLabel}</p>
+                <p className="max-w-md text-sm leading-7 text-muted">
+                  {emptyLabel}
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -245,26 +244,33 @@ export function SearchPanel({
                   <button
                     key={`${result.path}:${result.title}`}
                     type="button"
-                    className="w-full rounded-[1.6rem] border border-border/70 bg-white/80 px-4 py-4 text-left shadow-[0_12px_30px_rgba(148,163,184,0.08)] transition hover:border-accent/35 hover:bg-white dark:bg-white/[0.03] dark:shadow-none dark:hover:bg-white/[0.05]"
+                    className="w-full rounded-[0.5rem] border border-border/70 bg-white/80 px-4 py-4 text-left transition hover:border-accent/35 hover:bg-white dark:bg-white/[0.03] dark:shadow-none dark:hover:bg-white/[0.05]"
                     onClick={() => {
                       onSelectResult(result, query);
                       setOpen(false);
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="rounded-full border border-border/70 bg-bg/80 p-2 text-fg/75">
+                      <div className="rounded-full p-2 text-fg/75">
                         <FileSearch className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="truncate text-sm font-semibold text-fg">{result.title}</p>
+                          <p className="truncate text-sm font-semibold text-fg">
+                            {result.title}
+                          </p>
                           <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
                             score {Math.round(result.score)}
                           </span>
                         </div>
-                        <p className="mt-1 truncate text-xs text-muted">{result.path}</p>
+                        <p className="mt-1 truncate text-xs text-muted">
+                          {result.path}
+                        </p>
                         <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">
-                          {highlightTokens(result.snippet || result.path, query).map((segment, index) =>
+                          {highlightTokens(
+                            result.snippet || result.path,
+                            query,
+                          ).map((segment, index) =>
                             segment.highlighted ? (
                               <mark
                                 key={`${result.path}:${index}`}
@@ -273,7 +279,9 @@ export function SearchPanel({
                                 {segment.value}
                               </mark>
                             ) : (
-                              <span key={`${result.path}:${index}`}>{segment.value}</span>
+                              <span key={`${result.path}:${index}`}>
+                                {segment.value}
+                              </span>
                             ),
                           )}
                         </p>
