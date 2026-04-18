@@ -8,6 +8,8 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Fix Viewport Scroll Placeholder Gap](exec-plans/completed/2026-04-16-fix-viewport-scroll-placeholder-gap.md) — completed 2026-04-16
+- [Fix Markdown H1 Top Spacing](exec-plans/completed/2026-04-16-fix-markdown-h1-top-spacing.md) — completed 2026-04-16
 - [Fix macOS Keychain Repeat Prompt](exec-plans/completed/2026-04-16-fix-macos-keychain-repeat-prompt.md) — completed 2026-04-16
 - [Fix Wide Markdown Pane Overflow](exec-plans/completed/2026-04-16-fix-wide-markdown-pane-overflow.md) — completed 2026-04-16
 - [Fix Viewport Shell Height Fidelity](exec-plans/completed/2026-04-16-fix-viewport-shell-height-fidelity.md) — completed 2026-04-16

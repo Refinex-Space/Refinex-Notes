@@ -6,9 +6,11 @@ import {
   createViewportMeasurementCacheKey,
   estimateViewportShellMetrics,
   isViewportBlockVisible,
+  isViewportRectWithinMargin,
   isViewportSkeletonNode,
   readViewportMeasuredHeightPx,
   rememberViewportMeasuredHeightPx,
+  resolveViewportMeasureMarginPx,
   resolveViewportShellMinHeightPx,
   scheduleViewportScrollSettle,
   summarizeViewportText,
@@ -120,6 +122,34 @@ describe("viewport blocks helpers", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("uses a larger scroll buffer so upcoming blocks are promoted before users see shell placeholders", () => {
+    const viewportHeight = 720;
+    const idleMarginPx = resolveViewportMeasureMarginPx(viewportHeight, false);
+    const scrollMarginPx = resolveViewportMeasureMarginPx(viewportHeight, true);
+    const upcomingBlock = {
+      top: 1460,
+      bottom: 1540,
+    };
+
+    expect(scrollMarginPx).toBeGreaterThan(idleMarginPx);
+    expect(
+      isViewportRectWithinMargin(
+        upcomingBlock,
+        0,
+        viewportHeight,
+        idleMarginPx,
+      ),
+    ).toBe(false);
+    expect(
+      isViewportRectWithinMargin(
+        upcomingBlock,
+        0,
+        viewportHeight,
+        scrollMarginPx,
+      ),
+    ).toBe(true);
   });
 
   it("prefers cached measured height over estimated shell height", () => {

@@ -9,6 +9,8 @@ export const refinexViewportBlocksKey = new PluginKey<readonly number[]>(
 const VIEWPORT_HEIGHT_CACHE_LIMIT = 1200;
 const VIEWPORT_ROOT_SELECTOR = "[data-refinex-editor-scroll='true']";
 const VIEWPORT_BLOCK_MARGIN_PX = 360;
+const VIEWPORT_SCROLL_BUFFER_MARGIN_PX = 1200;
+const VIEWPORT_SCROLL_BUFFER_VIEWPORT_MULTIPLIER = 2;
 const VIEWPORT_HOTZONE_RADIUS = 6;
 export const VIEWPORT_SCROLL_SETTLE_DELAY_MS = 140;
 const VIEWPORT_BLOCK_TYPES = new Set([
@@ -176,6 +178,29 @@ export function isViewportBlockVisible(decorations: readonly Decoration[]) {
   return decorations.some((decoration) => decoration.spec.viewportBlock === true);
 }
 
+export function resolveViewportMeasureMarginPx(
+  viewportHeight: number,
+  isScrollSettling: boolean,
+) {
+  if (!isScrollSettling) {
+    return VIEWPORT_BLOCK_MARGIN_PX;
+  }
+
+  return Math.max(
+    VIEWPORT_SCROLL_BUFFER_MARGIN_PX,
+    Math.ceil(viewportHeight * VIEWPORT_SCROLL_BUFFER_VIEWPORT_MULTIPLIER),
+  );
+}
+
+export function isViewportRectWithinMargin(
+  rect: Pick<DOMRectReadOnly, "top" | "bottom">,
+  viewportTop: number,
+  viewportBottom: number,
+  marginPx: number,
+) {
+  return rect.bottom >= viewportTop - marginPx && rect.top <= viewportBottom + marginPx;
+}
+
 function collectViewportDecoratedElements(view: EditorView) {
   return Array.from(
     view.dom.querySelectorAll<HTMLElement>("[data-refinex-viewport-block='true']"),
@@ -240,13 +265,11 @@ function arePositionListsEqual(left: readonly number[], right: readonly number[]
 function collectVisibleViewportBlockPositions(
   view: EditorView,
   scrollContainer: HTMLElement | null,
+  marginPx = VIEWPORT_BLOCK_MARGIN_PX,
 ) {
-  const viewportTop = scrollContainer
-    ? scrollContainer.getBoundingClientRect().top - VIEWPORT_BLOCK_MARGIN_PX
-    : -VIEWPORT_BLOCK_MARGIN_PX;
-  const viewportBottom = scrollContainer
-    ? scrollContainer.getBoundingClientRect().bottom + VIEWPORT_BLOCK_MARGIN_PX
-    : window.innerHeight + VIEWPORT_BLOCK_MARGIN_PX;
+  const viewportRect = scrollContainer?.getBoundingClientRect();
+  const viewportTop = viewportRect?.top ?? 0;
+  const viewportBottom = viewportRect?.bottom ?? window.innerHeight;
   const selectionPositions = collectSelectionHotzonePositions(view.state);
   const selectionPos = findNearestSkeletonPos(view.state);
   const visiblePositions = new Set<number>();
@@ -270,7 +293,12 @@ function collectVisibleViewportBlockPositions(
     }
 
     const rect = dom.getBoundingClientRect();
-    const isVisible = rect.bottom >= viewportTop && rect.top <= viewportBottom;
+    const isVisible = isViewportRectWithinMargin(
+      rect,
+      viewportTop,
+      viewportBottom,
+      marginPx,
+    );
     if (isVisible) {
       visiblePositions.add(pos);
     }
@@ -306,10 +334,12 @@ class ViewportBlocksPluginView {
 
   private isScrollSettling = false;
 
+  private pendingMeasureUsesScrollBuffer = false;
+
   constructor(private readonly view: EditorView) {
     this.scrollContainer = null;
     this.bindScrollContainer(this.resolveScrollContainer());
-    window.addEventListener("resize", this.scheduleMeasure);
+    window.addEventListener("resize", this.handleResize);
     this.scheduleMeasure();
   }
 
@@ -327,7 +357,7 @@ class ViewportBlocksPluginView {
       this.scrollSettleHandle = null;
     }
     this.bindScrollContainer(null);
-    window.removeEventListener("resize", this.scheduleMeasure);
+    window.removeEventListener("resize", this.handleResize);
   }
 
   private resolveScrollContainer() {
@@ -348,11 +378,7 @@ class ViewportBlocksPluginView {
 
   private readonly handleScroll = () => {
     this.isScrollSettling = true;
-
-    if (this.frame !== 0) {
-      cancelFrame(this.frame);
-      this.frame = 0;
-    }
+    this.scheduleMeasure(true);
 
     this.scrollSettleHandle = scheduleViewportScrollSettle(
       this.scrollSettleHandle,
@@ -364,10 +390,12 @@ class ViewportBlocksPluginView {
     );
   };
 
-  private readonly scheduleMeasure = () => {
-    if (this.isScrollSettling) {
-      return;
-    }
+  private readonly handleResize = () => {
+    this.scheduleMeasure();
+  };
+
+  private readonly scheduleMeasure = (useScrollBuffer = false) => {
+    this.pendingMeasureUsesScrollBuffer ||= useScrollBuffer;
 
     if (this.frame !== 0) {
       return;
@@ -375,13 +403,19 @@ class ViewportBlocksPluginView {
 
     this.frame = scheduleFrame(() => {
       this.frame = 0;
-      if (this.isScrollSettling) {
-        return;
-      }
+      const nextMeasureUsesScrollBuffer =
+        this.pendingMeasureUsesScrollBuffer || this.isScrollSettling;
+      this.pendingMeasureUsesScrollBuffer = false;
+      const viewportHeight = this.scrollContainer?.clientHeight ?? window.innerHeight;
+      const marginPx = resolveViewportMeasureMarginPx(
+        viewportHeight,
+        nextMeasureUsesScrollBuffer,
+      );
 
       const nextPositions = collectVisibleViewportBlockPositions(
         this.view,
         this.scrollContainer,
+        marginPx,
       );
       const previousPositions = refinexViewportBlocksKey.getState(this.view.state) ?? [];
       if (arePositionListsEqual(previousPositions, nextPositions)) {
