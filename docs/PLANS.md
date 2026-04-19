@@ -8,6 +8,7 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Blockquote Callout Support](exec-plans/completed/2026-04-18-blockquote-callout-support.md) — completed 2026-04-18
 - [Link Hover Tooltip](exec-plans/completed/2026-04-18-link-hover-tooltip.md) — completed 2026-04-18
 
 - [Source Mode Toggle (Cmd/Ctrl + /)](exec-plans/completed/2026-04-18-source-mode-toggle.md) — completed 2026-04-18

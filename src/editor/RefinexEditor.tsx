@@ -23,6 +23,7 @@ import {
 } from "./plugins/trailing-node";
 import { CodeBlockView } from "./node-views/CodeBlockView";
 import { ImageView } from "./node-views/ImageView";
+import { CalloutView } from "./node-views/CalloutView";
 import { LinkPopover, type LinkPopoverRequest } from "./ui/LinkPopover";
 import { LinkHoverTooltip } from "./ui/LinkHoverTooltip";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
@@ -564,6 +565,7 @@ export function RefinexEditor({
         code_block: (node, view, getPos) =>
           new CodeBlockView(node, view, getPos),
         image: (node, view, getPos) => new ImageView(node, view, getPos),
+        blockquote: (node, view, getPos) => new CalloutView(node, view, getPos),
       },
       dispatchTransaction(transaction) {
         const result = view.state.applyTransaction(transaction);
@@ -639,6 +641,8 @@ export function RefinexEditor({
           new CodeBlockView(node, innerView, getPos),
         image: (node, innerView, getPos) =>
           new ImageView(node, innerView, getPos),
+        blockquote: (node, innerView, getPos) =>
+          new CalloutView(node, innerView, getPos),
       },
     });
   }, [readOnly]);

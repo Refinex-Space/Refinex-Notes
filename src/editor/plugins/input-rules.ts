@@ -13,6 +13,7 @@ export function refinexInputRules() {
     rules: [
       ...buildHeadingRules(),
       ...buildListAndBlockRules(),
+      ...buildCalloutRules(),
       ...buildTaskListRules(),
       ...buildStructuralRules(),
     ],
@@ -53,6 +54,38 @@ function buildListAndBlockRules() {
   ];
 }
 
+function buildCalloutRules() {
+  return [
+    new InputRule(
+      /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$/i,
+      (state, match, start, end) => {
+        const $start = state.doc.resolve(start);
+        if ($start.depth < 2) return null;
+
+        // The immediate parent of the current text block must be a blockquote
+        const blockquoteNode = $start.node($start.depth - 1);
+        if (blockquoteNode.type.name !== "blockquote") return null;
+
+        // Only upgrade when this is the FIRST paragraph in the blockquote
+        if ($start.index($start.depth - 1) !== 0) return null;
+
+        const calloutType = match[1].toLowerCase();
+        const blockquotePos = $start.before($start.depth - 1);
+
+        const tr = state.tr;
+        // Set calloutType on the blockquote node
+        tr.setNodeMarkup(blockquotePos, undefined, {
+          ...blockquoteNode.attrs,
+          calloutType,
+        });
+        // Delete the matched text `[!NOTE` (trigger `]` is suppressed by InputRule)
+        tr.delete(tr.mapping.map(start), tr.mapping.map(end));
+        return tr;
+      },
+    ),
+  ];
+}
+
 function buildTaskListRules() {
   return [
     new InputRule(/^- \[ \]\s$/, (state, _match, start) =>
@@ -83,7 +116,9 @@ function replaceParagraphWithTaskList(
   const parent = $start.node(-1);
   const index = $start.index(-1);
   const paragraph = refinexSchema.nodes.paragraph.create();
-  const taskItem = refinexSchema.nodes.task_list_item.create({ checked }, [paragraph]);
+  const taskItem = refinexSchema.nodes.task_list_item.create({ checked }, [
+    paragraph,
+  ]);
   const bulletList = refinexSchema.nodes.bullet_list.create(null, [taskItem]);
   const content = Fragment.from(bulletList);
 
@@ -91,7 +126,11 @@ function replaceParagraphWithTaskList(
     return null;
   }
 
-  const tr = state.tr.replaceRange(blockStart, blockEnd, new Slice(content, 0, 0));
+  const tr = state.tr.replaceRange(
+    blockStart,
+    blockEnd,
+    new Slice(content, 0, 0),
+  );
   const selection = findFirstTextblockSelection(tr.doc, blockStart);
   if (selection !== null) {
     tr.setSelection(Selection.near(tr.doc.resolve(selection)));
@@ -99,10 +138,7 @@ function replaceParagraphWithTaskList(
   return tr;
 }
 
-function replaceParagraphWithHorizontalRule(
-  state: EditorState,
-  start: number,
-) {
+function replaceParagraphWithHorizontalRule(state: EditorState, start: number) {
   const $start = state.doc.resolve(start);
   const blockStart = $start.before();
   const blockEnd = $start.after();
@@ -116,7 +152,11 @@ function replaceParagraphWithHorizontalRule(
     return null;
   }
 
-  const tr = state.tr.replaceRange(blockStart, blockEnd, new Slice(content, 0, 0));
+  const tr = state.tr.replaceRange(
+    blockStart,
+    blockEnd,
+    new Slice(content, 0, 0),
+  );
   const selection = findFirstTextblockSelection(tr.doc, blockStart);
   if (selection !== null) {
     tr.setSelection(Selection.near(tr.doc.resolve(selection)));

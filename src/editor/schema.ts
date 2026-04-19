@@ -59,11 +59,22 @@ const headingSpec: NodeSpec = {
 };
 
 const blockquoteSpec: NodeSpec = {
+  attrs: { calloutType: { default: null } },
   content: "block+",
   group: "block",
-  parseDOM: [{ tag: "blockquote" }],
-  toDOM() {
-    return ["blockquote", 0];
+  parseDOM: [
+    {
+      tag: "blockquote",
+      getAttrs: (dom) => ({
+        calloutType: (dom as HTMLElement).getAttribute("data-callout") || null,
+      }),
+    },
+  ],
+  toDOM(node) {
+    const { calloutType } = node.attrs as { calloutType: string | null };
+    return calloutType
+      ? ["blockquote", { "data-callout": calloutType }, 0]
+      : ["blockquote", 0];
   },
 };
 

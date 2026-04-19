@@ -85,6 +85,21 @@ describe("Markdown ↔ ProseMirror round-trip", () => {
     expect(result).toBe(normalize(input));
   });
 
+  it("callout blockquote marker and body in same line", () => {
+    const input = "> [!NOTE] Extra context for readers.\n";
+    const result = normalize(roundtrip(input));
+    expect(result).toContain("> [!NOTE]");
+    expect(result).toContain("> Extra context for readers.");
+  });
+
+  it("callout blockquote with escaped marker in source mode", () => {
+    const input = "> \\[!TIP\\] Practical suggestions for users.\n";
+    const result = normalize(roundtrip(input));
+    expect(result).toContain("> [!TIP]");
+    expect(result).toContain("> Practical suggestions for users.");
+    expect(result).not.toContain("\\[!TIP\\]");
+  });
+
   it("horizontal rule", () => {
     const input = "Before.\n\n---\n\nAfter.\n";
     const result = normalize(roundtrip(input));

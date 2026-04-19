@@ -74,11 +74,90 @@ md.core.ruler.push("refinex_task_items", (state) => {
 });
 
 // ---------------------------------------------------------------------------
+// Custom core rule: detect GFM callout syntax inside blockquotes.
+//
+// Supports both forms:
+// 1) Marker-only first line:
+//    > [!NOTE]
+//    > body...
+// 2) Marker + body in the same line:
+//    > [!NOTE] body...
+//
+// Also accepts escaped brackets from markdown source mode:
+//    > \[!NOTE\] body...
+// ---------------------------------------------------------------------------
+
+const CALLOUT_PREFIX_RE =
+  /^\s*\\?\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\?\](?:\s+|$)/i;
+
+function stripCalloutPrefix(text: string): {
+  calloutType: string;
+  rest: string;
+} | null {
+  const match = CALLOUT_PREFIX_RE.exec(text);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    calloutType: match[1].toLowerCase(),
+    rest: text.slice(match[0].length),
+  };
+}
+
+md.core.ruler.push("refinex_callout_blocks", (state) => {
+  const tokens = state.tokens;
+  let i = 0;
+  while (i < tokens.length) {
+    const tok = tokens[i];
+    if (
+      tok.type === "blockquote_open" &&
+      i + 3 < tokens.length &&
+      tokens[i + 1].type === "paragraph_open" &&
+      tokens[i + 1].level === tok.level + 1 &&
+      tokens[i + 2].type === "inline" &&
+      tokens[i + 3].type === "paragraph_close"
+    ) {
+      const inlineToken = tokens[i + 2];
+      const parsed = stripCalloutPrefix(inlineToken.content);
+      if (!parsed) {
+        i++;
+        continue;
+      }
+
+      tok.attrSet("data-callout", parsed.calloutType);
+
+      // Case A: marker-only line -> remove the entire first paragraph tokens.
+      if (parsed.rest.trim().length === 0) {
+        tokens.splice(i + 1, 3);
+        i++;
+        continue;
+      }
+
+      // Case B: marker + body in same line -> strip marker prefix and keep body.
+      inlineToken.content = parsed.rest;
+      if (inlineToken.children && inlineToken.children.length > 0) {
+        const firstChild = inlineToken.children[0];
+        if (firstChild.type === "text") {
+          firstChild.content = parsed.rest;
+        }
+      }
+    }
+    i++;
+  }
+});
+
+// ---------------------------------------------------------------------------
 // MarkdownParser token specification
 // ---------------------------------------------------------------------------
 
 export const refinexParser = new MarkdownParser(refinexSchema, md, {
-  blockquote: { block: "blockquote" },
+  blockquote: {
+    block: "blockquote",
+    getAttrs: (tok) => ({
+      calloutType: tok.attrGet("data-callout") ?? null,
+    }),
+  },
   paragraph: { block: "paragraph" },
   list_item: { block: "list_item" },
   bullet_list: { block: "bullet_list" },

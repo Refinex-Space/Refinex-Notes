@@ -30,6 +30,10 @@ const nodeSerializers: Record<
   },
 
   blockquote(state, node) {
+    const calloutType = node.attrs.calloutType as string | null;
+    if (calloutType) {
+      state.write(`> [!${calloutType.toUpperCase()}]\n`);
+    }
     state.wrapBlock("> ", null, node, () => state.renderContent(node));
   },
 
