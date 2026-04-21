@@ -490,6 +490,7 @@ function WorkspaceShell({
   const pendingHydrationTimerRef = useRef<ReturnType<
     typeof globalThis.setTimeout
   > | null>(null);
+  const didAutoOpenRef = useRef(false);
 
   const currentDocument = currentFile ? (documents[currentFile] ?? null) : null;
   const isCurrentFileOpening = Boolean(
@@ -705,8 +706,18 @@ function WorkspaceShell({
   }, [activeTab, toggleSourceMode]);
 
   useEffect(() => {
-    void hydrateRecentWorkspaces();
-  }, [hydrateRecentWorkspaces]);
+    void hydrateRecentWorkspaces().then(() => {
+      if (didAutoOpenRef.current) return;
+      didAutoOpenRef.current = true;
+      const { workspacePath: current, recentWorkspaces: recents } =
+        useNoteStore.getState();
+      if (!current && recents.length > 0) {
+        void openWorkspace(recents[0].path).catch(async () => {
+          await removeRecentWorkspace(recents[0].path);
+        });
+      }
+    });
+  }, [hydrateRecentWorkspaces, openWorkspace, removeRecentWorkspace]);
 
   useEffect(() => {
     void hydrateWorkspace(workspacePath);

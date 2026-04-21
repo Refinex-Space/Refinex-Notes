@@ -8,6 +8,8 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Auto-Restore Last Workspace on Startup](exec-plans/completed/2026-04-22-auto-restore-last-workspace.md) — completed 2026-04-22
+
 - [Blockquote Callout Support](exec-plans/completed/2026-04-18-blockquote-callout-support.md) — completed 2026-04-18
 - [Link Hover Tooltip](exec-plans/completed/2026-04-18-link-hover-tooltip.md) — completed 2026-04-18
 
