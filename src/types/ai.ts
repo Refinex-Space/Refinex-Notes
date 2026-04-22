@@ -60,6 +60,11 @@ export interface AIContext {
     cursorPosition: number;
     selectedText?: string;
   };
+  referencedDocuments: Array<{
+    path: string;
+    title: string;
+    content: string;
+  }>;
   workspace: {
     directoryTree: string;
     openFiles: string[];
@@ -89,10 +94,14 @@ export interface AIStoreActions {
     promptContent: string;
     selectedText?: string;
     includeCurrentDocument?: boolean;
+    attachedDocumentPaths?: string[];
   }) => Promise<void>;
   sendMessage: (
     content: string,
-    options?: { includeCurrentDocument?: boolean },
+    options?: {
+      includeCurrentDocument?: boolean;
+      attachedDocumentPaths?: string[];
+    },
   ) => Promise<void>;
   cancelStream: () => Promise<void>;
   clearHistory: () => void;

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { aiService } from "../../services/aiService";
+import { fileService } from "../../services/fileService";
 import type {
   AICommandMessage,
   AIModelInfo,
@@ -18,6 +19,13 @@ vi.mock("../../services/aiService", () => ({
     listModels: vi.fn(),
     stream: vi.fn(),
     cancelStream: vi.fn(),
+  },
+}));
+
+vi.mock("../../services/fileService", () => ({
+  fileService: {
+    isNativeAvailable: vi.fn(() => true),
+    readFile: vi.fn(),
   },
 }));
 
@@ -98,6 +106,8 @@ describe("aiStore", () => {
     vi.clearAllMocks();
     vi.mocked(aiService.isNativeAvailable).mockReturnValue(true);
     vi.mocked(aiService.cancelStream).mockResolvedValue(undefined);
+    vi.mocked(fileService.isNativeAvailable).mockReturnValue(true);
+    vi.mocked(fileService.readFile).mockResolvedValue("# Reference\n\nUseful context.\n");
   });
 
   it("loads providers and their model catalog from the native layer", async () => {
@@ -214,5 +224,34 @@ describe("aiStore", () => {
     expect(capturedMessages[0]?.content).toContain("路径: （当前文档上下文已移除）");
     expect(capturedMessages[0]?.content).not.toContain("Ship AI panel.");
     expect(capturedMessages[0]?.content).not.toContain("docs/Roadmap.md");
+  });
+
+  it("loads attached reference documents into the generated AI context", async () => {
+    seedEditorContext();
+    useAIStore.setState({
+      providers,
+      modelsByProvider: { deepseek: models },
+      activeProvider: "deepseek",
+      activeModel: "deepseek-chat",
+    });
+
+    let capturedMessages: AICommandMessage[] = [];
+    vi.mocked(fileService.readFile).mockResolvedValue(
+      "# Cursor Guide\n\n## Setup\n\nAttach me as additional context.\n",
+    );
+    vi.mocked(aiService.stream).mockImplementation(async ({ messages }) => {
+      capturedMessages = messages;
+    });
+
+    await useAIStore.getState().sendMessage("结合附加文档回答", {
+      attachedDocumentPaths: ["guides/Cursor Guide.md"],
+    });
+
+    expect(vi.mocked(fileService.readFile)).toHaveBeenCalledWith(
+      "guides/Cursor Guide.md",
+    );
+    expect(capturedMessages[0]?.content).toContain("## 附加参考文档");
+    expect(capturedMessages[0]?.content).toContain("guides/Cursor Guide.md");
+    expect(capturedMessages[0]?.content).toContain("Attach me as additional context.");
   });
 });

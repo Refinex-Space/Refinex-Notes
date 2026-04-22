@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
 import { aiService } from "../services/aiService";
+import { fileService } from "../services/fileService";
 import type {
   AICommandMessage,
   AIMessage,
@@ -9,6 +10,7 @@ import type {
   AIProviderInfo,
   AIStore,
 } from "../types/ai";
+import type { NoteDocument } from "../types/notes";
 import { getCurrentDocument, useNoteStore } from "./noteStore";
 import { useEditorStore } from "./editorStore";
 import {
@@ -27,6 +29,11 @@ function pickDefaultModel(models: readonly AIModelInfo[]) {
 
 const REMOVED_CURRENT_DOCUMENT_LABEL = "（当前文档上下文已移除）";
 
+function getFileName(path: string) {
+  const segments = path.split("/").filter(Boolean);
+  return segments[segments.length - 1] ?? path;
+}
+
 function excludeCurrentDocumentPath(paths: readonly string[], currentPath?: string) {
   if (!currentPath) {
     return [...paths];
@@ -35,14 +42,57 @@ function excludeCurrentDocumentPath(paths: readonly string[], currentPath?: stri
   return paths.filter((path) => path !== currentPath);
 }
 
-function buildContextSnapshot(args?: {
+async function loadReferenceDocument(path: string): Promise<NoteDocument | null> {
+  const cachedDocument = useNoteStore.getState().documents[path];
+  if (cachedDocument) {
+    return cachedDocument;
+  }
+
+  if (!fileService.isNativeAvailable()) {
+    return null;
+  }
+
+  try {
+    const content = await fileService.readFile(path);
+    return {
+      path,
+      name: getFileName(path),
+      content,
+      savedContent: content,
+      language: "Markdown",
+      gitStatus: "clean",
+      isMarkdown: /\.md$/i.test(path),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function buildContextSnapshot(args?: {
   selectedText?: string;
   includeCurrentDocument?: boolean;
+  attachedDocumentPaths?: string[];
 }) {
   const currentDocument = getCurrentDocument();
   const noteState = useNoteStore.getState();
   const editorState = useEditorStore.getState();
   const includeCurrentDocument = args?.includeCurrentDocument ?? true;
+  const attachedDocumentPaths = Array.from(
+    new Set(
+      (args?.attachedDocumentPaths ?? []).filter(
+        (path) => path && path !== currentDocument?.path,
+      ),
+    ),
+  );
+  const referencedDocuments = (
+    await Promise.all(attachedDocumentPaths.map((path) => loadReferenceDocument(path)))
+  )
+    .filter((document): document is NoteDocument => Boolean(document))
+    .map((document) => ({
+      path: document.path,
+      title: document.name.replace(/\.md$/i, ""),
+      content: document.content,
+    }));
 
   return buildAIContext({
     content: includeCurrentDocument ? currentDocument?.content ?? "" : "",
@@ -58,6 +108,7 @@ function buildContextSnapshot(args?: {
     recentFiles: includeCurrentDocument
       ? noteState.recentFiles
       : excludeCurrentDocumentPath(noteState.recentFiles, currentDocument?.path),
+    referencedDocuments,
   });
 }
 
@@ -242,6 +293,7 @@ export const useAIStore = create<AIStore>()(
       promptContent,
       selectedText,
       includeCurrentDocument = true,
+      attachedDocumentPaths = [],
     }) => {
       const trimmedUserMessage = userMessage.trim();
       const trimmedPrompt = promptContent.trim();
@@ -274,7 +326,11 @@ export const useAIStore = create<AIStore>()(
         timestamp: Date.now(),
       };
       const systemPrompt = buildSystemPrompt(
-        buildContextSnapshot({ selectedText, includeCurrentDocument }),
+        await buildContextSnapshot({
+          selectedText,
+          includeCurrentDocument,
+          attachedDocumentPaths,
+        }),
       );
       const commandMessages = toCommandMessages(
         [
@@ -339,6 +395,7 @@ export const useAIStore = create<AIStore>()(
         userMessage: content,
         promptContent: content,
         includeCurrentDocument: options?.includeCurrentDocument,
+        attachedDocumentPaths: options?.attachedDocumentPaths,
       });
     },
 

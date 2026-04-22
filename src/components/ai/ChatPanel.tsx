@@ -6,13 +6,75 @@ import {
   useRef,
   useState,
 } from "react";
-import { FileText, Loader2, Send, Square, Trash2, Wand2, X } from "lucide-react";
+import {
+  ChevronRight,
+  FileText,
+  Loader2,
+  Send,
+  Square,
+  Trash2,
+  Wand2,
+  X,
+} from "lucide-react";
 
+import { searchService } from "../../services/searchService";
 import { useAIStore } from "../../stores/aiStore";
 import { useNoteStore } from "../../stores/noteStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import {
+  buildDocumentMentionSections,
+  buildDocumentMentionText,
+  flattenDocumentPaths,
+  getDocumentMentionTrigger,
+  replaceDocumentMentionTrigger,
+  searchLoadedDocumentPaths,
+} from "./documentMentions";
 import { ProviderSelect } from "./ProviderSelect";
 import { StreamRenderer } from "./StreamRenderer";
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildPromptHighlightParts(draft: string, mentionTexts: string[]) {
+  if (!draft) {
+    return [{ text: "", isMention: false }];
+  }
+
+  const uniqueMentionTexts = Array.from(
+    new Set(
+      mentionTexts
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    ),
+  ).sort((left, right) => right.length - left.length);
+
+  if (uniqueMentionTexts.length === 0) {
+    return [{ text: draft, isMention: false }];
+  }
+
+  const pattern = new RegExp(
+    `(${uniqueMentionTexts.map((value) => escapeRegExp(value)).join("|")})`,
+    "g",
+  );
+  const parts: Array<{ text: string; isMention: boolean }> = [];
+  let lastIndex = 0;
+
+  draft.replace(pattern, (match, _group, offset: number) => {
+    if (offset > lastIndex) {
+      parts.push({ text: draft.slice(lastIndex, offset), isMention: false });
+    }
+    parts.push({ text: match, isMention: true });
+    lastIndex = offset + match.length;
+    return match;
+  });
+
+  if (lastIndex < draft.length) {
+    parts.push({ text: draft.slice(lastIndex), isMention: false });
+  }
+
+  return parts.length > 0 ? parts : [{ text: draft, isMention: false }];
+}
 
 function EmptyChatState({ message }: { message: string }) {
   return (
@@ -28,6 +90,31 @@ function EmptyChatState({ message }: { message: string }) {
   );
 }
 
+function ThinkingIndicator() {
+  return (
+    <div
+      data-testid="assistant-thinking"
+      className="flex items-center py-2 text-sm text-muted"
+    >
+      <span className="font-medium tracking-[0.01em] text-fg/82">探索中</span>
+      <span className="ml-1 inline-flex items-center gap-1" aria-hidden="true">
+        <span
+          className="h-1.5 w-1.5 rounded-full bg-accent/65 animate-pulse"
+          style={{ animationDelay: "0ms" }}
+        />
+        <span
+          className="h-1.5 w-1.5 rounded-full bg-accent/65 animate-pulse"
+          style={{ animationDelay: "180ms" }}
+        />
+        <span
+          className="h-1.5 w-1.5 rounded-full bg-accent/65 animate-pulse"
+          style={{ animationDelay: "360ms" }}
+        />
+      </span>
+    </div>
+  );
+}
+
 function MessageBubble({
   role,
   content,
@@ -39,14 +126,25 @@ function MessageBubble({
 }) {
   if (role === "user") {
     return (
-      <div className="ml-auto max-w-[85%] rounded-[1.2rem] rounded-br-md bg-accent px-4 py-3 text-sm leading-6 text-white shadow-sm">
+      <div
+        data-testid="user-message"
+        className="ml-auto max-w-[85%] rounded-[1.2rem] rounded-br-md bg-accent px-4 py-3 text-sm leading-6 text-white shadow-sm"
+      >
         <p className="whitespace-pre-wrap break-words">{content}</p>
       </div>
     );
   }
 
+  if (isStreaming && content.trim().length === 0) {
+    return (
+      <div data-testid="assistant-message" className="w-full py-1">
+        <ThinkingIndicator />
+      </div>
+    );
+  }
+
   return (
-    <div className="mr-auto max-w-[88%] rounded-[1.2rem] rounded-bl-md border border-border/70 bg-[rgb(var(--color-bg)/0.9)] px-4 py-3 shadow-sm">
+    <div data-testid="assistant-message" className="w-full py-1">
       <StreamRenderer
         content={content}
         isStreaming={isStreaming}
@@ -60,7 +158,16 @@ export function ChatPanel() {
   const [draft, setDraft] = useState("");
   const [includeCurrentDocumentContext, setIncludeCurrentDocumentContext] =
     useState(false);
+  const [attachedDocumentMentions, setAttachedDocumentMentions] = useState<
+    Array<{ path: string; text: string }>
+  >([]);
+  const [caretPosition, setCaretPosition] = useState(0);
+  const [mentionCandidatePaths, setMentionCandidatePaths] = useState<string[]>([]);
+  const [mentionExpanded, setMentionExpanded] = useState(false);
+  const [highlightedMentionIndex, setHighlightedMentionIndex] = useState(0);
+  const [dismissedMentionKey, setDismissedMentionKey] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const {
     providers,
     modelsByProvider,
@@ -87,6 +194,9 @@ export function ChatPanel() {
   const currentDocument = useNoteStore((state) =>
     state.currentFile ? state.documents[state.currentFile] ?? null : null,
   );
+  const fileTree = useNoteStore((state) => state.files);
+  const openFiles = useNoteStore((state) => state.openFiles);
+  const recentFiles = useNoteStore((state) => state.recentFiles);
   const requestedCatalogRef = useRef<Set<string>>(new Set());
 
   const deferredMessages = useDeferredValue(messages);
@@ -135,7 +245,143 @@ export function ChatPanel() {
 
   useEffect(() => {
     setIncludeCurrentDocumentContext(Boolean(currentDocument));
+    if (!currentDocument?.path) {
+      return;
+    }
+
+    setAttachedDocumentMentions((mentions) =>
+      mentions.filter((item) => item.path !== currentDocument.path),
+    );
   }, [currentDocument?.path]);
+
+  const loadedDocumentPaths = useMemo(
+    () => flattenDocumentPaths(fileTree),
+    [fileTree],
+  );
+  const defaultMentionCandidatePaths = useMemo(
+    () =>
+      Array.from(
+        new Set([...openFiles, ...recentFiles, ...loadedDocumentPaths]),
+      ).filter((path) => path !== currentDocument?.path),
+    [currentDocument?.path, loadedDocumentPaths, openFiles, recentFiles],
+  );
+  const mentionTrigger = useMemo(
+    () => getDocumentMentionTrigger(draft, caretPosition),
+    [caretPosition, draft],
+  );
+  const mentionKey = mentionTrigger
+    ? `${mentionTrigger.start}:${mentionTrigger.end}:${mentionTrigger.query}`
+    : null;
+
+  useEffect(() => {
+    setMentionExpanded(false);
+    setHighlightedMentionIndex(0);
+    setDismissedMentionKey(null);
+  }, [mentionKey]);
+
+  useEffect(() => {
+    if (!mentionTrigger) {
+      setMentionCandidatePaths([]);
+      return;
+    }
+
+    const query = mentionTrigger.query.trim();
+    const localResults = query
+      ? searchLoadedDocumentPaths(loadedDocumentPaths, query)
+      : defaultMentionCandidatePaths;
+
+    if (!query || !searchService.isNativeAvailable()) {
+      setMentionCandidatePaths(localResults);
+      return;
+    }
+
+    let disposed = false;
+    void searchService
+      .searchFiles(query)
+      .then((results) => {
+        if (disposed) {
+          return;
+        }
+
+        const resolvedPaths = Array.from(new Set(results.map((result) => result.path)));
+        setMentionCandidatePaths(resolvedPaths.length > 0 ? resolvedPaths : localResults);
+      })
+      .catch(() => {
+        if (!disposed) {
+          setMentionCandidatePaths(localResults);
+        }
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [defaultMentionCandidatePaths, loadedDocumentPaths, mentionTrigger]);
+
+  const mentionSections = useMemo(
+    () =>
+      buildDocumentMentionSections({
+        currentDocumentPath: currentDocument?.path,
+        currentDocumentTitle: currentDocument?.name.replace(/\.md$/i, "") ?? null,
+        candidatePaths: mentionCandidatePaths,
+        attachedDocumentPaths: attachedDocumentMentions.map((item) => item.path),
+        expanded: mentionExpanded,
+      }),
+    [
+      attachedDocumentMentions,
+      currentDocument?.name,
+      currentDocument?.path,
+      mentionCandidatePaths,
+      mentionExpanded,
+    ],
+  );
+
+  const mentionMenuItems = useMemo(
+    () => [
+      ...(mentionSections.currentPage
+        ? [{ type: "document" as const, option: mentionSections.currentPage }]
+        : []),
+      ...mentionSections.visibleLinkedPages.map((option) => ({
+        type: "document" as const,
+        option,
+      })),
+      ...(mentionSections.hiddenCount > 0
+        ? [{ type: "expand" as const, hiddenCount: mentionSections.hiddenCount }]
+        : []),
+    ],
+    [mentionSections.currentPage, mentionSections.hiddenCount, mentionSections.visibleLinkedPages],
+  );
+
+  const mentionMenuOpen =
+    Boolean(mentionTrigger) &&
+    mentionMenuItems.length > 0 &&
+    dismissedMentionKey !== mentionKey;
+  const promptHighlightParts = useMemo(
+    () =>
+      buildPromptHighlightParts(
+        draft,
+        attachedDocumentMentions.map((item) => item.text),
+      ),
+    [attachedDocumentMentions, draft],
+  );
+
+  const activeAttachedDocumentPaths = useMemo(
+    () =>
+      attachedDocumentMentions
+        .filter((item) => draft.includes(item.text))
+        .map((item) => item.path),
+    [attachedDocumentMentions, draft],
+  );
+
+  useEffect(() => {
+    if (!mentionMenuOpen) {
+      setHighlightedMentionIndex(0);
+      return;
+    }
+
+    setHighlightedMentionIndex((index) =>
+      Math.max(0, Math.min(index, mentionMenuItems.length - 1)),
+    );
+  }, [mentionMenuItems.length, mentionMenuOpen]);
 
   const canSend =
     draft.trim().length > 0 &&
@@ -166,6 +412,7 @@ export function ChatPanel() {
     });
     await sendMessage(content, {
       includeCurrentDocument: includeCurrentDocumentContext,
+      attachedDocumentPaths: activeAttachedDocumentPaths,
     });
   };
 
@@ -174,6 +421,51 @@ export function ChatPanel() {
       await selectProvider(providerId);
     }
     selectModel(modelId);
+  };
+
+  const syncCaretPosition = () => {
+    setCaretPosition(textareaRef.current?.selectionStart ?? 0);
+  };
+
+  const applyMentionSelection = (item: (typeof mentionMenuItems)[number]) => {
+    if (!mentionTrigger) {
+      return;
+    }
+
+    if (item.type === "expand") {
+      setMentionExpanded(true);
+      return;
+    }
+
+    const mentionText = buildDocumentMentionText(item.option.path);
+    const nextDraft = replaceDocumentMentionTrigger(
+      draft,
+      mentionTrigger,
+      `${mentionText} `,
+    );
+    startTransition(() => {
+      setDraft(nextDraft.value);
+      setCaretPosition(nextDraft.caretPosition);
+      setMentionExpanded(false);
+      setDismissedMentionKey(null);
+      if (item.option.isCurrentDocument) {
+        setIncludeCurrentDocumentContext(true);
+      } else {
+        setAttachedDocumentMentions((mentions) =>
+          mentions.some((entry) => entry.path === item.option.path)
+            ? mentions
+            : [...mentions, { path: item.option.path, text: mentionText }],
+        );
+      }
+    });
+
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(
+        nextDraft.caretPosition,
+        nextDraft.caretPosition,
+      );
+    });
   };
 
   return (
@@ -226,56 +518,215 @@ export function ChatPanel() {
           </div>
         ) : null}
 
-        <div className="rounded-[1.25rem] border border-border/70 bg-[rgb(var(--color-bg)/0.92)] p-3 shadow-sm">
-          {currentDocument && includeCurrentDocumentContext ? (
-            <div className="mb-2 flex">
-              <div className="group inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-2 rounded-full border border-border/70 bg-bg/90 px-3 py-1.5 text-sm text-muted transition hover:border-border hover:bg-bg">
-                <FileText className="h-4 w-4 shrink-0 text-muted" />
-                <span className="min-w-0 truncate font-medium text-fg/80">
-                  {currentDocument.name.replace(/\.md$/i, "")}
-                </span>
-                <button
-                  type="button"
-                  aria-label="移除当前文档上下文"
-                  onClick={() => setIncludeCurrentDocumentContext(false)}
-                  className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition hover:text-fg group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+        <div className="relative rounded-[1.25rem] border border-border/70 bg-[rgb(var(--color-bg)/0.92)] p-3 shadow-sm">
+          {mentionMenuOpen ? (
+            <div className="absolute inset-x-3 bottom-[calc(100%+0.75rem)] z-20 rounded-[1.1rem] border border-border/80 bg-[rgb(var(--color-bg)/0.98)] p-2 shadow-panel">
+              <div className="max-h-[18rem] overflow-y-auto">
+                {mentionSections.currentPage ? (
+                  <>
+                    <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                      当前页面
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`引用当前页面 ${mentionSections.currentPage.title}`}
+                      onMouseEnter={() => setHighlightedMentionIndex(0)}
+                      onClick={() => applyMentionSelection(mentionMenuItems[0]!)}
+                      className={[
+                        "mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
+                        highlightedMentionIndex === 0
+                          ? "bg-fg/[0.06]"
+                          : "hover:bg-fg/[0.04]",
+                      ].join(" ")}
+                    >
+                      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-fg/[0.04]">
+                        <FileText className="h-4 w-4 text-muted" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-fg">
+                          {mentionSections.currentPage.title}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {includeCurrentDocumentContext
+                            ? "已作为实时上下文"
+                            : "选择后加入实时上下文"}
+                        </span>
+                      </span>
+                    </button>
+                  </>
+                ) : null}
+
+                <div className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+                  链接到页面
+                </div>
+
+                {mentionSections.visibleLinkedPages.map((option, index) => {
+                  const itemIndex = mentionSections.currentPage ? index + 1 : index;
+
+                  return (
+                    <button
+                      key={option.path}
+                      type="button"
+                      aria-label={`引用文档 ${option.title}`}
+                      onMouseEnter={() => setHighlightedMentionIndex(itemIndex)}
+                      onClick={() => applyMentionSelection(mentionMenuItems[itemIndex]!)}
+                      className={[
+                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
+                        highlightedMentionIndex === itemIndex
+                          ? "bg-fg/[0.06]"
+                          : "hover:bg-fg/[0.04]",
+                      ].join(" ")}
+                    >
+                      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-fg/[0.04]">
+                        <FileText className="h-4 w-4 text-muted" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-fg">
+                          {option.title}
+                        </span>
+                        <span className="block truncate text-xs text-muted">
+                          {option.subtitle}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+
+                {mentionSections.hiddenCount > 0 ? (
+                  <button
+                    type="button"
+                    aria-label={`展开其余 ${mentionSections.hiddenCount} 个结果`}
+                    onMouseEnter={() =>
+                      setHighlightedMentionIndex(mentionMenuItems.length - 1)
+                    }
+                    onClick={() =>
+                      applyMentionSelection(mentionMenuItems[mentionMenuItems.length - 1]!)
+                    }
+                    className={[
+                      "mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted transition",
+                      highlightedMentionIndex === mentionMenuItems.length - 1
+                        ? "bg-fg/[0.06] text-fg"
+                        : "hover:bg-fg/[0.04] hover:text-fg",
+                    ].join(" ")}
+                  >
+                    <ChevronRight className="h-4 w-4 shrink-0" />
+                    <span>其余 {mentionSections.hiddenCount} 个结果</span>
+                  </button>
+                ) : null}
               </div>
             </div>
           ) : null}
 
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" || event.shiftKey) {
-                return;
-              }
-              event.preventDefault();
-              void handleSubmit();
-            }}
-            placeholder="使用 AI 处理各种任务 …"
-            className="min-h-[88px] w-full resize-none border-0 bg-transparent text-sm leading-6 text-fg outline-none placeholder:text-muted"
-            disabled={isLoadingProviders}
-          />
+          {currentDocument && includeCurrentDocumentContext ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {currentDocument && includeCurrentDocumentContext ? (
+                <div className="group inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-2 rounded-full border border-border/70 bg-bg/90 px-3 py-1.5 text-sm text-muted transition hover:border-border hover:bg-bg">
+                  <FileText className="h-4 w-4 shrink-0 text-muted" />
+                  <span className="min-w-0 truncate font-medium text-fg/80">
+                    {currentDocument.name.replace(/\.md$/i, "")}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="移除当前文档上下文"
+                    onClick={() => setIncludeCurrentDocumentContext(false)}
+                    className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition hover:text-fg group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="relative">
+            {draft ? (
+              <div
+                data-testid="prompt-highlight"
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words text-sm leading-6 text-fg"
+              >
+                {promptHighlightParts.map((part, index) =>
+                  part.isMention ? (
+                    <span
+                      key={`${part.text}-${index}`}
+                      data-mention-highlight={part.text}
+                      className="rounded-[0.5rem] bg-accent/[0.12] text-accent shadow-[inset_0_0_0_1px_rgba(var(--color-accent),0.14)]"
+                    >
+                      {part.text}
+                    </span>
+                  ) : (
+                    <span key={`${part.text}-${index}`}>{part.text}</span>
+                  ),
+                )}
+              </div>
+            ) : null}
+
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setCaretPosition(event.target.selectionStart ?? event.target.value.length);
+              }}
+              onClick={syncCaretPosition}
+              onKeyUp={syncCaretPosition}
+              onKeyDown={(event) => {
+                if (mentionMenuOpen) {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setHighlightedMentionIndex((index) =>
+                      mentionMenuItems.length === 0
+                        ? 0
+                        : (index + 1) % mentionMenuItems.length,
+                    );
+                    return;
+                  }
+
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setHighlightedMentionIndex((index) =>
+                      mentionMenuItems.length === 0
+                        ? 0
+                        : (index - 1 + mentionMenuItems.length) % mentionMenuItems.length,
+                    );
+                    return;
+                  }
+
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setDismissedMentionKey(mentionKey);
+                    return;
+                  }
+
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    const item = mentionMenuItems[highlightedMentionIndex];
+                    if (item) {
+                      applyMentionSelection(item);
+                    }
+                    return;
+                  }
+                }
+
+                if (event.key !== "Enter" || event.shiftKey) {
+                  return;
+                }
+                event.preventDefault();
+                void handleSubmit();
+              }}
+              placeholder="使用 AI 处理各种任务 …"
+              className={[
+                "relative min-h-[88px] w-full resize-none border-0 bg-transparent text-sm leading-6 outline-none placeholder:text-muted",
+                draft
+                  ? "text-transparent caret-fg selection:bg-accent/20"
+                  : "text-fg",
+              ].join(" ")}
+              disabled={isLoadingProviders}
+            />
+          </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-              {isStreaming ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void cancelStream();
-                  }}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm text-fg transition hover:bg-fg/[0.05]"
-                >
-                  <Square className="h-3.5 w-3.5 fill-current" />
-                  停止生成
-                </button>
-              ) : null}
-
               <ProviderSelect
                 providers={providers}
                 modelsByProvider={modelsByProvider}
@@ -287,15 +738,21 @@ export function ChatPanel() {
 
               <button
                 type="button"
-                aria-label="发送消息"
+                aria-label={isStreaming ? "停止生成" : "发送消息"}
                 onClick={() => {
+                  if (isStreaming) {
+                    void cancelStream();
+                    return;
+                  }
                   void handleSubmit();
                 }}
-                disabled={!canSend}
+                disabled={isLoadingProviders || (!isStreaming && !canSend)}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoadingProviders ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isStreaming ? (
+                  <Square className="h-3.5 w-3.5 fill-current" />
                 ) : (
                   <Send className="h-4 w-4" />
                 )}

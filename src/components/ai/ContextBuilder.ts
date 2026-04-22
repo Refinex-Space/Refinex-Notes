@@ -63,6 +63,11 @@ export function buildAIContext(args: {
   filePath: string;
   cursorPosition: CursorPosition;
   selectedText?: string;
+  referencedDocuments?: Array<{
+    path: string;
+    title: string;
+    content: string;
+  }>;
   directoryTree: string;
   openFiles: string[];
   recentFiles?: string[];
@@ -74,6 +79,7 @@ export function buildAIContext(args: {
       cursorPosition: cursorPositionToOffset(args.content, args.cursorPosition),
       selectedText: args.selectedText,
     },
+    referencedDocuments: args.referencedDocuments ?? [],
     workspace: {
       directoryTree: args.directoryTree,
       openFiles: args.openFiles.slice(0, MAX_OPEN_FILES),
@@ -94,8 +100,21 @@ function buildHeadingsSummary(markdown: string) {
     .join("\n");
 }
 
+function buildReferenceExcerpt(markdown: string, limit = 1600) {
+  const trimmed = markdown.trim();
+  if (!trimmed) {
+    return "（该参考文档内容为空）";
+  }
+
+  if (trimmed.length <= limit) {
+    return trimmed;
+  }
+
+  return `${trimmed.slice(0, limit)}\n...`;
+}
+
 export function buildSystemPrompt(context: AIContext) {
-  const { currentDocument, workspace } = context;
+  const { currentDocument, referencedDocuments, workspace } = context;
   const excerpt = sliceWindowAroundOffset(
     currentDocument.content,
     currentDocument.cursorPosition,
@@ -126,6 +145,23 @@ export function buildSystemPrompt(context: AIContext) {
     `### 光标附近上下文（前后各 ${CONTEXT_RADIUS} 字符）`,
     excerpt.excerpt,
     "",
+    ...(referencedDocuments.length > 0
+      ? [
+          "## 附加参考文档",
+          ...referencedDocuments.flatMap((document, index) => [
+            `### 参考文档 ${index + 1}`,
+            `- 标题: ${document.title}`,
+            `- 路径: ${document.path}`,
+            "",
+            "#### 标题层级摘要",
+            buildHeadingsSummary(document.content),
+            "",
+            "#### 文档内容摘录",
+            buildReferenceExcerpt(document.content),
+            "",
+          ]),
+        ]
+      : []),
     "## 工作区",
     "### 已打开文件",
     workspace.openFiles.length > 0

@@ -8,6 +8,8 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [AI Chat Document Mentions](exec-plans/completed/2026-04-22-ai-chat-document-mentions.md) — completed 2026-04-22
+
 - [AI Chat Current Document Chip](exec-plans/completed/2026-04-22-ai-chat-current-document-chip.md) — completed 2026-04-22
 
 - [Fix AI Panel Width And Drag Permission](exec-plans/completed/2026-04-22-fix-ai-panel-width-and-drag-permission.md) — completed 2026-04-22
