@@ -52,8 +52,8 @@ Author: agent
 **Files:** `src/types/ai.ts`, `src/stores/aiStore.ts`, `src/stores/__tests__/aiStore.test.ts`
 **Verification:** `npm test -- --run src/stores/__tests__/aiStore.test.ts`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `npm test -- --run src/stores/__tests__/aiStore.test.ts` → 1 file, 7 tests passed
 Deviations:
 
 ### Step 2: 接入顶部会话切换与新建会话 UI
@@ -87,7 +87,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  |  |
+| 1 | ✅ | `npm test -- --run src/stores/__tests__/aiStore.test.ts` | 多会话状态、当前会话切换、重命名、删除与本地持久化已落到 store |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |

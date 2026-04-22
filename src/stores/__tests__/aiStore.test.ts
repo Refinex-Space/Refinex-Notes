@@ -254,4 +254,94 @@ describe("aiStore", () => {
     expect(capturedMessages[0]?.content).toContain("guides/Cursor Guide.md");
     expect(capturedMessages[0]?.content).toContain("Attach me as additional context.");
   });
+
+  it("creates isolated conversations that can be switched, renamed, and deleted", async () => {
+    seedEditorContext();
+    useAIStore.setState({
+      providers,
+      modelsByProvider: { deepseek: models },
+      activeProvider: "deepseek",
+      activeModel: "deepseek-chat",
+    });
+
+    vi.mocked(aiService.stream).mockImplementation(async ({ onToken }) => {
+      onToken("完成");
+    });
+
+    const firstConversationId = useAIStore.getState().activeConversationId;
+
+    await useAIStore.getState().sendMessage("第一轮讨论");
+
+    const secondConversationId = useAIStore.getState().createConversation();
+    await useAIStore.getState().sendMessage("第二轮讨论");
+
+    useAIStore.getState().switchConversation(firstConversationId!);
+    useAIStore.getState().renameConversation(firstConversationId!, "技术博客写作请求");
+
+    const stateAfterRename = useAIStore.getState();
+    const firstConversation = stateAfterRename.conversations.find(
+      (conversation) => conversation.id === firstConversationId,
+    );
+    const secondConversation = stateAfterRename.conversations.find(
+      (conversation) => conversation.id === secondConversationId,
+    );
+
+    expect(firstConversation?.title).toBe("技术博客写作请求");
+    expect(firstConversation?.messages[0]).toEqual(
+      expect.objectContaining({
+        role: "user",
+        content: "第一轮讨论",
+      }),
+    );
+    expect(secondConversation?.messages[0]).toEqual(
+      expect.objectContaining({
+        role: "user",
+        content: "第二轮讨论",
+      }),
+    );
+    expect(stateAfterRename.messages[0]).toEqual(
+      expect.objectContaining({
+        role: "user",
+        content: "第一轮讨论",
+      }),
+    );
+
+    useAIStore.getState().deleteConversation(secondConversationId);
+
+    expect(
+      useAIStore
+        .getState()
+        .conversations.some((conversation) => conversation.id === secondConversationId),
+    ).toBe(false);
+  });
+
+  it("persists conversation history and active conversation selection", async () => {
+    const initialConversationId = useAIStore.getState().activeConversationId;
+
+    useAIStore.getState().renameConversation(initialConversationId!, "持久化验证");
+    const createdConversationId = useAIStore.getState().createConversation();
+    useAIStore.getState().switchConversation(createdConversationId);
+
+    const persisted = await Promise.resolve(
+      useAIStore.persist.getOptions().storage?.getItem("refinex-ai-chat-store"),
+    );
+
+    expect(persisted).toMatchObject({
+      state: {
+        activeConversationId: createdConversationId,
+      },
+    });
+    expect(persisted?.state?.conversations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: initialConversationId,
+          title: "持久化验证",
+        }),
+        expect.objectContaining({
+          id: createdConversationId,
+          title: "新会话",
+        }),
+      ]),
+    );
+  });
 });

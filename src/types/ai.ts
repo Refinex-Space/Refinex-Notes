@@ -18,6 +18,17 @@ export interface AIMessage {
   timestamp: number;
 }
 
+export type AIConversationTitleSource = "auto" | "manual";
+
+export interface AIConversation {
+  id: string;
+  title: string;
+  titleSource: AIConversationTitleSource;
+  messages: AIMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface AICommandMessage {
   role: AICommandMessageRole;
   content: string;
@@ -73,6 +84,8 @@ export interface AIContext {
 }
 
 export interface AIStoreState {
+  conversations: AIConversation[];
+  activeConversationId: string | null;
   messages: AIMessage[];
   isStreaming: boolean;
   isLoadingProviders: boolean;
@@ -82,6 +95,7 @@ export interface AIStoreState {
   activeModel: string | null;
   errorMessage: string | null;
   activeRequestId: string | null;
+  activeRequestConversationId: string | null;
 }
 
 export interface AIStoreActions {
@@ -89,6 +103,10 @@ export interface AIStoreActions {
   loadModels: (providerId: string) => Promise<void>;
   selectProvider: (providerId: string) => Promise<void>;
   selectModel: (modelId: string) => void;
+  createConversation: () => string;
+  switchConversation: (conversationId: string) => void;
+  renameConversation: (conversationId: string, title: string) => void;
+  deleteConversation: (conversationId: string) => void;
   streamPrompt: (args: {
     userMessage: string;
     promptContent: string;
