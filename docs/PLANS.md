@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Skill System And Editor AI Insert](exec-plans/active/2026-04-22-skill-editor-ai-insert.md) — started 2026-04-22
-
 ## Completed Plans
+
+- [Skill System And Editor AI Insert](exec-plans/completed/2026-04-22-skill-editor-ai-insert.md) — completed 2026-04-22
 
 - [Phase 8 AI Chat Panel](exec-plans/completed/2026-04-22-phase8-ai-chat-panel.md) — completed 2026-04-22
 

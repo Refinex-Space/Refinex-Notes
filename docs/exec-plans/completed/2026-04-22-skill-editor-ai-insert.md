@@ -116,12 +116,15 @@ Deviations:
 
 ### Step 4: 增补测试、同步控制面并完成整体验证
 
-**Files:** 相关 `src/**/__tests__/`, `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/PLANS.md`, `docs/exec-plans/active/2026-04-22-skill-editor-ai-insert.md`
+**Files:** 相关 `src/**/__tests__/`, `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/PLANS.md`, `docs/exec-plans/completed/2026-04-22-skill-editor-ai-insert.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml`; `npm test -- --run`; `npm run build`
 
-Status: ⬜ Not started
+Status: ✅ Completed
 Evidence:
+- `docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md` 已同步 Skill 真源、editor AI insert 与三类触发入口
+- `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 已全部通过
 Deviations:
+- `npm run build` 仍保留既有 Tailwind `duration-[120ms]` 歧义告警与 bundle 体积告警，本次未扩展处理
 
 ## Progress Log
 
@@ -130,7 +133,7 @@ Deviations:
 | 1 | ✅ | `skills/*.md`、`src/services/skillService.ts`、`src/components/ai/SkillPicker.tsx` | Skill 真源与解析服务已落地 |
 | 2 | ✅ | `src/editor/commands/ai-insert.ts`、`src/editor/plugins/ai-write-highlight.ts`、`src/editor/__tests__/ai-insert.test.ts` | 流式写入、高亮与 Undo 语义已落地 |
 | 3 | ✅ | `src/services/skillService.ts`、`src/editor/ui/FloatingToolbar.tsx`、`src/editor/ui/SlashMenu.tsx`、`src/editor/RefinexEditor.tsx` | 三个入口已复用统一 Skill 执行链路 |
-| 4 | ⬜ |  | 待补测试、同步控制面并完成归档验证 |
+| 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` | 控制面同步完成，可归档 |
 
 ## Decision Log
 
@@ -139,4 +142,12 @@ Deviations:
 | Skill 真源落在仓库 `skills/*.md` | 任务要求内置 Skill 文件且需避免后续漂移 | 把 Skill 目录硬编码进组件或 store | 让 Skill 能被统一解析、测试和演进，避免多份常量源 |
 | AI 写入以 editor command + plugin 实现 | 现有 `RefinexEditor` 已有 `dispatchTransaction` 与 plugin 体系 | 在组件层直接 `view.dispatch` 零散拼接 | 将插入逻辑、高亮反馈、完成清理集中到 editor domain |
 | `chat-response` 复用现有 AI 面板链路 | 已有 `aiStore` / `ChatPanel` 流式会话系统 | 为 Skill 另起一套聊天结果状态 | 避免重复实现 AI 流式状态机 |
+
+## Completion Summary
+
+Completed: 2026-04-22
+Duration: 4 steps
+All acceptance criteria: PASS
+
+Summary: 本次交付将仓库根目录 `skills/*.md` 升级为内置 Skill 真源，并通过 `skillService` 解析与执行。编辑器侧新增 `ai-insert` 与高亮 plugin，使 AI 输出可按 `replace-selection`、`insert-at-cursor`、`new-document`、`chat-response` 四种模式流式落地。入口层已接通选区浮动工具栏、`/ai-*` slash 菜单与编辑器右键菜单，同时通过 `aiStore.streamPrompt()` 复用现有聊天面板链路，避免再造一套 AI 状态机。
 | `new-document` 复用 `noteStore` 文件能力 | 现有工作区文件创建/打开/更新路径已存在 | 直接在 editor command 内写文件 | 保持文件 IO 仍然经 store/service seam 流动 |
