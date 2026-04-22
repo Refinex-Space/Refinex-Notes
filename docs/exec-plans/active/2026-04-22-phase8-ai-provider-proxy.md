@@ -54,7 +54,7 @@ Author: agent
 
 ### Step 1: 建立 AI 配置与运行时状态骨架
 
-**Files:** `src-tauri/src/ai/mod.rs`, `src-tauri/src/db.rs`, `src-tauri/src/state.rs`
+**Files:** `src-tauri/src/ai/mod.rs`, `src-tauri/src/db.rs`, `src-tauri/src/state.rs`, `src-tauri/src/lib.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml ai::tests:: db::tests::`
 
 Status: ⬜ Not started
@@ -113,6 +113,7 @@ Deviations:
 | -------- | ------- | ----------------------- | --------- |
 | 当前任务只实现 Rust 代理层，不包含前端 AI 面板 | 用户当前子任务聚焦后端代理 | 同时实现 UI | 保持 diff 聚焦，先满足当前阶段的原生能力验收 |
 | 取消语义先支持单个当前流 | 需求只要求“取消当前流” | 完整多会话取消表 | 更小设计即可满足验收，避免过早引入会话编排 |
+| Step 1 提前触及 `src-tauri/src/lib.rs` | `db.rs` 需要复用 `crate::ai` 类型 | 把类型留在 `db.rs` 或延后注册模块 | 直接在 crate root 注册 `ai` 模块更符合现有域边界 |
 
 ## Completion Summary
 
