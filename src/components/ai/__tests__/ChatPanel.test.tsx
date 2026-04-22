@@ -632,6 +632,24 @@ describe("ChatPanel", () => {
     });
 
     expect(container.textContent).toContain("outline.md");
+    const attachmentButton = container.querySelector(
+      'button[aria-label="添加附件"]',
+    ) as HTMLButtonElement | null;
+    const leftActions = container.querySelector(
+      '[data-testid="composer-actions-left"]',
+    );
+    const rightActions = container.querySelector(
+      '[data-testid="composer-actions-right"]',
+    );
+    const attachmentPreview = container.querySelector(
+      '[data-testid="attachment-preview-texts"] > div',
+    ) as HTMLDivElement | null;
+
+    expect(leftActions?.contains(attachmentButton)).toBe(true);
+    expect(rightActions?.contains(attachmentButton)).toBe(false);
+    expect(attachmentButton?.className).not.toContain("border");
+    expect(attachmentPreview?.className).toContain("text-xs");
+    expect(attachmentPreview?.className).toContain("max-w-[min(100%,14rem)]");
 
     await act(async () => {
       const valueSetter = Object.getOwnPropertyDescriptor(

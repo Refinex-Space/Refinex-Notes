@@ -13,6 +13,7 @@ import {
   FileText,
   Loader2,
   MoreHorizontal,
+  Paperclip,
   Pencil,
   Plus,
   Send,
@@ -158,13 +159,16 @@ function AttachmentPreviewList({
   const textAttachments = attachments.filter((attachment) => attachment.kind === "text");
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {imageAttachments.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div
+          data-testid="attachment-preview-images"
+          className="flex flex-wrap gap-1.5"
+        >
           {imageAttachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="group relative h-20 w-20 overflow-hidden rounded-xl border border-border/70 bg-fg/[0.04]"
+              className="group relative h-14 w-14 overflow-hidden rounded-lg border border-border/55 bg-fg/[0.035]"
             >
               <img
                 src={buildAttachmentImageSource(attachment) ?? ""}
@@ -176,7 +180,7 @@ function AttachmentPreviewList({
                   type="button"
                   aria-label={`移除附件 ${attachment.name}`}
                   onClick={() => onRemove(attachment.id)}
-                  className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100"
+                  className="absolute right-1 top-1 inline-flex h-[18px] w-[18px] items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -187,22 +191,25 @@ function AttachmentPreviewList({
       ) : null}
 
       {textAttachments.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div
+          data-testid="attachment-preview-texts"
+          className="flex flex-wrap gap-1.5"
+        >
           {textAttachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="group inline-flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border/70 bg-bg/90 px-3 py-1.5 text-sm text-muted"
+              className="group inline-flex min-w-0 max-w-[min(100%,14rem)] items-center gap-1.5 rounded-full border border-border/60 bg-bg/88 px-2.5 py-1 text-xs text-muted"
             >
-              <FileText className="h-4 w-4 shrink-0" />
+              <FileText className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate text-fg/82">{attachment.name}</span>
               {removable && onRemove ? (
                 <button
                   type="button"
                   aria-label={`移除附件 ${attachment.name}`}
                   onClick={() => onRemove(attachment.id)}
-                  className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition hover:text-fg group-hover:opacity-100 focus-visible:opacity-100"
+                  className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition hover:text-fg group-hover:opacity-100 focus-visible:opacity-100"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3 w-3" />
                 </button>
               ) : null}
             </div>
@@ -1084,18 +1091,26 @@ export function ChatPanel() {
             />
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
-            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div
+              data-testid="composer-actions-left"
+              className="flex shrink-0 items-center"
+            >
               <button
                 type="button"
                 aria-label="添加附件"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isStreaming || isLoadingProviders}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-fg/[0.05] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Plus className="h-4 w-4" />
+                <Paperclip className="h-[18px] w-[18px]" />
               </button>
+            </div>
 
+            <div
+              data-testid="composer-actions-right"
+              className="ml-auto flex min-w-0 items-center justify-end gap-2"
+            >
               <ProviderSelect
                 providers={providers}
                 modelsByProvider={modelsByProvider}
