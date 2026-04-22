@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Fix AI Chat Attachment Composer Polish](exec-plans/active/2026-04-23-fix-ai-chat-attachment-composer-polish.md) — started 2026-04-23
+
 ## Completed Plans
 
 - [AI Chat Attachments Multimodal](exec-plans/completed/2026-04-22-ai-chat-attachments-multimodal.md) — completed 2026-04-22
