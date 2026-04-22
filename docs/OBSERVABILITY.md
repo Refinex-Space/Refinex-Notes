@@ -8,7 +8,7 @@
 |------|---------|----------|
 | Install dependencies | `npm install` | Exit 0 |
 | Build frontend bundle | `npm run build` | Exit 0, assets emitted to `dist/` |
-| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 54 Rust tests + compile validation |
+| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 64 Rust tests + compile validation |
 | Run frontend tests | `npm test` | Exit 0, currently 149 Vitest assertions pass |
 | Lint / format check | Not configured in the repository | N/A |
 | Start web dev server | `npm run dev` | Vite serves on `http://localhost:1420` |
@@ -57,4 +57,4 @@ npm test
 npm run build
 ```
 
-The native test command now validates compilation and runs AI provider/streaming, auth, workspace/file, Git engine, sync-state-machine, and search tests under `src-tauri/src/**/*.rs`. Frontend tests use Vitest and now cover editor/store behavior plus Git UI/store and search helper surfaces under `src/**/__tests__/`. Build output remains the primary repository-level verification path.
+The native test command now validates compilation and runs AI provider/streaming/model-catalog, auth, workspace/file, Git engine, sync-state-machine, and search tests under `src-tauri/src/**/*.rs`. Frontend tests use Vitest and now cover editor/store behavior plus Git UI/store and search helper surfaces under `src/**/__tests__/`. Build output remains the primary repository-level verification path.

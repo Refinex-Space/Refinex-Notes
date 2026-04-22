@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 use rusqlite::Connection;
 use tauri::{AppHandle, Manager, Runtime};
 
-use crate::ai::{AIProviderConfig, AI_PROVIDERS_SETTINGS_KEY};
+use crate::ai::{
+    normalize_model_catalog, AIModelCatalogEntry, AIProviderConfig, AI_MODEL_CATALOG_SETTINGS_KEY,
+    AI_PROVIDERS_SETTINGS_KEY,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecentWorkspaceRecord {
@@ -41,8 +44,8 @@ CREATE TABLE IF NOT EXISTS file_content_cache (
 
 pub fn init_database<R: Runtime>(app: &AppHandle<R>) -> Result<Connection, String> {
     let db_path = resolve_database_path(app)?;
-    let connection = Connection::open(&db_path)
-        .map_err(|error| format!("打开 SQLite 数据库失败: {error}"))?;
+    let connection =
+        Connection::open(&db_path).map_err(|error| format!("打开 SQLite 数据库失败: {error}"))?;
 
     initialize_schema(&connection)?;
 
@@ -65,7 +68,9 @@ pub fn remember_workspace(connection: &Connection, workspace_path: &Path) -> Res
     Ok(())
 }
 
-pub fn list_recent_workspaces(connection: &Connection) -> Result<Vec<RecentWorkspaceRecord>, String> {
+pub fn list_recent_workspaces(
+    connection: &Connection,
+) -> Result<Vec<RecentWorkspaceRecord>, String> {
     let mut statement = connection
         .prepare(
             r#"
@@ -89,7 +94,10 @@ pub fn list_recent_workspaces(connection: &Connection) -> Result<Vec<RecentWorks
         .map_err(|error| format!("收集最近工作区失败: {error}"))
 }
 
-pub fn remove_recent_workspace(connection: &Connection, workspace_path: &str) -> Result<(), String> {
+pub fn remove_recent_workspace(
+    connection: &Connection,
+    workspace_path: &str,
+) -> Result<(), String> {
     connection
         .execute(
             "DELETE FROM recent_workspaces WHERE path = ?1",
@@ -135,8 +143,7 @@ pub fn load_ai_provider_configs(connection: &Connection) -> Result<Vec<AIProvide
         None => return Ok(Vec::new()),
     };
 
-    serde_json::from_str(&raw_value)
-        .map_err(|error| format!("解析 AI Provider 配置失败: {error}"))
+    serde_json::from_str(&raw_value).map_err(|error| format!("解析 AI Provider 配置失败: {error}"))
 }
 
 pub fn save_ai_provider_configs(
@@ -146,6 +153,29 @@ pub fn save_ai_provider_configs(
     let raw_value = serde_json::to_string(providers)
         .map_err(|error| format!("序列化 AI Provider 配置失败: {error}"))?;
     set_setting(connection, AI_PROVIDERS_SETTINGS_KEY, &raw_value)
+}
+
+pub fn load_ai_model_catalog_entries(
+    connection: &Connection,
+) -> Result<Vec<AIModelCatalogEntry>, String> {
+    let raw_value = match get_setting(connection, AI_MODEL_CATALOG_SETTINGS_KEY)? {
+        Some(raw_value) => raw_value,
+        None => return Ok(Vec::new()),
+    };
+
+    let entries = serde_json::from_str(&raw_value)
+        .map_err(|error| format!("解析 AI 模型目录失败: {error}"))?;
+
+    Ok(normalize_model_catalog(entries))
+}
+
+pub fn save_ai_model_catalog_entries(
+    connection: &Connection,
+    entries: &[AIModelCatalogEntry],
+) -> Result<(), String> {
+    let raw_value = serde_json::to_string(entries)
+        .map_err(|error| format!("序列化 AI 模型目录失败: {error}"))?;
+    set_setting(connection, AI_MODEL_CATALOG_SETTINGS_KEY, &raw_value)
 }
 
 pub fn get_cached_file_content(
@@ -220,8 +250,7 @@ pub fn resolve_database_path<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, 
         .map_err(|error| format!("解析用户主目录失败: {error}"))?;
     let app_dir = home_dir.join(".refinex-notes");
 
-    fs::create_dir_all(&app_dir)
-        .map_err(|error| format!("创建应用数据目录失败: {error}"))?;
+    fs::create_dir_all(&app_dir).map_err(|error| format!("创建应用数据目录失败: {error}"))?;
 
     Ok(app_dir.join("meta.db"))
 }
@@ -236,11 +265,12 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
 mod tests {
     use rusqlite::Connection;
 
-    use crate::ai::{AIProviderConfig, AIProviderKind};
+    use crate::ai::{AIModelCatalogEntry, AIProviderConfig, AIProviderKind};
 
     use super::{
-        get_setting, initialize_schema, list_recent_workspaces, load_ai_provider_configs,
-        remember_workspace, remove_recent_workspace, save_ai_provider_configs, set_setting,
+        get_setting, initialize_schema, list_recent_workspaces, load_ai_model_catalog_entries,
+        load_ai_provider_configs, remember_workspace, remove_recent_workspace,
+        save_ai_model_catalog_entries, save_ai_provider_configs, set_setting,
     };
 
     #[test]
@@ -259,7 +289,12 @@ mod tests {
 
         assert_eq!(
             tables,
-            vec!["file_content_cache", "file_meta", "recent_workspaces", "settings"]
+            vec![
+                "file_content_cache",
+                "file_meta",
+                "recent_workspaces",
+                "settings"
+            ]
         );
     }
 
@@ -347,5 +382,58 @@ mod tests {
 
         let stored = load_ai_provider_configs(&connection).unwrap();
         assert_eq!(stored, providers);
+    }
+
+    #[test]
+    fn load_ai_model_catalog_entries_returns_empty_when_not_configured() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        let entries = load_ai_model_catalog_entries(&connection).unwrap();
+        assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn save_and_load_ai_model_catalog_entries_roundtrip() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        let entries = vec![
+            AIModelCatalogEntry {
+                provider_id: "deepseek".to_string(),
+                model_id: "deepseek-chat".to_string(),
+                label: "DeepSeek Chat".to_string(),
+                is_default: true,
+            },
+            AIModelCatalogEntry {
+                provider_id: "deepseek".to_string(),
+                model_id: "deepseek-reasoner".to_string(),
+                label: "DeepSeek Reasoner".to_string(),
+                is_default: false,
+            },
+        ];
+
+        save_ai_model_catalog_entries(&connection, &entries).unwrap();
+
+        let stored = load_ai_model_catalog_entries(&connection).unwrap();
+        assert_eq!(stored, entries);
+    }
+
+    #[test]
+    fn load_ai_model_catalog_entries_normalizes_defaults() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        set_setting(
+            &connection,
+            "ai_model_catalog",
+            r#"[{"providerId":"openai","modelId":"gpt-4o","label":"GPT-4o","isDefault":false},{"providerId":"openai","modelId":"gpt-4o-mini","label":"GPT-4o Mini","isDefault":false}]"#,
+        )
+        .unwrap();
+
+        let stored = load_ai_model_catalog_entries(&connection).unwrap();
+        assert_eq!(stored.len(), 2);
+        assert!(stored[0].is_default);
+        assert!(!stored[1].is_default);
     }
 }
