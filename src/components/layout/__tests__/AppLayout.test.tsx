@@ -50,8 +50,26 @@ describe("AppLayout", () => {
 
     expect(markup).toContain("h-full min-h-0 min-w-0 overflow-hidden");
     expect(markup).toContain(
-      "relative grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] bg-bg",
+      "relative min-h-0 min-w-0 bg-bg grid grid-rows-[auto_minmax(0,1fr)]",
     );
+  });
+
+  it("switches to a full-page center surface when fullPageContent is provided", () => {
+    const markup = renderToStaticMarkup(
+      <AppLayout
+        sidebar={<div>sidebar</div>}
+        tabBar={<div>tabs</div>}
+        editor={<div>editor</div>}
+        fullPageContent={<div>settings-surface</div>}
+        rightPanel={<div>right</div>}
+        statusBar={null}
+      />,
+    );
+
+    expect(markup).toContain("settings-surface");
+    expect(markup).toContain("grid-template-columns:0px minmax(0, 1fr) 0px");
+    expect(markup).not.toContain(">tabs<");
+    expect(markup).not.toContain("aria-label=\"设置\"");
   });
 
   it("detects mac platforms for titlebar inset handling", () => {

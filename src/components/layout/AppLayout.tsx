@@ -38,6 +38,7 @@ export interface AppLayoutProps {
   sidebar: ReactNode;
   tabBar: ReactNode;
   editor: ReactNode;
+  fullPageContent?: ReactNode;
   rightPanel: ReactNode;
   /** Content rendered in the right panel when AI panel mode is active. */
   aiPanel?: ReactNode;
@@ -83,6 +84,7 @@ export function AppLayout({
   sidebar,
   tabBar,
   editor,
+  fullPageContent,
   rightPanel,
   aiPanel,
   statusBar,
@@ -130,6 +132,8 @@ export function AppLayout({
     setActiveRightPanel((current) => (current === mode ? null : mode));
   };
 
+  const isFullPageSurface = fullPageContent !== null && fullPageContent !== undefined;
+
   useEffect(() => {
     if (!activeDrag) {
       return;
@@ -174,12 +178,22 @@ export function AppLayout({
   }, [activeDrag]);
 
   const gridTemplateColumns = useMemo(() => {
+    if (isFullPageSurface) {
+      return "0px minmax(0, 1fr) 0px";
+    }
+
     const sidebarTrack = sidebarCollapsed ? "0px" : `${sidebarWidth}px`;
     const rightTrack =
       activeRightPanel === null ? "0px" : `${rightPanelWidth}px`;
 
     return `${sidebarTrack} minmax(0, 1fr) ${rightTrack}`;
-  }, [activeRightPanel, rightPanelWidth, sidebarCollapsed, sidebarWidth]);
+  }, [
+    activeRightPanel,
+    isFullPageSurface,
+    rightPanelWidth,
+    sidebarCollapsed,
+    sidebarWidth,
+  ]);
 
   const needsMacInset = useMemo(() => {
     if (typeof navigator === "undefined") {
@@ -190,7 +204,7 @@ export function AppLayout({
   }, []);
 
   /** Six right-side header buttons, shared across mac and non-mac layouts. */
-  const rightActionButtons = (
+  const rightActionButtons = isFullPageSurface ? null : (
     <div className="flex items-center gap-0.5">
       <button
         type="button"
@@ -262,18 +276,20 @@ export function AppLayout({
              Right buttons are absolutely positioned at the trailing edge. */
           <div data-tauri-drag-region className="relative h-10">
             {/* Left: sidebar toggle */}
-            <button
-              type="button"
-              aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-              title={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-              className={[
-                tbtnClass(!sidebarCollapsed),
-                "absolute left-[6.9rem] top-1.5",
-              ].join(" ")}
-              onClick={() => setSidebarCollapsed((c) => !c)}
-            >
-              <PanelLeft className="h-[15px] w-[15px]" />
-            </button>
+            {isFullPageSurface ? null : (
+              <button
+                type="button"
+                aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+                title={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+                className={[
+                  tbtnClass(!sidebarCollapsed),
+                  "absolute left-[6.9rem] top-1.5",
+                ].join(" ")}
+                onClick={() => setSidebarCollapsed((c) => !c)}
+              >
+                <PanelLeft className="h-[15px] w-[15px]" />
+              </button>
+            )}
 
             {/* Center: file title — pointer-events-none so drag still works */}
             <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full items-center justify-center gap-1.5">
@@ -298,18 +314,20 @@ export function AppLayout({
           /* Non-macOS: no traffic-lights inset — sidebar btn is at the far left. */
           <div data-tauri-drag-region className="relative h-10">
             {/* Left: sidebar toggle */}
-            <button
-              type="button"
-              aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-              title={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-              className={[
-                tbtnClass(!sidebarCollapsed),
-                "absolute left-3 top-1.5",
-              ].join(" ")}
-              onClick={() => setSidebarCollapsed((c) => !c)}
-            >
-              <PanelLeft className="h-[15px] w-[15px]" />
-            </button>
+            {isFullPageSurface ? null : (
+              <button
+                type="button"
+                aria-label={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+                title={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
+                className={[
+                  tbtnClass(!sidebarCollapsed),
+                  "absolute left-3 top-1.5",
+                ].join(" ")}
+                onClick={() => setSidebarCollapsed((c) => !c)}
+              >
+                <PanelLeft className="h-[15px] w-[15px]" />
+              </button>
+            )}
 
             {/* Center: file title */}
             <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full items-center justify-center gap-1.5">
@@ -333,7 +351,7 @@ export function AppLayout({
         )}
 
         {/* Inline search bar — appears below the title row when searchOpen */}
-        {searchOpen ? (findReplaceBar ?? null) : null}
+        {isFullPageSurface ? null : searchOpen ? (findReplaceBar ?? null) : null}
       </header>
 
       <div
@@ -367,8 +385,15 @@ export function AppLayout({
           </Collapsible>
         </div>
 
-        <section className="relative grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] bg-bg">
-          {!sidebarCollapsed ? (
+        <section
+          className={[
+            "relative min-h-0 min-w-0 bg-bg",
+            isFullPageSurface
+              ? "flex flex-col"
+              : "grid grid-rows-[auto_minmax(0,1fr)]",
+          ].join(" ")}
+        >
+          {!isFullPageSurface && !sidebarCollapsed ? (
             <div
               className="absolute inset-y-0 left-0 z-10 w-[10px] -translate-x-1/2 cursor-col-resize"
               onPointerDown={() => setActiveDrag("sidebar")}
@@ -377,7 +402,7 @@ export function AppLayout({
             </div>
           ) : null}
 
-          {activeRightPanel !== null ? (
+          {!isFullPageSurface && activeRightPanel !== null ? (
             <div
               className="absolute inset-y-0 right-0 z-10 w-[10px] translate-x-1/2 cursor-col-resize"
               onPointerDown={() => setActiveDrag("right-panel")}
@@ -386,10 +411,20 @@ export function AppLayout({
             </div>
           ) : null}
 
-          <div className="min-w-0 overflow-hidden border-b border-border/70">
-            {tabBar}
-          </div>
-          <div className="h-full min-h-0 min-w-0 overflow-hidden">{editor}</div>
+          {isFullPageSurface ? (
+            <div className="h-full min-h-0 min-w-0 overflow-hidden">
+              {fullPageContent}
+            </div>
+          ) : (
+            <>
+              <div className="min-w-0 overflow-hidden border-b border-border/70">
+                {tabBar}
+              </div>
+              <div className="h-full min-h-0 min-w-0 overflow-hidden">
+                {editor}
+              </div>
+            </>
+          )}
         </section>
 
         <div className="h-full min-h-0 min-w-0 overflow-hidden">

@@ -264,6 +264,7 @@ function SidebarContent({
 }
 
 type RightPanelTab = "history" | "setup";
+export type WorkspaceSurface = "workspace" | "settings";
 
 function RightPanelContent({
   workspacePath,
@@ -421,7 +422,8 @@ function WorkspaceShell({
   onThemeToggle: () => void;
   reopenLastWorkspaceOnStartup: boolean;
 }) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [workspaceSurface, setWorkspaceSurface] =
+    useState<WorkspaceSurface>("workspace");
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("history");
   const [outlineVisible, setOutlineVisible] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -855,6 +857,17 @@ function WorkspaceShell({
     return searchResultsToCommandPaletteItems(results);
   };
 
+  const openSettingsSurface = () => {
+    setSearchOpen(false);
+    setWorkspaceSurface("settings");
+  };
+
+  const closeSettingsSurface = () => {
+    setWorkspaceSurface("workspace");
+  };
+
+  const isSettingsSurface = workspaceSurface === "settings";
+
   return (
     <>
       <AppLayout
@@ -871,6 +884,11 @@ function WorkspaceShell({
           />
         }
         tabBar={<TabBar />}
+        fullPageContent={
+          isSettingsSurface ? (
+            <SettingsDialog onClose={closeSettingsSurface} />
+          ) : null
+        }
         editor={
           editorDocument ? (
             <div className="relative h-full min-h-0 min-w-0 bg-bg">
@@ -1005,37 +1023,42 @@ function WorkspaceShell({
           />
         }
         statusBar={
-          <StatusBar
-            syncLabel={syncLabel}
-            syncTone={syncTone}
-            cursor={cursorPosition}
-            wordCount={wordCount}
-            language={editorDocument?.language ?? "Markdown"}
-            encoding="UTF-8"
-            gitStatusSlot={
-              <div className="flex items-center gap-2">
-                <AccountStatus />
-                <SyncStatus
-                  onOpenHistory={() => setRightPanelTab("history")}
-                  onOpenSettings={() => setRightPanelTab("setup")}
-                />
-              </div>
-            }
-          />
+          isSettingsSurface ? null : (
+            <StatusBar
+              syncLabel={syncLabel}
+              syncTone={syncTone}
+              cursor={cursorPosition}
+              wordCount={wordCount}
+              language={editorDocument?.language ?? "Markdown"}
+              encoding="UTF-8"
+              gitStatusSlot={
+                <div className="flex items-center gap-2">
+                  <AccountStatus />
+                  <SyncStatus
+                    onOpenHistory={() => setRightPanelTab("history")}
+                    onOpenSettings={() => setRightPanelTab("setup")}
+                  />
+                </div>
+              }
+            />
+          )
         }
         aiPanel={<ChatPanel />}
         sidebarTitle=""
         rightPanelTitle=""
-        activeTitle={currentDocument?.name ?? undefined}
+        activeTitle={getWorkspaceSurfaceTitle(
+          workspaceSurface,
+          currentDocument?.name,
+        )}
         theme={theme}
         onThemeToggle={onThemeToggle}
         outlineVisible={outlineVisible}
         onOutlineToggle={() => setOutlineVisible((v) => !v)}
-        onSettingsClick={() => setSettingsOpen(true)}
-        searchOpen={searchOpen}
+        onSettingsClick={openSettingsSurface}
+        searchOpen={isSettingsSurface ? false : searchOpen}
         onSearchToggle={() => setSearchOpen((s) => !s)}
         findReplaceBar={
-          searchOpen ? (
+          !isSettingsSurface && searchOpen ? (
             <FindReplaceBar
               editorViewRef={editorViewRef}
               onClose={() => setSearchOpen(false)}
@@ -1052,11 +1075,9 @@ function WorkspaceShell({
         onOpenFile={(path) => {
           void openFile(path);
         }}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={openSettingsSurface}
         onToggleTheme={onThemeToggle}
       />
-
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 }
@@ -1066,6 +1087,13 @@ export function getStartupSurface(
   hasResolvedSettings: boolean,
 ) {
   return hasResolvedAuth && hasResolvedSettings ? "workspace" : "splash";
+}
+
+export function getWorkspaceSurfaceTitle(
+  surface: WorkspaceSurface,
+  activeDocumentName?: string,
+) {
+  return surface === "settings" ? "应用设置" : activeDocumentName;
 }
 
 function App() {
