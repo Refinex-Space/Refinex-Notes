@@ -42,6 +42,12 @@ export type {
   AIStoreState,
 } from "./ai";
 export type {
+  SkillDefinition,
+  SkillFrontmatter,
+  SkillOutputMode,
+  SkillSelectionMode,
+} from "./skill";
+export type {
   AIProviderConfig,
   SettingsStore,
   SettingsStoreActions,

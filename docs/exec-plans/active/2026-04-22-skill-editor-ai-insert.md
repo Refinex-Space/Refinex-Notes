@@ -70,9 +70,15 @@ Author: agent
 **Files:** `skills/*.md`, `src/types/skill.ts`, `src/services/skillService.ts`, `src/components/ai/SkillPicker.tsx`
 **Verification:** `npm test -- --run`
 
-Status: ⬜ Not started
+Status: ✅ Completed
 Evidence:
+- 根目录 `skills/` 已新增 8 个内置 Skill Markdown 文件，frontmatter 中声明 `outputMode` 与 `selectionMode`
+- `src/types/skill.ts` 与 `src/services/skillService.ts` 已提供 Skill 类型、frontmatter 解析、slash command 派生与选区过滤
+- `src/components/ai/SkillPicker.tsx` 已提供可复用的 Skill Popover 入口按钮
+- `npm test -- --run src/services/__tests__/skillService.test.ts src/components/ai/__tests__/SkillPicker.test.tsx` 通过
+- `npm run build` 通过
 Deviations:
+- 为避免入口层再硬编码“是否需要选区”，在 frontmatter 中增补了 `selectionMode`
 
 ### Step 2: 实现 editor AI stream insert 与写入高亮
 
@@ -105,7 +111,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  | 待建立 Skill 文件真源与解析服务 |
+| 1 | ✅ | `skills/*.md`、`src/services/skillService.ts`、`src/components/ai/SkillPicker.tsx` | Skill 真源与解析服务已落地 |
 | 2 | ⬜ |  | 待建立 editor AI insert 与写入高亮 |
 | 3 | ⬜ |  | 待接入工具栏、slash 和右键菜单入口 |
 | 4 | ⬜ |  | 待补测试、同步控制面并完成归档验证 |
