@@ -13,6 +13,7 @@ Author: agent
 **In scope:**
 - `src/types/ai.ts`
 - `src/services/aiService.ts`
+- `src/services/aiAttachmentService.ts`
 - `src/stores/aiStore.ts`
 - `src/stores/__tests__/aiStore.test.ts`
 - `src/components/ai/ChatPanel.tsx`
@@ -63,7 +64,7 @@ Deviations:
 
 ### Step 2: 接入输入区附件选择、预览与发送流程
 
-**Files:** `src/components/ai/ChatPanel.tsx`, `src/components/ai/__tests__/ChatPanel.test.tsx`
+**Files:** `src/services/aiAttachmentService.ts`, `src/components/ai/ChatPanel.tsx`, `src/components/ai/__tests__/ChatPanel.test.tsx`
 **Verification:** `npm test -- --run src/components/ai/__tests__/ChatPanel.test.tsx`
 
 Status: ⬜ Not started
@@ -102,6 +103,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | MVP 附件范围为图片 + 文本类文件 | 用户要求“多模态 + 上传附件”，但完整 Notion 级文件系统过大 | 一步支持 PDF/Office/音频；只支持图片 | 这是最小可交付且真正包含多模态的版本 |
+| 附件读取与归一化下沉到前端 service | `File` 读取需要浏览器 API，但不应塞进 React 组件 | 直接在 `ChatPanel` 中读文件；引入新的 native 文件命令 | 复用浏览器 File API 即可完成 MVP，同时保持 UI 组件薄 |
 
 ## Completion Summary
 
