@@ -34,21 +34,21 @@ function providerKindLabel(kind: string) {
   }
 }
 
-function ProviderCard({
-  providerId,
-}: {
-  providerId: string;
-}) {
+function ProviderCard({ providerId }: { providerId: string }) {
   const [showSecret, setShowSecret] = useState(false);
   const provider = useSettingsStore((state) =>
     state.providerDrafts.find((entry) => entry.id === providerId),
   );
-  const models = useSettingsStore((state) => state.modelsByProvider[providerId] ?? []);
+  const models = useSettingsStore(
+    (state) => state.modelsByProvider[providerId] ?? [],
+  );
   const apiKeyDraft = useSettingsStore(
     (state) => state.apiKeyDrafts[providerId] ?? { value: "", isDirty: false },
   );
   const settings = useSettingsStore((state) => state.settings);
-  const updateProviderDraft = useSettingsStore((state) => state.updateProviderDraft);
+  const updateProviderDraft = useSettingsStore(
+    (state) => state.updateProviderDraft,
+  );
   const setProviderApiKeyDraft = useSettingsStore(
     (state) => state.setProviderApiKeyDraft,
   );
@@ -68,7 +68,9 @@ function ProviderCard({
   const testProviderConnection = useSettingsStore(
     (state) => state.testProviderConnection,
   );
-  const testingProviderId = useSettingsStore((state) => state.testingProviderId);
+  const testingProviderId = useSettingsStore(
+    (state) => state.testingProviderId,
+  );
   const lastTestResult = useSettingsStore((state) => state.lastTestResult);
 
   if (!provider) {
@@ -84,7 +86,7 @@ function ProviderCard({
       <header className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-border/70 bg-fg/[0.04] px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
+            <span className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
               {providerKindLabel(provider.providerKind)}
             </span>
             {isDefaultProvider ? (
@@ -131,7 +133,7 @@ function ProviderCard({
         </div>
 
         <div className="flex items-center gap-3 self-start">
-          <div className="flex items-center gap-2 rounded-full border border-border/70 bg-fg/[0.04] px-3 py-2 text-xs font-medium text-muted">
+          <div className="flex items-center gap-2 rounded-full border border-border/70 px-3 py-2 text-xs font-medium text-muted">
             <span>{provider.enabled ? "已启用" : "已禁用"}</span>
             <Switch
               checked={provider.enabled}
@@ -178,7 +180,11 @@ function ProviderCard({
               className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted transition hover:bg-fg/[0.06] hover:text-fg"
               aria-label={showSecret ? "隐藏 API Key" : "显示 API Key"}
             >
-              {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showSecret ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </button>
           </div>
         </label>
@@ -189,7 +195,7 @@ function ProviderCard({
             void testProviderConnection(provider.id);
           }}
           disabled={testingProviderId === provider.id}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border/70 bg-fg/[0.04] px-4 text-sm font-medium text-fg transition hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border/70 px-4 text-sm font-medium text-fg transition hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCcw
             className={`h-4 w-4 ${testingProviderId === provider.id ? "animate-spin" : ""}`}
@@ -198,7 +204,7 @@ function ProviderCard({
         </button>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-border/70 bg-fg/[0.03] p-4">
+      <div className="space-y-3 rounded-2xl border border-border/70 p-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-fg">可用模型目录</h3>
@@ -249,7 +255,9 @@ function ProviderCard({
                 />
                 <button
                   type="button"
-                  onClick={() => setDefaultProviderAndModel(provider.id, model.modelId)}
+                  onClick={() =>
+                    setDefaultProviderAndModel(provider.id, model.modelId)
+                  }
                   className={`inline-flex h-10 items-center justify-center rounded-xl px-3 text-xs font-medium transition ${
                     isDefaultModel
                       ? "bg-accent/12 text-accent"
@@ -260,7 +268,9 @@ function ProviderCard({
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeProviderModel(provider.id, model.modelId)}
+                  onClick={() =>
+                    removeProviderModel(provider.id, model.modelId)
+                  }
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-bg text-muted transition hover:border-rose-400/25 hover:bg-rose-400/10 hover:text-rose-500"
                   aria-label="删除模型"
                 >
@@ -279,7 +289,9 @@ export function AIProviderConfig() {
   const providerDrafts = useSettingsStore((state) => state.providerDrafts);
   const settings = useSettingsStore((state) => state.settings);
   const modelsByProvider = useSettingsStore((state) => state.modelsByProvider);
-  const addCustomProvider = useSettingsStore((state) => state.addCustomProvider);
+  const addCustomProvider = useSettingsStore(
+    (state) => state.addCustomProvider,
+  );
   const setDefaultProviderAndModel = useSettingsStore(
     (state) => state.setDefaultProviderAndModel,
   );
@@ -289,7 +301,7 @@ export function AIProviderConfig() {
     [providerDrafts],
   );
   const availableModels = settings.ai.defaultProviderId
-    ? modelsByProvider[settings.ai.defaultProviderId] ?? []
+    ? (modelsByProvider[settings.ai.defaultProviderId] ?? [])
     : [];
 
   return (
@@ -304,7 +316,7 @@ export function AIProviderConfig() {
         <button
           type="button"
           onClick={() => addCustomProvider()}
-          className="inline-flex items-center gap-2 rounded-2xl border border-border/70 bg-fg/[0.04] px-4 py-2 text-sm font-medium text-fg transition hover:bg-fg/[0.08]"
+          className="inline-flex items-center gap-2 rounded-2xl border border-border/70 px-4 py-2 text-sm font-medium text-fg transition hover:bg-fg/[0.08]"
         >
           <Plus className="h-4 w-4" />
           添加自定义 Provider
@@ -322,9 +334,11 @@ export function AIProviderConfig() {
               setDefaultProviderAndModel(
                 providerId || null,
                 providerId
-                  ? modelsByProvider[providerId]?.find((model) => model.isDefault)?.modelId ??
+                  ? (modelsByProvider[providerId]?.find(
+                      (model) => model.isDefault,
+                    )?.modelId ??
                       modelsByProvider[providerId]?.[0]?.modelId ??
-                      null
+                      null)
                   : null,
               )
             }
@@ -349,7 +363,10 @@ export function AIProviderConfig() {
           <Select
             value={settings.ai.defaultModelId ?? undefined}
             onValueChange={(modelId) =>
-              setDefaultProviderAndModel(settings.ai.defaultProviderId, modelId || null)
+              setDefaultProviderAndModel(
+                settings.ai.defaultProviderId,
+                modelId || null,
+              )
             }
             disabled={!settings.ai.defaultProviderId}
           >

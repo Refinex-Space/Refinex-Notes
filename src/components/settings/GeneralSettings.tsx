@@ -92,7 +92,7 @@ export function GeneralSettings() {
         title="启动时打开上次工作区"
         description="关闭后，应用启动时只显示空壳层，不自动恢复最近工作区。"
       >
-        <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-fg/[0.03] px-4 py-3">
+        <div className="flex items-center justify-between rounded-2xl border border-border/70 px-4 py-3">
           <div>
             <p className="text-sm font-medium text-fg">
               {settings.reopenLastWorkspaceOnStartup ? "已开启" : "已关闭"}

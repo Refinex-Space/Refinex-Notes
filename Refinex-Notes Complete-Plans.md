@@ -1001,6 +1001,11 @@ comrak = "0.36"
 ## Phase 8: AI 多模型接入 & 对话面板
 
 > 目标：实现 Rust 后端 AI API 代理（支持全部 Provider）和前端 AI 对话面板。
+>
+> **重要边界说明（避免后续任务被带偏）**：
+> - Phase 8 的运行时架构以 **Rust 后端代理所有 AI API 调用** 为准；Vercel AI SDK 仅作为统一 Provider 抽象的设计参考，不作为当前 Tauri 桌面端 MVP 的必需运行时依赖。
+> - 前端不直接持有 API Key，不直接调用第三方 AI API，不在 React 层实现 provider SDK 客户端。
+> - Provider 列表与模型目录的真源都在原生层；前端只消费 Tauri commands 返回的数据，不维护分散的硬编码运行时真源。
 
 ### 8.1 Rust AI Provider 代理
 
@@ -1036,14 +1041,27 @@ comrak = "0.36"
 4. Tauri Commands — `src-tauri/src/commands/ai.rs`：
    - `ai_chat_stream(messages: Vec<AIMessage>, provider_id: String, model: String, channel: Channel<String>)` → 调用对应 Provider 的流式 API，通过 Channel 逐 token 发送
    - `ai_cancel_stream()` → 取消当前流（abort reqwest）
-   - `ai_list_providers()` → 从设置中读取已配置的 Provider 列表
+   - `ai_list_providers()` → 从设置中读取已配置的 Provider 列表（**不返回 API Key**）
+   - `ai_list_models(provider_id: String)` → 返回该 Provider 的模型目录（模型 id、展示名、是否默认）
+   - 预留 `ai_test_connection(provider_id: String, model: Option<String>)` 给 Phase 10 设置页“测试连接”复用，避免未来在前端直接探活第三方 API
 
-5. AI Provider 配置存储在 SQLite 的 settings 表中（JSON 序列化的 provider 列表），API Key 存储在 keyring 中。
+5. AI Provider 与模型目录存储策略：
+   - Provider 元数据存储在 SQLite 的 `settings` 表中（JSON 序列化的 provider 列表）
+   - API Key 存储在操作系统 keyring 中
+   - **模型目录（model catalog）也由原生层统一管理**：至少包含 provider_id、model_id、label、是否默认；数据源采用“两层策略”：
+     - L1：应用内置的稳定默认模型目录（离线可用、避免外部接口变化导致 UI 不可用）
+     - L2：后续可增量接入各 Provider 的模型元数据刷新接口；刷新失败时自动回退到 L1
+   - 前端 AI 面板不得自行维护与运行时脱节的散乱模型真源
+
+6. 约束补充：
+   - 当前 Phase 8 不要求把 Vercel AI SDK 直接引入桌面运行时；如果未来引入，也只能作为抽象参考或单独 sidecar/service，不得破坏“Rust 是唯一 AI 执行面”的安全边界
+   - 流式文本协议在 MVP 阶段保持 `Channel<String>` 即可；结构化 token event 可在后续阶段再演进
 
 ### 验收标准
 - 配置一个 DeepSeek API Key 后，能成功发送消息并流式接收回复
 - 配置 Anthropic API Key 后同样能工作
 - 取消流式请求能正确中断
+- `ai_list_providers()` 与 `ai_list_models()` 能为前端稳定提供 Provider/Model 选择数据
 - API Key 不出现在日志或前端代码中
 ```
 
@@ -1059,38 +1077,56 @@ comrak = "0.36"
 1. 创建 `src/components/ai/ChatPanel.tsx`——右侧面板的 AI 对话界面：
    - 顶部：Provider/Model 选择器（Radix Select），显示当前选择的模型名
    - 中间：消息列表（用户消息右对齐，AI 消息左对齐）
-   - AI 消息使用 Markdown 渲染（可用 react-markdown 或简单的自定义渲染）
+   - AI 消息使用 Markdown 渲染
+   - **优先复用现有 `markdown-it` 渲染能力，不把 `react-markdown` 作为默认前提**
    - 流式输出时实时追加文字，显示闪烁光标动画
    - 底部：输入框 + 发送按钮 + 停止生成按钮（流式时显示）
 
 2. 创建 `src/components/ai/ProviderSelect.tsx`：
    - Radix Select 下拉选择 AI Provider 和 Model
    - 显示格式："DeepSeek / deepseek-chat"
-   - 仅显示已配置（有 API Key）的 Provider
+   - **Provider 列表来自 `ai_list_providers()`**
+   - **Model 列表来自 `ai_list_models(provider_id)`**
+   - 仅显示已配置且已启用的 Provider（由原生层返回过滤后的结果）
 
 3. 创建 `src/components/ai/ContextBuilder.ts`——上下文感知系统：
   typescript
    interface AIContext {
      currentDocument: { content: string; filePath: string; cursorPosition: number; selectedText?: string; };
-     workspace: { directoryTree: string; openFiles: string[]; };
+     workspace: { directoryTree: string; openFiles: string[]; recentFiles?: string[]; };
    }
    
    function buildSystemPrompt(context: AIContext): string {
      // 构建包含当前文档信息的 system prompt
-     // 使用滑动窗口：以光标位置为中心，前后各 2000 字符
+     // 使用滑动窗口：以光标位置为中心，前后各 2000 字符（MVP）
      // 加上文档的标题层级摘要
    }
+
+   - 补充约束：
+     - 标题层级摘要应尽量复用项目现有的 Markdown/Outline 工具函数
+     - 若编辑器当前未暴露选区，则 `selectedText` 允许为空，不阻塞 Phase 8
+     - MVP 先按字符窗口实现；若后续要升级到 token 预算管理，应在 Rust 层统一完成，而不是由前端自行估算 provider token
 
 4. 创建 `src/components/ai/StreamRenderer.tsx`：
    - 处理 AI 流式输出的 Markdown 渲染
    - 处理未闭合的代码块（在流式过程中临时补全 ``` 以避免渲染错误）
+   - 渲染器必须能在“流尚未结束”的情况下保持 UI 稳定，不因为半截 Markdown 导致整块内容报错或闪烁
 
 5. 更新 `src/stores/aiStore.ts`，实现完整 actions：
-   - `sendMessage(content)` → 构建上下文 + 调用 Tauri ai_chat_stream + 通过 Channel 接收 token + 更新消息列表
+   - `sendMessage(content)` → 构建上下文 + 调用 Tauri `ai_chat_stream` + 通过 Channel 接收 token + 更新消息列表
    - `cancelStream()` → 调用 ai_cancel_stream
    - `clearHistory()` → 清空消息列表
+   - `loadProviders()` / `loadModels(providerId)` → 从原生层加载 Provider / Model 目录，不在 store 内硬编码运行时真源
 
-6. 创建 `src/services/aiService.ts` 封装 Tauri AI invoke。
+6. 创建 `src/services/aiService.ts` 封装 Tauri AI invoke：
+   - `listProviders()`
+   - `listModels(providerId)`
+   - `stream(...)`
+   - `cancelStream()`
+
+7. 技术边界补充：
+   - 前端 AI 面板不得因“图快”退化为直接调用 AI SDK / Provider HTTP API
+   - 如果未来引入 AI SDK UI/Hook，也应建立在当前 Rust 原生 AI command 之上，而不是绕开原生层
 
 ### 验收标准
 - 可以在 AI 面板中选择 Provider 和 Model
@@ -1098,6 +1134,7 @@ comrak = "0.36"
 - AI 回复正确渲染 Markdown 格式
 - 系统 prompt 包含当前文档上下文信息
 - 可以中途停止生成
+- 前端 Provider/Model 选择数据全部来自原生层返回结果，而不是散落的前端硬编码运行时真源
 ```
 
 ---
@@ -1212,9 +1249,9 @@ comrak = "0.36"
      - 名称（不可编辑，预置的；自定义的可编辑）
      - API Base URL（预置的有默认值；自定义的需手动填写）
      - API Key 输入框（密码模式，有显示/隐藏切换按钮）
-     - 可用模型列表（预置的有推荐模型；也可手动输入模型名）
+     - 可用模型列表（来源于原生层模型目录；预置 Provider 至少带稳定默认模型目录；也可手动添加或覆盖模型名）
      - 启用/禁用开关
-     - "测试连接" 按钮 → 发一条 "hi" 验证 API Key 有效性
+     - "测试连接" 按钮 → 通过 Rust `ai_test_connection` 发一条最小请求验证 API Key 与当前默认模型有效性
    - "添加自定义 Provider" 按钮（用于 OpenAI 兼容 API 的任意服务）
    - 设置默认 Provider 和 Model
 
@@ -1229,6 +1266,7 @@ comrak = "0.36"
 
 7. 所有设置通过 Tauri Command 存储到 SQLite（通过 settingsStore → Tauri invoke → Rust write_setting）。
 8. API Key 单独存储在操作系统 keyring 中（每个 Provider 一个条目），不存 SQLite。
+9. 模型目录与默认模型也以原生层为真源；前端设置页只编辑和展示，不直接成为运行时最终真源。
 
 ### 验收标准
 - 设置面板可正常打开，所有分类可切换
@@ -1236,6 +1274,7 @@ comrak = "0.36"
 - "测试连接"按钮能验证 API Key 有效性
 - 主题切换立即生效
 - 关闭重开应用后设置保持
+- 模型目录修改后，AI 面板的 Provider / Model 选择结果能通过原生层读取到最新配置
 ```
 
 ---
@@ -1329,7 +1368,7 @@ comrak = "0.36"
 - 状态管理：Zustand + Jotai
 - Rust 后端库：git2-rs（Git）、tantivy（搜索）、comrak（Markdown）、reqwest（HTTP）、rusqlite（数据库）、keyring（凭证存储）、notify（文件监听）
 - 认证：GitHub OAuth Device Flow
-- AI：Rust 后端代理所有 AI API 调用，支持 Anthropic + OpenAI 兼容 API（DeepSeek/Qwen/GLM/Kimi/MiniMax）
+- AI：Rust 后端代理所有 AI API 调用，支持 Anthropic + OpenAI 兼容 API（DeepSeek/Qwen/GLM/Kimi/MiniMax）；Provider 列表和模型目录均以原生层为真源，前端只消费 Tauri commands
 
 项目根目录结构：
 - `src/` — React 前端代码
@@ -1356,7 +1395,8 @@ comrak = "0.36"
 1. **为什么不用 Milkdown？** → 见 `refinex-editor-feasibility.md`，自研在 10 个维度中 8 个占优
 2. **为什么用 markdown-it 不用 Remark？** → markdown-it 是 prosemirror-markdown 官方集成，Token 流模型与 ProseMirror Schema 天然映射，减少适配代码
 3. **为什么 AI API 走 Rust 后端代理？** → API Key 安全不出 Rust 进程，可做 token 预算管理和上下文压缩
-4. **为什么用 GitHub OAuth Device Flow 不用 Authorization Code Flow？** → 桌面应用无法安全处理 redirect_uri 回调，Device Flow 是 GitHub CLI 和 VS Code 采用的标准方案
-5. **为什么 Git 用 git2-rs 不用 isomorphic-git？** → Rust 原生性能，与 Tauri 后端零 IPC 开销，GitButler 已验证
-6. **为什么不用 Electron？** → Tauri 包体积 <10MB vs Electron 100MB+，内存占用低 5-8x，Rust 后端直接调用系统级库无需 FFI
-
+4. **为什么前端不直接依赖 AI SDK 运行时来驱动桌面端 MVP？** → 当前桌面架构以 Rust 为唯一 AI 执行面更稳，避免把安全边界、流式协议和 provider 逻辑拆成两套；AI SDK 的统一 Provider 思想可作为抽象参考，但不应误导成“前端直接调模型”
+5. **为什么模型目录要由原生层统一管理？** → AI SDK / Provider 抽象主要解决“统一调用”，不自动保证“统一模型发现”；把模型目录收敛到原生层可以避免前端硬编码逐步漂移
+6. **为什么用 GitHub OAuth Device Flow 不用 Authorization Code Flow？** → 桌面应用无法安全处理 redirect_uri 回调，Device Flow 是 GitHub CLI 和 VS Code 采用的标准方案
+7. **为什么 Git 用 git2-rs 不用 isomorphic-git？** → Rust 原生性能，与 Tauri 后端零 IPC 开销，GitButler 已验证
+8. **为什么不用 Electron？** → Tauri 包体积 <10MB vs Electron 100MB+，内存占用低 5-8x，Rust 后端直接调用系统级库无需 FFI

@@ -96,7 +96,7 @@ export function EditorSettings() {
           </SelectContent>
         </Select>
         <div
-          className="rounded-2xl border border-dashed border-border/70 bg-fg/[0.03] px-4 py-3 text-sm text-fg"
+          className="rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-fg"
           style={{ fontFamily: editor.fontFamily }}
         >
           Markdown headings, inline code, lists and prose preview.

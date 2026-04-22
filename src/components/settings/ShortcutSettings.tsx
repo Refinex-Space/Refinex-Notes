@@ -27,7 +27,7 @@ export function ShortcutSettings() {
             className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 px-4 py-3 text-sm last:border-b-0"
           >
             <span className="text-fg">{entry.action}</span>
-            <kbd className="rounded-full border border-border/70 bg-fg/[0.04] px-3 py-1 font-mono text-xs text-muted">
+            <kbd className="rounded-full border border-border/70 px-3 py-1 font-mono text-xs text-muted">
               {entry.accelerator}
             </kbd>
           </div>

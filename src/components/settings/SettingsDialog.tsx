@@ -1,4 +1,11 @@
-import { Bot, GitBranch, Keyboard, MonitorCog, SlidersHorizontal, UserRound } from "lucide-react";
+import {
+  Bot,
+  GitBranch,
+  Keyboard,
+  MonitorCog,
+  SlidersHorizontal,
+  UserRound,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useSettingsStore } from "../../stores/settingsStore";
@@ -145,7 +152,9 @@ export function SettingsDialog({
                   >
                     <Icon className="mt-0.5 h-4 w-4 shrink-0" />
                     <span className="min-w-0">
-                      <span className="block text-sm font-medium">{entry.label}</span>
+                      <span className="block text-sm font-medium">
+                        {entry.label}
+                      </span>
                       <span className="mt-1 block text-xs leading-5 text-muted">
                         {entry.description}
                       </span>
