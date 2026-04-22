@@ -125,9 +125,13 @@ Deviations:
 **Files:** `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/PLANS.md`, `docs/exec-plans/active/2026-04-22-phase10-settings-system.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml`; `npm test -- --run`; `npm run build`
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- `docs/ARCHITECTURE.md` 已同步设置系统、前端 settings seam、原生 settings/AI 配置命令边界
+- `docs/OBSERVABILITY.md` 已更新验证命令统计到 74 Rust tests / 166 Vitest assertions
+- `cargo test --manifest-path src-tauri/Cargo.toml`、`npm test -- --run`、`npm run build` 已通过
 Deviations:
+- `npm run build` 仍保留既有 Tailwind `duration-[120ms]` 歧义告警和 bundle 体积告警，本轮未扩展处理
 
 ## Progress Log
 
@@ -136,7 +140,7 @@ Deviations:
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` | 原生 settings / AI 配置协议已落地 |
 | 2 | ✅ | `npm test -- --run` | 前端 settings service/store 与应用壳层接通 |
 | 3 | ✅ | `npm run build` | 全屏设置面板与 AI Provider 配置 UI 已落地 |
-| 4 | ⬜ |  |  |
+| 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml`; `npm test -- --run`; `npm run build` | 控制面同步完成，计划可归档 |
 
 ## Decision Log
 
@@ -147,8 +151,11 @@ Deviations:
 
 ## Completion Summary
 
-Completed:
-Duration:
-All acceptance criteria: PENDING
+Completed: 2026-04-22
+Duration: 4 steps
+All acceptance criteria: PASS
 
 Summary:
+- Rust 原生层已补齐 typed settings schema、AI Provider settings 读写、keyring API key 存储和真实最小联网 `ai_test_connection`
+- 前端已落地 `settingsService` / `settingsStore`、全屏 `SettingsDialog`、完整设置分区和 AI Provider 配置界面
+- 应用主题与“启动时打开上次工作区”现在由 settings 真源驱动，AI 面板默认 Provider / Model 会跟随设置结果更新

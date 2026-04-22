@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Phase 10 Settings System](exec-plans/active/2026-04-22-phase10-settings-system.md) — started 2026-04-22
-
 ## Completed Plans
+
+- [Phase 10 Settings System](exec-plans/completed/2026-04-22-phase10-settings-system.md) — completed 2026-04-22
 
 - [Skill System And Editor AI Insert](exec-plans/completed/2026-04-22-skill-editor-ai-insert.md) — completed 2026-04-22
 

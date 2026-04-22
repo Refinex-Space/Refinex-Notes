@@ -8,8 +8,8 @@
 |------|---------|----------|
 | Install dependencies | `npm install` | Exit 0 |
 | Build frontend bundle | `npm run build` | Exit 0, assets emitted to `dist/` |
-| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 64 Rust tests + compile validation |
-| Run frontend tests | `npm test` | Exit 0, currently 164 Vitest assertions pass |
+| Run native tests | `cargo test --manifest-path src-tauri/Cargo.toml` | Exit 0, currently 74 Rust tests + compile validation |
+| Run frontend tests | `npm test` | Exit 0, currently 166 Vitest assertions pass |
 | Lint / format check | Not configured in the repository | N/A |
 | Start web dev server | `npm run dev` | Vite serves on `http://localhost:1420` |
 | Start desktop app | `npm run tauri dev` | Tauri window opens against the Vite dev server |
@@ -57,4 +57,4 @@ npm test
 npm run build
 ```
 
-The native test command now validates compilation and runs AI provider/streaming/model-catalog, auth, workspace/file, Git engine, sync-state-machine, and search tests under `src-tauri/src/**/*.rs`. Frontend tests use Vitest and now cover editor/store behavior, Git UI/store, search helper surfaces, AI context builder / stream renderer / provider selector / AI store paths, plus the repository Skill catalog and editor AI insert/AI slash flows under `src/**/__tests__/`. Build output remains the primary repository-level verification path.
+The native test command now validates compilation and runs AI provider/streaming/model-catalog/settings-command, auth, workspace/file, Git engine, sync-state-machine, and search tests under `src-tauri/src/**/*.rs`. Frontend tests use Vitest and now cover editor/store behavior, Git UI/store, search helper surfaces, AI context builder / stream renderer / provider selector / AI store paths, the repository Skill catalog and editor AI insert/AI slash flows, plus the new settings store/app startup surface coverage under `src/**/__tests__/`. Build output remains the primary repository-level verification path.

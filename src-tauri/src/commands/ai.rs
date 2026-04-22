@@ -155,17 +155,6 @@ pub async fn ai_test_connection(
     })
 }
 
-fn load_provider_config_from_list(
-    providers: &[AIProviderConfig],
-    provider_id: &str,
-) -> Result<AIProviderConfig, String> {
-    providers
-        .iter()
-        .find(|provider| provider.id == provider_id)
-        .cloned()
-        .ok_or_else(|| format!("未找到 provider `{provider_id}` 的配置"))
-}
-
 fn load_all_provider_configs(
     connection: &rusqlite::Connection,
 ) -> Result<Vec<AIProviderConfig>, String> {
