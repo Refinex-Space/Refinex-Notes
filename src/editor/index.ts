@@ -16,6 +16,10 @@ export type {
   FindReplaceState,
 } from "./plugins/find-replace";
 export { inlineSyncPlugin, refinexInlineSyncKey } from "./plugins/inline-sync";
+export {
+  aiWriteHighlightPlugin,
+  refinexAIWriteHighlightKey,
+} from "./plugins/ai-write-highlight";
 export { refinexKeymap, type RefinexKeymapOptions } from "./plugins/keymap";
 export { slashMenuPlugin, refinexSlashMenuKey } from "./plugins/slash-menu";
 export {
@@ -45,6 +49,12 @@ export type {
   InlineSyncParser,
   InlineSyncSerializer,
 } from "./plugins/inline-sync";
+export {
+  createAIStreamHandler,
+  type AIStreamHandler,
+  type AIStreamHandlerOptions,
+  type EditorAIOutputMode,
+} from "./commands/ai-insert";
 export {
   SLASH_COMMANDS,
   applyLinkMark,

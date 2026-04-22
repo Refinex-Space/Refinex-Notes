@@ -11,6 +11,7 @@ import { gapCursor } from "prosemirror-gapcursor";
 import { refinexInputRules } from "./plugins/input-rules";
 import { refinexParser, parseMarkdown } from "./parser";
 import { inlineSyncPlugin } from "./plugins/inline-sync";
+import { aiWriteHighlightPlugin } from "./plugins/ai-write-highlight";
 import { refinexKeymap } from "./plugins/keymap";
 import { placeholderPlugin } from "./plugins/placeholder";
 import { findReplacePlugin } from "./plugins/find-replace";
@@ -515,6 +516,7 @@ export function RefinexEditor({
       keymap(baseKeymap),
       refinexInputRules(),
       inlineSyncPlugin(refinexParser, refinexSerializer),
+      aiWriteHighlightPlugin(),
       slashMenuPlugin({
         onChange: (trigger, view) => {
           slashMenuChangeRef.current(

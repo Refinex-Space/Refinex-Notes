@@ -8,6 +8,7 @@ import {
 import { Mapping } from "prosemirror-transform";
 
 export const refinexInlineSyncKey = new PluginKey("refinexInlineSyncKey");
+export const refinexForceInlineSyncMetaKey = "refinexForceInlineSync";
 
 export interface InlineSyncParser {
   parse(markdown: string): ProseMirrorNode;
@@ -202,7 +203,11 @@ export function inlineSyncPlugin(
   return new Plugin({
     key: refinexInlineSyncKey,
     appendTransaction(transactions, _oldState, newState) {
-      if (!transactions.some((transaction) => transaction.docChanged)) {
+      const forceInlineSync = transactions.some((transaction) =>
+        transaction.getMeta(refinexForceInlineSyncMetaKey),
+      );
+
+      if (!forceInlineSync && !transactions.some((transaction) => transaction.docChanged)) {
         return null;
       }
 
@@ -210,7 +215,9 @@ export function inlineSyncPlugin(
         return null;
       }
 
-      const changedRanges = collectChangedRanges(transactions);
+      const changedRanges = forceInlineSync
+        ? [{ from: 0, to: newState.doc.content.size }]
+        : collectChangedRanges(transactions);
       if (changedRanges.length === 0) {
         return null;
       }

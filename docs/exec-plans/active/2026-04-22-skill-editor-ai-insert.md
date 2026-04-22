@@ -85,9 +85,17 @@ Deviations:
 **Files:** `src/editor/commands/ai-insert.ts`, `src/editor/RefinexEditor.tsx`, `src/editor/plugins/ai-write-highlight.ts`, `src/editor/index.ts`
 **Verification:** `npm test -- --run`
 
-Status: ⬜ Not started
+Status: ✅ Completed
 Evidence:
+- `src/editor/commands/ai-insert.ts` 已实现 `replace-selection` / `insert-at-cursor` / `new-document` / `chat-response` 四种写入策略
+- `src/editor/plugins/ai-write-highlight.ts` 已提供流式写入区间高亮与渐隐状态
+- `src/editor/plugins/inline-sync.ts` 已支持完成时强制全量重解析
+- `src/editor/__tests__/ai-insert.test.ts` 覆盖替换写入、光标插入、new-document 与单次 Undo 分组
+- `npm test -- --run src/editor/__tests__/ai-insert.test.ts src/editor/__tests__/inline-sync.test.ts` 通过
+- `npm run build` 通过
 Deviations:
+- 为满足完成时显式触发 inline-sync，这一步额外扩展了 `src/editor/plugins/inline-sync.ts`
+- 为提供视觉反馈，这一步额外修改了 `src/editor/editor.css`
 
 ### Step 3: 接入 FloatingToolbar、SlashMenu 与编辑器右键菜单
 
@@ -112,7 +120,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `skills/*.md`、`src/services/skillService.ts`、`src/components/ai/SkillPicker.tsx` | Skill 真源与解析服务已落地 |
-| 2 | ⬜ |  | 待建立 editor AI insert 与写入高亮 |
+| 2 | ✅ | `src/editor/commands/ai-insert.ts`、`src/editor/plugins/ai-write-highlight.ts`、`src/editor/__tests__/ai-insert.test.ts` | 流式写入、高亮与 Undo 语义已落地 |
 | 3 | ⬜ |  | 待接入工具栏、slash 和右键菜单入口 |
 | 4 | ⬜ |  | 待补测试、同步控制面并完成归档验证 |
 
