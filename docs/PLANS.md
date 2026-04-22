@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [AI Chat Attachments Multimodal](exec-plans/active/2026-04-22-ai-chat-attachments-multimodal.md) — started 2026-04-22
-
 ## Completed Plans
+
+- [AI Chat Attachments Multimodal](exec-plans/completed/2026-04-22-ai-chat-attachments-multimodal.md) — completed 2026-04-22
 
 - [AI Chat Multi Conversations](exec-plans/completed/2026-04-22-ai-chat-multi-conversations.md) — completed 2026-04-22
 
