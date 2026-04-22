@@ -25,7 +25,7 @@ function pickDefaultModel(models: readonly AIModelInfo[]) {
   return models.find((model) => model.isDefault) ?? models[0] ?? null;
 }
 
-function buildContextSnapshot() {
+function buildContextSnapshot(selectedText?: string) {
   const currentDocument = getCurrentDocument();
   const noteState = useNoteStore.getState();
   const editorState = useEditorStore.getState();
@@ -34,6 +34,7 @@ function buildContextSnapshot() {
     content: currentDocument?.content ?? "",
     filePath: currentDocument?.path ?? "（当前没有打开文档）",
     cursorPosition: editorState.cursorPosition,
+    selectedText,
     directoryTree: buildDirectoryTreeSummary(noteState.files),
     openFiles: noteState.openFiles,
     recentFiles: noteState.recentFiles,
@@ -216,9 +217,10 @@ export const useAIStore = create<AIStore>()(
       });
     },
 
-    sendMessage: async (content) => {
-      const trimmed = content.trim();
-      if (!trimmed || get().isStreaming) {
+    streamPrompt: async ({ userMessage, promptContent, selectedText }) => {
+      const trimmedUserMessage = userMessage.trim();
+      const trimmedPrompt = promptContent.trim();
+      if (!trimmedUserMessage || !trimmedPrompt || get().isStreaming) {
         return;
       }
 
@@ -234,10 +236,10 @@ export const useAIStore = create<AIStore>()(
       const userMessageId = createMessageId();
       const assistantMessageId = createMessageId();
       const requestId = createMessageId();
-      const userMessage: AIMessage = {
+      const visibleUserMessage: AIMessage = {
         id: userMessageId,
         role: "user",
-        content: trimmed,
+        content: trimmedUserMessage,
         timestamp: Date.now(),
       };
       const assistantMessage: AIMessage = {
@@ -246,14 +248,22 @@ export const useAIStore = create<AIStore>()(
         content: "",
         timestamp: Date.now(),
       };
-      const systemPrompt = buildSystemPrompt(buildContextSnapshot());
+      const systemPrompt = buildSystemPrompt(buildContextSnapshot(selectedText));
       const commandMessages = toCommandMessages(
-        [...get().messages, userMessage],
+        [
+          ...get().messages,
+          {
+            role: "user",
+            content: trimmedPrompt,
+            id: userMessageId,
+            timestamp: visibleUserMessage.timestamp,
+          },
+        ],
         systemPrompt,
       );
 
       set((state) => {
-        state.messages.push(userMessage, assistantMessage);
+        state.messages.push(visibleUserMessage, assistantMessage);
         state.isStreaming = true;
         state.errorMessage = null;
         state.activeRequestId = requestId;
@@ -295,6 +305,13 @@ export const useAIStore = create<AIStore>()(
           });
         }
       }
+    },
+
+    sendMessage: async (content) => {
+      await get().streamPrompt({
+        userMessage: content,
+        promptContent: content,
+      });
     },
 
     cancelStream: async () => {

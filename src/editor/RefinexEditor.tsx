@@ -30,6 +30,16 @@ import { LinkHoverTooltip } from "./ui/LinkHoverTooltip";
 import { FloatingToolbar } from "./ui/FloatingToolbar";
 import { SlashMenu, type SlashMenuRequest } from "./ui/SlashMenu";
 import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "../components/ui/context-menu";
+import {
   findLinkMarkAtPos,
   getLinkEditorRequest,
   getLinkHoverAnchorRect,
@@ -37,6 +47,8 @@ import {
   handleImageFileDrop,
   type PopoverAnchorRect,
 } from "./rich-ui";
+import { executeBuiltinSkill, filterSkillsForSelection, listBuiltinSkills } from "../services/skillService";
+import type { SkillDefinition } from "../types/skill";
 import {
   finishDocumentPerfTrace,
   logDocumentPerfStep,
@@ -398,6 +410,7 @@ export function RefinexEditor({
     title: string;
     anchor: PopoverAnchorRect;
   } | null>(null);
+  const builtinSkillsRef = useRef(listBuiltinSkills());
 
   const cancelHoverHide = useCallback(() => {
     if (hideHoverTimerRef.current) {
@@ -812,6 +825,27 @@ export function RefinexEditor({
     scheduleHoverHide();
   }, [scheduleHoverHide]);
 
+  const runBuiltinSkill = useCallback(
+    async (skill: SkillDefinition) => {
+      const view = viewRef.current;
+      if (!view) {
+        return;
+      }
+
+      try {
+        await executeBuiltinSkill({ view, skill });
+      } catch (error) {
+        console.error("执行 AI Skill 失败", error);
+      }
+    },
+    [],
+  );
+
+  const contextMenuSkills = filterSkillsForSelection(
+    builtinSkillsRef.current,
+    Boolean(editorView && !editorView.state.selection.empty),
+  );
+
   // Auto-resize the source textarea to fit its content.
   // height: 100% doesn't work in this layout (parent chain uses min-height, not height),
   // so we imperatively set height = scrollHeight instead.
@@ -823,74 +857,102 @@ export function RefinexEditor({
   }, [sourceMode, value]);
 
   return (
-    <div
-      className={["min-w-0 relative", className].filter(Boolean).join(" ")}
-      data-refinex-editor-shell
-      onMouseMove={!sourceMode ? handleEditorMouseMove : undefined}
-      onMouseLeave={!sourceMode ? handleEditorMouseLeave : undefined}
-    >
-      {/* ProseMirror mount — always in DOM to preserve EditorView + undo history */}
-      <div
-        ref={mountRef}
-        data-refinex-editor
-        className={sourceMode ? "hidden" : undefined}
-      />
-      {!sourceMode && (
-        <>
-          <FloatingToolbar
-            view={editorView}
-            version={overlayVersion}
-            onRequestLinkEdit={(view) => openLinkPopoverRef.current(view)}
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          className={["min-w-0 relative", className].filter(Boolean).join(" ")}
+          data-refinex-editor-shell
+          onMouseMove={!sourceMode ? handleEditorMouseMove : undefined}
+          onMouseLeave={!sourceMode ? handleEditorMouseLeave : undefined}
+        >
+          {/* ProseMirror mount — always in DOM to preserve EditorView + undo history */}
+          <div
+            ref={mountRef}
+            data-refinex-editor
+            className={sourceMode ? "hidden" : undefined}
           />
-          <LinkPopover
-            view={editorView}
-            request={linkPopoverRequest}
-            onClose={() => setLinkPopoverRequest(null)}
-          />
-          <SlashMenu
-            view={editorView}
-            request={slashMenuRequest}
-            onClose={() => setSlashMenuRequest(null)}
-          />
-          {linkHoverState && !linkPopoverRequest && (
-            <LinkHoverTooltip
-              href={linkHoverState.href}
-              anchor={linkHoverState.anchor}
-              onEdit={() => {
-                setLinkPopoverRequest({
-                  from: linkHoverState.from,
-                  to: linkHoverState.to,
-                  href: linkHoverState.href,
-                  title: linkHoverState.title,
-                  anchor: getSelectionAnchorRect(
-                    viewRef.current!,
-                    linkHoverState.from,
-                    linkHoverState.to,
-                  ),
-                });
-                setLinkHoverState(null);
-              }}
-              onClose={() => setLinkHoverState(null)}
-              onMouseEnter={cancelHoverHide}
-              onMouseLeave={scheduleHoverHide}
+          {!sourceMode && (
+            <>
+              <FloatingToolbar
+                view={editorView}
+                version={overlayVersion}
+                onRequestLinkEdit={(view) => openLinkPopoverRef.current(view)}
+                onRunSkill={(skill) => {
+                  void runBuiltinSkill(skill);
+                }}
+              />
+              <LinkPopover
+                view={editorView}
+                request={linkPopoverRequest}
+                onClose={() => setLinkPopoverRequest(null)}
+              />
+              <SlashMenu
+                view={editorView}
+                request={slashMenuRequest}
+                onClose={() => setSlashMenuRequest(null)}
+              />
+              {linkHoverState && !linkPopoverRequest && (
+                <LinkHoverTooltip
+                  href={linkHoverState.href}
+                  anchor={linkHoverState.anchor}
+                  onEdit={() => {
+                    setLinkPopoverRequest({
+                      from: linkHoverState.from,
+                      to: linkHoverState.to,
+                      href: linkHoverState.href,
+                      title: linkHoverState.title,
+                      anchor: getSelectionAnchorRect(
+                        viewRef.current!,
+                        linkHoverState.from,
+                        linkHoverState.to,
+                      ),
+                    });
+                    setLinkHoverState(null);
+                  }}
+                  onClose={() => setLinkHoverState(null)}
+                  onMouseEnter={cancelHoverHide}
+                  onMouseLeave={scheduleHoverHide}
+                />
+              )}
+            </>
+          )}
+          {sourceMode && (
+            <textarea
+              ref={sourceTextareaRef}
+              className="refinex-source-editor"
+              value={value}
+              onChange={(event) => onChange?.(event.target.value)}
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              data-refinex-source-editor
             />
           )}
-        </>
-      )}
-      {sourceMode && (
-        <textarea
-          ref={sourceTextareaRef}
-          className="refinex-source-editor"
-          value={value}
-          onChange={(event) => onChange?.(event.target.value)}
-          autoFocus
-          spellCheck={false}
-          autoComplete="off"
-          autoCorrect="off"
-          data-refinex-source-editor
-        />
-      )}
-    </div>
+        </div>
+      </ContextMenuTrigger>
+      {!sourceMode ? (
+        <ContextMenuContent className="w-56">
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>AI 操作</ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-64">
+              {contextMenuSkills.map((skill, index) => (
+                <div key={skill.id}>
+                  {index > 0 ? <ContextMenuSeparator /> : null}
+                  <ContextMenuItem
+                    onSelect={() => {
+                      void runBuiltinSkill(skill);
+                    }}
+                  >
+                    {skill.description}
+                  </ContextMenuItem>
+                </div>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        </ContextMenuContent>
+      ) : null}
+    </ContextMenu>
   );
 }
 

@@ -116,18 +116,22 @@ describe("rich UI helpers", () => {
     ).toBe(false);
   });
 
-  it("detects slash triggers only for a bare slash paragraph", () => {
+  it("detects slash triggers for slash-prefixed paragraphs without whitespace", () => {
     const openState = setSelection(
       EditorState.create({ doc: parseMarkdown("/") }),
       2,
     );
-    expect(findSlashTrigger(openState)).toEqual({ from: 1, to: 2 });
+    expect(findSlashTrigger(openState)).toEqual({ from: 1, to: 2, query: "" });
 
     const closedState = setSelection(
       EditorState.create({ doc: parseMarkdown("/todo") }),
       6,
     );
-    expect(findSlashTrigger(closedState)).toBeNull();
+    expect(findSlashTrigger(closedState)).toEqual({
+      from: 1,
+      to: 6,
+      query: "todo",
+    });
   });
 
   it("creates task list, table, and image paragraph structures", () => {
@@ -158,7 +162,7 @@ describe("rich UI helpers", () => {
 
     const headingResult = await executeSlashCommand({
       view: headingView,
-      trigger: { from: 1, to: 2 },
+      trigger: { from: 1, to: 2, query: "" },
       commandId: "heading-2",
     });
     expect(headingResult).toBe(true);
@@ -170,7 +174,7 @@ describe("rich UI helpers", () => {
     );
     const dividerResult = await executeSlashCommand({
       view: dividerView,
-      trigger: { from: 1, to: 2 },
+      trigger: { from: 1, to: 2, query: "" },
       commandId: "divider",
     });
     expect(dividerResult).toBe(true);

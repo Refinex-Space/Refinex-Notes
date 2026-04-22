@@ -9,6 +9,7 @@ import {
   ListOrdered,
   Minus,
   Quote,
+  Sparkles,
   Table2,
   TerminalSquare,
 } from "lucide-react";
@@ -32,7 +33,9 @@ import {
   type PopoverAnchorRect,
   type SlashCommandId,
   type SlashTriggerMatch,
+  removeSlashTrigger,
 } from "../rich-ui";
+import { executeBuiltinSkill, listBuiltinSkills } from "../../services/skillService";
 
 export type SlashMenuRequest = SlashTriggerMatch & {
   anchor: PopoverAnchorRect;
@@ -63,7 +66,7 @@ export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    setSearch("");
+    setSearch(request?.query ?? "");
   }, [request]);
 
   useEffect(() => {
@@ -78,14 +81,44 @@ export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
     return () => window.cancelAnimationFrame(frameId);
   }, [request]);
 
-  const items = useMemo(
-    () =>
-      SLASH_COMMANDS.filter((item) => {
-        const haystack = [item.title, item.description, ...item.keywords].join(" ").toLowerCase();
-        return haystack.includes(search.toLowerCase());
-      }),
-    [search],
-  );
+  const items = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    const slashItems = SLASH_COMMANDS.filter((item) => {
+      const haystack = [item.id, item.title, item.description, ...item.keywords]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(normalized);
+    }).map((item) => ({
+      kind: "slash" as const,
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      keywords: item.keywords,
+    }));
+    const skillItems = listBuiltinSkills()
+      .filter((skill) => {
+        const haystack = [
+          skill.id,
+          skill.name,
+          skill.description,
+          skill.category,
+          skill.slashCommand,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(normalized);
+      })
+      .map((skill) => ({
+        kind: "skill" as const,
+        id: skill.id,
+        title: `/${skill.slashCommand}`,
+        description: skill.description,
+        keywords: [skill.category, skill.outputMode],
+        skill,
+      }));
+
+    return normalized.length === 0 ? [...slashItems, ...skillItems] : [...skillItems, ...slashItems];
+  }, [search]);
 
   if (!view || !request) {
     return null;
@@ -133,13 +166,25 @@ export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
           <CommandList>
             <CommandEmpty>没有匹配的命令。</CommandEmpty>
             {items.map((item) => {
-              const Icon = ICONS[item.id];
+              const Icon = item.kind === "slash" ? ICONS[item.id] : Sparkles;
               return (
                 <CommandItem
                   key={item.id}
                   value={item.title}
                   keywords={item.keywords}
                   onSelect={() => {
+                    if (item.kind === "skill") {
+                      removeSlashTrigger(view, request);
+                      void executeBuiltinSkill({
+                        view,
+                        skill: item.skill,
+                      }).finally(() => {
+                        onClose();
+                        view.focus();
+                      });
+                      return;
+                    }
+
                     void executeSlashCommand({
                       view,
                       trigger: request,

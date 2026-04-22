@@ -102,9 +102,17 @@ Deviations:
 **Files:** `src/editor/ui/FloatingToolbar.tsx`, `src/editor/ui/SlashMenu.tsx`, `src/editor/plugins/slash-menu.ts`, `src/editor/rich-ui.ts`, 编辑器右键菜单接入文件
 **Verification:** `npm test -- --run`; `npm run build`
 
-Status: ⬜ Not started
+Status: ✅ Completed
 Evidence:
+- `src/services/skillService.ts` 已新增统一 `executeBuiltinSkill()` 执行链路，并复用现有 `aiService` / `aiStore`
+- `src/editor/ui/FloatingToolbar.tsx` 已通过 `SkillPicker` 提供选区 AI 入口
+- `src/editor/ui/SlashMenu.tsx`、`src/editor/rich-ui.ts` 已支持 `/ai-xxx` 查询与 Skill 执行
+- `src/editor/RefinexEditor.tsx` 已挂接编辑器右键菜单 AI 子菜单
+- `npm test -- --run src/editor/__tests__/rich-ui.test.ts src/editor/__tests__/SlashMenu.test.tsx src/stores/__tests__/aiStore.test.ts` 通过
+- `npm run build` 通过
 Deviations:
+- 为了让 `chat-response` 不暴露完整执行提示词，这一步额外扩展了 `aiStore.streamPrompt()`
+- 右键菜单当前按 `selectionMode` 自动分流全部内置 Skill，而不是只硬编码题目里列出的子集
 
 ### Step 4: 增补测试、同步控制面并完成整体验证
 
@@ -121,7 +129,7 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `skills/*.md`、`src/services/skillService.ts`、`src/components/ai/SkillPicker.tsx` | Skill 真源与解析服务已落地 |
 | 2 | ✅ | `src/editor/commands/ai-insert.ts`、`src/editor/plugins/ai-write-highlight.ts`、`src/editor/__tests__/ai-insert.test.ts` | 流式写入、高亮与 Undo 语义已落地 |
-| 3 | ⬜ |  | 待接入工具栏、slash 和右键菜单入口 |
+| 3 | ✅ | `src/services/skillService.ts`、`src/editor/ui/FloatingToolbar.tsx`、`src/editor/ui/SlashMenu.tsx`、`src/editor/RefinexEditor.tsx` | 三个入口已复用统一 Skill 执行链路 |
 | 4 | ⬜ |  | 待补测试、同步控制面并完成归档验证 |
 
 ## Decision Log

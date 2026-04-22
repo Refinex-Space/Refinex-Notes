@@ -73,6 +73,7 @@ export {
   isMarkActive,
   pickImageFile,
   readImageFileAsDataUrl,
+  removeSlashTrigger,
   type ImageNodeAttrs,
   type LinkEditorRequest,
   type PopoverAnchorRect,

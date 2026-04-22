@@ -3,11 +3,14 @@ import { toggleMark } from "prosemirror-commands";
 import { TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
+import { SkillPicker } from "../../components/ai/SkillPicker";
 import {
   Popover,
   PopoverAnchor,
   PopoverContent,
 } from "../../components/ui/popover";
+import { filterSkillsForSelection, listBuiltinSkills } from "../../services/skillService";
+import type { SkillDefinition } from "../../types/skill";
 import { getSelectionAnchorRect, isMarkActive } from "../rich-ui";
 import { refinexSchema } from "../schema";
 
@@ -29,12 +32,14 @@ export interface FloatingToolbarProps {
   view: EditorView | null;
   version: number;
   onRequestLinkEdit: (view: EditorView) => boolean;
+  onRunSkill: (skill: SkillDefinition) => void | Promise<void>;
 }
 
 export function FloatingToolbar({
   view,
   version: _version,
   onRequestLinkEdit,
+  onRunSkill,
 }: FloatingToolbarProps) {
   if (!view || !(view.state.selection instanceof TextSelection) || view.state.selection.empty) {
     return null;
@@ -50,6 +55,7 @@ export function FloatingToolbar({
     toggleMark(refinexSchema.marks[markName])(view.state, view.dispatch, view);
     view.focus();
   };
+  const skills = filterSkillsForSelection(listBuiltinSkills(), true);
 
   return (
     <Popover open>
@@ -122,6 +128,12 @@ export function FloatingToolbar({
           >
             <Link2 className="h-4 w-4" />
           </button>
+          <SkillPicker
+            skills={skills}
+            onSelect={(skill) => {
+              void onRunSkill(skill);
+            }}
+          />
         </div>
       </PopoverContent>
     </Popover>

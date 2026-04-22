@@ -24,10 +24,12 @@ export function SkillPicker({
   skills,
   disabled = false,
   onSelect,
+  label = "AI",
 }: {
   skills: readonly SkillDefinition[];
   disabled?: boolean;
   onSelect: (skill: SkillDefinition) => void;
+  label?: string;
 }) {
   return (
     <Popover>
@@ -42,7 +44,7 @@ export function SkillPicker({
           ].join(" ")}
         >
           <Sparkles className="h-4 w-4 text-accent" />
-          AI
+          {label}
         </button>
       </PopoverTrigger>
       <PopoverContent

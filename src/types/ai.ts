@@ -58,6 +58,11 @@ export interface AIStoreActions {
   loadModels: (providerId: string) => Promise<void>;
   selectProvider: (providerId: string) => Promise<void>;
   selectModel: (modelId: string) => void;
+  streamPrompt: (args: {
+    userMessage: string;
+    promptContent: string;
+    selectedText?: string;
+  }) => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
   cancelStream: () => Promise<void>;
   clearHistory: () => void;

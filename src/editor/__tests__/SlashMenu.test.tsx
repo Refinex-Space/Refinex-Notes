@@ -72,6 +72,7 @@ describe("SlashMenu", () => {
           request={{
             from: 1,
             to: 2,
+            query: "",
             anchor: {
               top: 12,
               bottom: 28,

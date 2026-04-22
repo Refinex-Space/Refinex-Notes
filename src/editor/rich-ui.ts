@@ -39,6 +39,7 @@ export type LinkEditorRequest = {
 export type SlashTriggerMatch = {
   from: number;
   to: number;
+  query: string;
 };
 
 export type SlashCommandId =
@@ -271,13 +272,15 @@ export function findSlashTrigger(state: EditorState): SlashTriggerMatch | null {
     return null;
   }
 
-  if ($from.parent.textContent !== "/" || $from.parentOffset !== 1) {
+  const text = $from.parent.textContent;
+  if (!text.startsWith("/") || /\s/.test(text) || $from.parentOffset !== text.length) {
     return null;
   }
 
   return {
-    from: selection.from - 1,
+    from: selection.from - text.length,
     to: selection.to,
+    query: text.slice(1),
   };
 }
 
@@ -591,7 +594,7 @@ function getCurrentBlockRange(state: EditorState) {
   };
 }
 
-function removeSlashTrigger(view: EditorView, trigger: SlashTriggerMatch) {
+export function removeSlashTrigger(view: EditorView, trigger: SlashTriggerMatch) {
   view.dispatch(view.state.tr.delete(trigger.from, trigger.to));
 }
 
