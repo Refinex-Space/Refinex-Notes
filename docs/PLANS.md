@@ -8,6 +8,10 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Fix AI Panel Width And Drag Permission](exec-plans/completed/2026-04-22-fix-ai-panel-width-and-drag-permission.md) — completed 2026-04-22
+
+- [AI Chat Panel Layout Polish](exec-plans/completed/2026-04-22-ai-chat-panel-layout-polish.md) — completed 2026-04-22
+
 - [Settings Save Feedback](exec-plans/completed/2026-04-22-settings-save-feedback.md) — completed 2026-04-22
 
 - [Provider Icon Assets](exec-plans/completed/2026-04-22-provider-icon-assets.md) — completed 2026-04-22

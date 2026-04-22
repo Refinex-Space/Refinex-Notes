@@ -30,7 +30,7 @@ function tbtnClass(active: boolean) {
 
 const MIN_SIDEBAR_WIDTH = 200;
 const MAX_SIDEBAR_WIDTH = 360;
-const MIN_RIGHT_PANEL_WIDTH = 260;
+const MIN_RIGHT_PANEL_WIDTH = 360;
 const MAX_RIGHT_PANEL_WIDTH = 420;
 
 export interface AppLayoutProps {

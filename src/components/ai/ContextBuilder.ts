@@ -110,7 +110,7 @@ export function buildSystemPrompt(context: AIContext) {
       : "（当前没有最近文件记录）";
 
   return [
-    "你是 Refinex Notes 内置的 AI 写作助手。",
+    "你是 Refinex Notes 内置的 Refinex AI。",
     "优先结合当前文档和工作区信息回答；如果上下文不足，请明确指出，不要编造未提供的内容。",
     "",
     "## 当前文档",

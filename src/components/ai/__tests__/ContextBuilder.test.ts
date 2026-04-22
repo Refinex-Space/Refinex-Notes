@@ -59,7 +59,7 @@ describe("ContextBuilder", () => {
     });
     const prompt = buildSystemPrompt(context);
 
-    expect(prompt).toContain("你是 Refinex Notes 内置的 AI 写作助手");
+    expect(prompt).toContain("你是 Refinex Notes 内置的 Refinex AI");
     expect(prompt).toContain("- 路径: docs/Roadmap.md");
     expect(prompt).toContain("Phase 8");
     expect(prompt).toContain("- Roadmap");

@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -78,5 +84,39 @@ describe("AppLayout", () => {
     expect(isMacLikePlatform("Win32", "Mozilla/5.0 (Windows NT 10.0)")).toBe(
       false,
     );
+  });
+
+  it("clamps the right panel width so the AI panel cannot be narrowed past the safe minimum", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <AppLayout
+          sidebar={<div>sidebar</div>}
+          tabBar={<div>tabs</div>}
+          editor={<div>editor</div>}
+          aiPanel={<div>ai-panel</div>}
+          rightPanel={<div>right</div>}
+          statusBar={<div>status</div>}
+          defaultRightPanelWidth={200}
+        />,
+      );
+    });
+
+    const aiToggle = container.querySelector('button[aria-label="AI 助手"]');
+    const shellGrid = container.querySelector(".grid.min-h-0.flex-1.overflow-hidden");
+
+    await act(async () => {
+      aiToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(shellGrid?.getAttribute("style")).toContain("360px");
+
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
   });
 });
