@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Settings Save Feedback](exec-plans/active/2026-04-22-settings-save-feedback.md) — started 2026-04-22
+
 ## Completed Plans
 
 - [Provider Icon Assets](exec-plans/completed/2026-04-22-provider-icon-assets.md) — completed 2026-04-22
