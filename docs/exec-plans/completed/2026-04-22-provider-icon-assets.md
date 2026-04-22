@@ -1,7 +1,8 @@
 # Execution Plan: Provider Icon Assets
 
 Created: 2026-04-22
-Status: Active
+Completed: 2026-04-22
+Status: Completed
 Author: agent
 
 ## Objective
@@ -28,9 +29,9 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `/Users/refinex/Downloads/icons` 中的 Provider SVG 已复制到项目内合适位置
-- [ ] AC-2: `AIProviderConfig` 在 Provider 类型标签前显示对应图标
-- [ ] AC-3: `npm test -- --run` 与 `npm run build` 通过
+- [x] AC-1: `/Users/refinex/Downloads/icons` 中的 Provider SVG 已复制到项目内合适位置
+- [x] AC-2: `AIProviderConfig` 在 Provider 类型标签前显示对应图标
+- [x] AC-3: `npm test -- --run` 与 `npm run build` 通过
 
 ## Implementation Steps
 
@@ -39,11 +40,28 @@ Author: agent
 **Files:** `docs/exec-plans/active/2026-04-22-provider-icon-assets.md`, `docs/PLANS.md`, `src/assets/provider-icons/*`
 **Verification:** `ls src/assets/provider-icons`
 
-Status: ⏳ In Progress
+Status: ✅ Done
+Evidence:
+- `src/assets/provider-icons/` 已新增 `claude.svg`、`deepseek.svg`、`kimi.svg`、`minimax.svg`、`openai.svg`、`qwen.svg`、`zdotai.svg` 等资源文件
+- `git commit -m "plan(harness): 新增 Provider 图标资源执行计划"` 已创建 checkpoint
 
 ### Step 2: 在 AIProviderConfig 中接入图标映射与展示
 
 **Files:** `src/components/settings/AIProviderConfig.tsx`
 **Verification:** `npm test -- --run`; `npm run build`
 
-Status: ⏳ Pending
+Status: ✅ Done
+Evidence:
+- `src/components/settings/AIProviderConfig.tsx` 已新增集中式 Provider 图标映射，并通过 `ProviderKindBadge` 在标签前渲染图标
+- `npm test -- --run` 通过（35 files, 168 tests）
+- `npm run build` 通过
+
+## Completion Summary
+
+Completed: 2026-04-22
+All acceptance criteria: PASS
+
+Summary:
+- 用户提供的 Provider SVG 已复制到 `src/assets/provider-icons/`
+- 设置页 `AIProviderConfig` 的 Provider 类型标签现在会在文本前显示对应供应商图标
+- GLM 使用用户提供的 `zdotai.svg`，自定义 Provider 保持无品牌图标回退，避免错误品牌映射
