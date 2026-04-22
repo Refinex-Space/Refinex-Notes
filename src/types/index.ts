@@ -34,6 +34,8 @@ export type {
   AICommandMessageRole,
   AIContext,
   AIMessage,
+  AIMessageAttachment,
+  AIMessageAttachmentKind,
   AIMessageRole,
   AIModelInfo,
   AIProviderKind,

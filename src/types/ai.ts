@@ -1,5 +1,6 @@
 export type AIMessageRole = "user" | "assistant";
 export type AICommandMessageRole = "system" | AIMessageRole;
+export type AIMessageAttachmentKind = "image" | "text";
 export type AIProviderKind =
   | "deepseek"
   | "qwen"
@@ -16,7 +17,28 @@ export interface AIMessage {
   role: AIMessageRole;
   content: string;
   timestamp: number;
+  attachments?: AIMessageAttachment[];
 }
+
+interface AIMessageAttachmentBase {
+  id: string;
+  kind: AIMessageAttachmentKind;
+  name: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface AIImageAttachment extends AIMessageAttachmentBase {
+  kind: "image";
+  base64Data: string;
+}
+
+export interface AITextAttachment extends AIMessageAttachmentBase {
+  kind: "text";
+  textContent: string;
+}
+
+export type AIMessageAttachment = AIImageAttachment | AITextAttachment;
 
 export type AIConversationTitleSource = "auto" | "manual";
 
@@ -32,6 +54,7 @@ export interface AIConversation {
 export interface AICommandMessage {
   role: AICommandMessageRole;
   content: string;
+  attachments?: AIMessageAttachment[];
 }
 
 export interface AIProviderInfo {
@@ -113,12 +136,14 @@ export interface AIStoreActions {
     selectedText?: string;
     includeCurrentDocument?: boolean;
     attachedDocumentPaths?: string[];
+    attachments?: AIMessageAttachment[];
   }) => Promise<void>;
   sendMessage: (
     content: string,
     options?: {
       includeCurrentDocument?: boolean;
       attachedDocumentPaths?: string[];
+      attachments?: AIMessageAttachment[];
     },
   ) => Promise<void>;
   cancelStream: () => Promise<void>;

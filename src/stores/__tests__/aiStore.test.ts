@@ -147,11 +147,13 @@ describe("aiStore", () => {
     expect(capturedMessages.at(-1)).toEqual({
       role: "user",
       content: "请总结这一段",
+      attachments: [],
     });
     expect(useAIStore.getState().messages).toEqual([
       expect.objectContaining({
         role: "user",
         content: "请总结这一段",
+        attachments: [],
       }),
       expect.objectContaining({
         role: "assistant",
@@ -253,6 +255,57 @@ describe("aiStore", () => {
     expect(capturedMessages[0]?.content).toContain("## 附加参考文档");
     expect(capturedMessages[0]?.content).toContain("guides/Cursor Guide.md");
     expect(capturedMessages[0]?.content).toContain("Attach me as additional context.");
+  });
+
+  it("stores uploaded attachments on the user message and forwards them to the command payload", async () => {
+    seedEditorContext();
+    useAIStore.setState({
+      providers,
+      modelsByProvider: { deepseek: models },
+      activeProvider: "deepseek",
+      activeModel: "deepseek-chat",
+    });
+
+    const attachments = [
+      {
+        id: "image-1",
+        kind: "image" as const,
+        name: "diagram.png",
+        mimeType: "image/png",
+        size: 12,
+        base64Data: "ZmFrZQ==",
+      },
+      {
+        id: "text-1",
+        kind: "text" as const,
+        name: "notes.md",
+        mimeType: "text/markdown",
+        size: 16,
+        textContent: "# Notes",
+      },
+    ];
+
+    let capturedMessages: AICommandMessage[] = [];
+    vi.mocked(aiService.stream).mockImplementation(async ({ messages }) => {
+      capturedMessages = messages;
+    });
+
+    await useAIStore.getState().sendMessage("结合附件回答", {
+      attachments,
+    });
+
+    expect(capturedMessages.at(-1)).toEqual({
+      role: "user",
+      content: "结合附件回答",
+      attachments,
+    });
+    expect(useAIStore.getState().messages[0]).toEqual(
+      expect.objectContaining({
+        role: "user",
+        content: "结合附件回答",
+        attachments,
+      }),
+    );
   });
 
   it("creates isolated conversations that can be switched, renamed, and deleted", async () => {

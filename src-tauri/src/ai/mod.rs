@@ -31,6 +31,27 @@ pub type AIProviderFuture<'a> = Pin<Box<dyn Future<Output = AIResult<()>> + Send
 pub struct AIMessage {
     pub role: String,
     pub content: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attachments: Vec<AIAttachment>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "kind")]
+pub enum AIAttachment {
+    Image {
+        id: String,
+        name: String,
+        mime_type: String,
+        base64_data: String,
+        size: usize,
+    },
+    Text {
+        id: String,
+        name: String,
+        mime_type: String,
+        text_content: String,
+        size: usize,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

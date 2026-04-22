@@ -12,6 +12,7 @@ import type {
   AICommandMessage,
   AIConversation,
   AIMessage,
+  AIMessageAttachment,
   AIModelInfo,
   AIProviderInfo,
   AIStore,
@@ -288,6 +289,7 @@ function toCommandMessages(
     ...messages.map((message) => ({
       role: message.role,
       content: message.content,
+      attachments: message.attachments,
     })),
   ];
 }
@@ -529,6 +531,7 @@ export const useAIStore = create<AIStore>()(
         selectedText,
         includeCurrentDocument = true,
         attachedDocumentPaths = [],
+        attachments = [],
       }) => {
         const trimmedUserMessage = userMessage.trim();
         const trimmedPrompt = promptContent.trim();
@@ -560,6 +563,7 @@ export const useAIStore = create<AIStore>()(
           role: "user",
           content: trimmedUserMessage,
           timestamp: Date.now(),
+          attachments,
         };
         const assistantMessage: AIMessage = {
           id: assistantMessageId,
@@ -582,6 +586,7 @@ export const useAIStore = create<AIStore>()(
               content: trimmedPrompt,
               id: userMessageId,
               timestamp: visibleUserMessage.timestamp,
+              attachments,
             },
           ],
           systemPrompt,
@@ -670,6 +675,7 @@ export const useAIStore = create<AIStore>()(
           promptContent: content,
           includeCurrentDocument: options?.includeCurrentDocument,
           attachedDocumentPaths: options?.attachedDocumentPaths,
+          attachments: options?.attachments,
         });
       },
 

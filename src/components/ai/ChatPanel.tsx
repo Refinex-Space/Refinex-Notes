@@ -21,10 +21,12 @@ import {
   X,
 } from "lucide-react";
 
+import { aiAttachmentService } from "../../services/aiAttachmentService";
 import { searchService } from "../../services/searchService";
 import { useAIStore } from "../../stores/aiStore";
 import { useNoteStore } from "../../stores/noteStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import type { AIMessageAttachment } from "../../types/ai";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +46,9 @@ import {
 } from "./documentMentions";
 import { ProviderSelect } from "./ProviderSelect";
 import { StreamRenderer } from "./StreamRenderer";
+
+const ATTACHMENT_ACCEPT =
+  "image/*,.md,.txt,.json,.js,.jsx,.ts,.tsx,.html,.css,.scss,.rs,.py,.java,.kt,.go,.sh,.yaml,.yml,.toml,.xml,.csv,.sql";
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -128,13 +133,95 @@ function ThinkingIndicator() {
   );
 }
 
+function buildAttachmentImageSource(attachment: AIMessageAttachment) {
+  if (attachment.kind !== "image") {
+    return null;
+  }
+
+  return `data:${attachment.mimeType};base64,${attachment.base64Data}`;
+}
+
+function AttachmentPreviewList({
+  attachments,
+  removable = false,
+  onRemove,
+}: {
+  attachments: readonly AIMessageAttachment[];
+  removable?: boolean;
+  onRemove?: (attachmentId: string) => void;
+}) {
+  if (attachments.length === 0) {
+    return null;
+  }
+
+  const imageAttachments = attachments.filter((attachment) => attachment.kind === "image");
+  const textAttachments = attachments.filter((attachment) => attachment.kind === "text");
+
+  return (
+    <div className="flex flex-col gap-2">
+      {imageAttachments.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {imageAttachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="group relative h-20 w-20 overflow-hidden rounded-xl border border-border/70 bg-fg/[0.04]"
+            >
+              <img
+                src={buildAttachmentImageSource(attachment) ?? ""}
+                alt={attachment.name}
+                className="h-full w-full object-cover"
+              />
+              {removable && onRemove ? (
+                <button
+                  type="button"
+                  aria-label={`移除附件 ${attachment.name}`}
+                  onClick={() => onRemove(attachment.id)}
+                  className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {textAttachments.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {textAttachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="group inline-flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border/70 bg-bg/90 px-3 py-1.5 text-sm text-muted"
+            >
+              <FileText className="h-4 w-4 shrink-0" />
+              <span className="truncate text-fg/82">{attachment.name}</span>
+              {removable && onRemove ? (
+                <button
+                  type="button"
+                  aria-label={`移除附件 ${attachment.name}`}
+                  onClick={() => onRemove(attachment.id)}
+                  className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition hover:text-fg group-hover:opacity-100 focus-visible:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function MessageBubble({
   role,
   content,
+  attachments,
   isStreaming,
 }: {
   role: "user" | "assistant";
   content: string;
+  attachments?: AIMessageAttachment[];
   isStreaming: boolean;
 }) {
   if (role === "user") {
@@ -143,7 +230,14 @@ function MessageBubble({
         data-testid="user-message"
         className="ml-auto max-w-[85%] rounded-[1.2rem] rounded-br-md bg-accent px-4 py-3 text-sm leading-6 text-white shadow-sm"
       >
-        <p className="whitespace-pre-wrap break-words">{content}</p>
+        {attachments && attachments.length > 0 ? (
+          <div className="mb-2">
+            <AttachmentPreviewList attachments={attachments} />
+          </div>
+        ) : null}
+        {content.trim().length > 0 ? (
+          <p className="whitespace-pre-wrap break-words">{content}</p>
+        ) : null}
       </div>
     );
   }
@@ -173,6 +267,8 @@ export function ChatPanel() {
   const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<AIMessageAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [includeCurrentDocumentContext, setIncludeCurrentDocumentContext] =
     useState(false);
   const [attachedDocumentMentions, setAttachedDocumentMentions] = useState<
@@ -185,6 +281,7 @@ export function ChatPanel() {
   const [dismissedMentionKey, setDismissedMentionKey] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const {
     conversations,
     activeConversationId,
@@ -243,11 +340,13 @@ export function ChatPanel() {
       setDraft("");
       setCaretPosition(0);
       setAttachedDocumentMentions([]);
+      setPendingAttachments([]);
       setMentionExpanded(false);
       setDismissedMentionKey(null);
     });
     setConversationListOpen(false);
     setConversationMenuOpen(false);
+    setAttachmentError(null);
   }, [activeConversationId]);
 
   useEffect(() => {
@@ -429,7 +528,7 @@ export function ChatPanel() {
   }, [mentionMenuItems.length, mentionMenuOpen]);
 
   const canSend =
-    draft.trim().length > 0 &&
+    (draft.trim().length > 0 || pendingAttachments.length > 0) &&
     !isStreaming &&
     !isLoadingProviders &&
     Boolean(activeProvider && activeModel);
@@ -448,16 +547,19 @@ export function ChatPanel() {
 
   const handleSubmit = async () => {
     const content = draft.trim();
-    if (!content) {
+    if (!content && pendingAttachments.length === 0) {
       return;
     }
 
     startTransition(() => {
       setDraft("");
+      setPendingAttachments([]);
+      setAttachmentError(null);
     });
     await sendMessage(content, {
       includeCurrentDocument: includeCurrentDocumentContext,
       attachedDocumentPaths: activeAttachedDocumentPaths,
+      attachments: pendingAttachments,
     });
   };
 
@@ -534,6 +636,37 @@ export function ChatPanel() {
 
     renameConversation(currentConversation.id, renameDraft);
     setRenameDialogOpen(false);
+  };
+
+  const handleRemovePendingAttachment = (attachmentId: string) => {
+    setPendingAttachments((attachments) =>
+      attachments.filter((attachment) => attachment.id !== attachmentId),
+    );
+  };
+
+  const handleAttachmentSelection = async (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const selectedFiles = Array.from(files);
+    if (
+      pendingAttachments.length + selectedFiles.length >
+      aiAttachmentService.maxAttachmentCount
+    ) {
+      setAttachmentError(
+        `一次最多只能添加 ${aiAttachmentService.maxAttachmentCount} 个附件`,
+      );
+      return;
+    }
+
+    try {
+      const attachments = await aiAttachmentService.createAttachments(selectedFiles);
+      setPendingAttachments((current) => [...current, ...attachments]);
+      setAttachmentError(null);
+    } catch (error) {
+      setAttachmentError(error instanceof Error ? error.message : String(error));
+    }
   };
 
   return (
@@ -661,6 +794,7 @@ export function ChatPanel() {
                   key={message.id}
                   role={message.role}
                   content={message.content}
+                  attachments={message.attachments}
                   isStreaming={isLastAssistant}
                 />
               );
@@ -715,13 +849,25 @@ export function ChatPanel() {
           </DialogContent>
         </Dialog>
 
-        {errorMessage ? (
+        {attachmentError ?? errorMessage ? (
           <div className="mb-3 rounded-xl border border-rose-300/35 bg-rose-500/8 px-3 py-2 text-xs leading-5 text-rose-300">
-            {errorMessage}
+            {attachmentError ?? errorMessage}
           </div>
         ) : null}
 
         <div className="relative rounded-[1.25rem] border border-border/70 bg-[rgb(var(--color-bg)/0.92)] p-3 shadow-sm">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ATTACHMENT_ACCEPT}
+            className="hidden"
+            onChange={(event) => {
+              void handleAttachmentSelection(event.target.files);
+              event.target.value = "";
+            }}
+          />
+
           {mentionMenuOpen ? (
             <div className="absolute inset-x-3 bottom-[calc(100%+0.75rem)] z-20 rounded-[1.1rem] border border-border/80 bg-[rgb(var(--color-bg)/0.98)] p-2 shadow-panel">
               <div className="max-h-[18rem] overflow-y-auto">
@@ -841,6 +987,16 @@ export function ChatPanel() {
             </div>
           ) : null}
 
+          {pendingAttachments.length > 0 ? (
+            <div className="mb-3">
+              <AttachmentPreviewList
+                attachments={pendingAttachments}
+                removable
+                onRemove={handleRemovePendingAttachment}
+              />
+            </div>
+          ) : null}
+
           <div className="relative">
             {draft ? (
               <div
@@ -930,6 +1086,16 @@ export function ChatPanel() {
 
           <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                aria-label="添加附件"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isStreaming || isLoadingProviders}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+
               <ProviderSelect
                 providers={providers}
                 modelsByProvider={modelsByProvider}

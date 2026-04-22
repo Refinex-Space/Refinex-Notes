@@ -568,6 +568,104 @@ describe("ChatPanel", () => {
     expect(sendMessage).toHaveBeenCalledWith("请参考 @Cursor Guide.md 后总结", {
       includeCurrentDocument: true,
       attachedDocumentPaths: ["guides/Cursor Guide.md"],
+      attachments: [],
+    });
+  });
+
+  it("accepts text attachments, shows them in the composer, and sends them with the user message", async () => {
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+
+    useAIStore.setState({
+      providers: [
+        {
+          id: "deepseek",
+          name: "DeepSeek",
+          providerKind: "deepseek",
+          baseUrl: "https://api.deepseek.com/v1",
+        },
+      ],
+      modelsByProvider: {
+        deepseek: [
+          {
+            providerId: "deepseek",
+            modelId: "deepseek-reasoner",
+            label: "DeepSeek Reasoner",
+            isDefault: true,
+          },
+        ],
+      },
+      activeProvider: "deepseek",
+      activeModel: "deepseek-reasoner",
+      messages: [],
+      isStreaming: false,
+      isLoadingProviders: false,
+      errorMessage: null,
+      loadProviders: vi.fn(),
+      loadModels: vi.fn(),
+      selectProvider: vi.fn(),
+      selectModel: vi.fn(),
+      sendMessage,
+      cancelStream: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<ChatPanel />);
+      await flushFrame();
+    });
+
+    const attachmentInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement | null;
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    const attachment = new File(["# Attachment"], "outline.md", {
+      type: "text/markdown",
+    });
+
+    await act(async () => {
+      Object.defineProperty(attachmentInput, "files", {
+        configurable: true,
+        value: [attachment],
+      });
+      attachmentInput?.dispatchEvent(new Event("change", { bubbles: true }));
+      await flushFrame();
+      await flushFrame();
+    });
+
+    expect(container.textContent).toContain("outline.md");
+
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value",
+      )?.set;
+      valueSetter?.call(textarea, "请结合附件回答");
+      textarea.selectionStart = textarea.value.length;
+      textarea.selectionEnd = textarea.value.length;
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      textarea.dispatchEvent(new Event("change", { bubbles: true }));
+      await flushFrame();
+    });
+
+    const sendButton = container.querySelector(
+      'button[aria-label="发送消息"]',
+    );
+
+    await act(async () => {
+      sendButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    expect(sendMessage).toHaveBeenCalledWith("请结合附件回答", {
+      includeCurrentDocument: false,
+      attachedDocumentPaths: [],
+      attachments: [
+        expect.objectContaining({
+          kind: "text",
+          name: "outline.md",
+          mimeType: "text/markdown",
+          textContent: "# Attachment",
+        }),
+      ],
     });
   });
 });
