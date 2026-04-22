@@ -75,8 +75,8 @@ Deviations:
 **Files:** `src-tauri/src/ai/providers.rs`, `src-tauri/src/ai/mod.rs`, `src-tauri/Cargo.toml`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml providers`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml commands::ai` 通过，`commands::ai` 新增 4 个测试覆盖 provider 查找、替换流时取消旧 sender、仅清理当前 sender、手动取消当前流。
 Deviations:
 
 ### Step 4: 接入 Tauri AI commands 与取消语义
@@ -103,8 +103,8 @@ Deviations:
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 43 passed | AI 配置骨架、settings 读取与单流取消状态已就位 |
 | 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml streaming` 3 passed | SSE 事件解析与可取消流循环已独立实现 |
-| 3 | ⬜ |  |  |
-| 4 | ⬜ |  |  |
+| 3 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml providers` 4 passed | OpenAI-compatible / Anthropic 请求体与事件提取已就位 |
+| 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml commands::ai` 4 passed | Tauri AI commands、provider 选择与取消状态接入完成 |
 | 5 | ⬜ |  |  |
 
 ## Decision Log

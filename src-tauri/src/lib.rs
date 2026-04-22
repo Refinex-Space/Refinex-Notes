@@ -45,6 +45,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::ai::ai_chat_stream,
+            commands::ai::ai_cancel_stream,
+            commands::ai::ai_list_providers,
             commands::auth::github_auth_start,
             commands::auth::github_auth_poll,
             commands::auth::check_auth_status,
