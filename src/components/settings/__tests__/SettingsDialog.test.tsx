@@ -50,10 +50,14 @@ describe("SettingsDialog", () => {
       await flushFrame();
     });
 
+    const viewport = container.querySelector("ol");
+
     const saveButton = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent?.includes("保存设置"),
     );
 
+    expect(viewport?.className).toContain("!left-1/2");
+    expect(viewport?.className).toContain("!-translate-x-1/2");
     expect(saveButton).toBeTruthy();
 
     await act(async () => {

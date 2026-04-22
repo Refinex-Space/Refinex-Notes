@@ -229,13 +229,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           <div className="space-y-1">
             <ToastTitle>设置已保存</ToastTitle>
             <ToastDescription>
-              当前分区的修改已经写入本地设置，AI 模型配置也已同步刷新。
+              当前分区的修改已经写入本地设置。
             </ToastDescription>
           </div>
         </div>
         <ToastClose />
       </Toast>
-      <ToastViewport />
+      <ToastViewport className="!left-1/2 !right-auto !top-5 !w-[min(380px,calc(100vw-2rem))] !-translate-x-1/2" />
     </ToastProvider>
   );
 }
