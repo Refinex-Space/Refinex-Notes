@@ -742,7 +742,7 @@ export function ChatPanel() {
               type="button"
               aria-label="新建会话"
               onClick={handleCreateConversation}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 w-9 items-center justify-center bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isStreaming}
             >
               <Plus className="h-4 w-4" />
@@ -753,7 +753,7 @@ export function ChatPanel() {
                 <button
                   type="button"
                   aria-label="打开会话菜单"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-9 w-9 items-center justify-center bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isStreaming || !currentConversation}
                 >
                   <MoreHorizontal className="h-4 w-4" />
