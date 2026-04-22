@@ -66,8 +66,8 @@ Deviations:
 **Files:** `src-tauri/src/ai/streaming.rs`, `src-tauri/src/ai/mod.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml streaming`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml streaming` 通过，新增 3 个解析测试覆盖多行 `data:`、chunk 边界、`[DONE]` 与非法字段处理。
 Deviations:
 
 ### Step 3: 实现 OpenAI-compatible 与 Anthropic provider
@@ -102,7 +102,7 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 43 passed | AI 配置骨架、settings 读取与单流取消状态已就位 |
-| 2 | ⬜ |  |  |
+| 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml streaming` 3 passed | SSE 事件解析与可取消流循环已独立实现 |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |
 | 5 | ⬜ |  |  |

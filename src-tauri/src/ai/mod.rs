@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub mod providers;
 pub mod streaming;
 
+pub use streaming::{stream_sse_response, SseEvent, StreamControl, StreamOutcome};
+
 pub const AI_PROVIDERS_SETTINGS_KEY: &str = "ai_providers";
 pub const DEFAULT_DEEPSEEK_BASE_URL: &str = "https://api.deepseek.com/v1";
 pub const DEFAULT_QWEN_BASE_URL: &str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
