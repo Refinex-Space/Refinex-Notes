@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Settings Full-Page Surface](exec-plans/active/2026-04-22-settings-full-page-surface.md) — started 2026-04-22
-
 ## Completed Plans
+
+- [Settings Full-Page Surface](exec-plans/completed/2026-04-22-settings-full-page-surface.md) — completed 2026-04-22
 
 - [Phase 10 Settings System](exec-plans/completed/2026-04-22-phase10-settings-system.md) — completed 2026-04-22
 
