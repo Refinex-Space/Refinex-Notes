@@ -1,17 +1,329 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
-import type { AIStore } from "../types/ai";
+import { aiService } from "../services/aiService";
+import type {
+  AICommandMessage,
+  AIMessage,
+  AIModelInfo,
+  AIProviderInfo,
+  AIStore,
+} from "../types/ai";
+import { getCurrentDocument, useNoteStore } from "./noteStore";
+import { useEditorStore } from "./editorStore";
+import {
+  buildAIContext,
+  buildDirectoryTreeSummary,
+  buildSystemPrompt,
+} from "../components/ai/ContextBuilder";
+
+function createMessageId() {
+  return globalThis.crypto?.randomUUID?.() ?? `ai-${Date.now()}-${Math.random()}`;
+}
+
+function pickDefaultModel(models: readonly AIModelInfo[]) {
+  return models.find((model) => model.isDefault) ?? models[0] ?? null;
+}
+
+function buildContextSnapshot() {
+  const currentDocument = getCurrentDocument();
+  const noteState = useNoteStore.getState();
+  const editorState = useEditorStore.getState();
+
+  return buildAIContext({
+    content: currentDocument?.content ?? "",
+    filePath: currentDocument?.path ?? "（当前没有打开文档）",
+    cursorPosition: editorState.cursorPosition,
+    directoryTree: buildDirectoryTreeSummary(noteState.files),
+    openFiles: noteState.openFiles,
+    recentFiles: noteState.recentFiles,
+  });
+}
+
+function toCommandMessages(
+  messages: readonly AIMessage[],
+  systemPrompt: string,
+): AICommandMessage[] {
+  return [
+    { role: "system", content: systemPrompt },
+    ...messages.map((message) => ({
+      role: message.role,
+      content: message.content,
+    })),
+  ];
+}
+
+function replaceMessageContent(
+  messages: readonly AIMessage[],
+  messageId: string,
+  updater: (current: string) => string,
+): AIMessage[] {
+  return messages.map((message) =>
+    message.id === messageId
+      ? {
+          ...message,
+          content: updater(message.content),
+        }
+      : message,
+  );
+}
+
+function trimTrailingEmptyAssistant(messages: readonly AIMessage[]) {
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage || lastMessage.role !== "assistant" || lastMessage.content.length > 0) {
+    return [...messages];
+  }
+
+  return messages.slice(0, -1);
+}
+
+function ensureActiveModel(
+  modelsByProvider: Record<string, AIModelInfo[]>,
+  providerId: string | null,
+  currentModel: string | null,
+) {
+  if (!providerId) {
+    return null;
+  }
+
+  const models = modelsByProvider[providerId] ?? [];
+  if (models.some((model) => model.modelId === currentModel)) {
+    return currentModel;
+  }
+
+  return pickDefaultModel(models)?.modelId ?? null;
+}
+
+function createInitialState() {
+  return {
+    messages: [] as AIMessage[],
+    isStreaming: false,
+    isLoadingProviders: false,
+    providers: [] as AIProviderInfo[],
+    modelsByProvider: {} as Record<string, AIModelInfo[]>,
+    activeProvider: null as string | null,
+    activeModel: null as string | null,
+    errorMessage: null as string | null,
+    activeRequestId: null as string | null,
+  };
+}
+
+export function resetAIStore() {
+  useAIStore.setState(createInitialState());
+}
 
 export const useAIStore = create<AIStore>()(
-  immer(() => ({
-    messages: [],
-    isStreaming: false,
-    activeProvider: "deepseek",
-    activeModel: "",
-    sendMessage: async () => {},
-    cancelStream: () => {},
-    clearHistory: () => {},
-    switchProvider: () => {},
+  immer((set, get) => ({
+    ...createInitialState(),
+
+    loadProviders: async () => {
+      if (!aiService.isNativeAvailable()) {
+        set((state) => {
+          state.providers = [];
+          state.modelsByProvider = {};
+          state.activeProvider = null;
+          state.activeModel = null;
+          state.errorMessage = "AI 功能仅在 Tauri 桌面环境可用";
+        });
+        return;
+      }
+
+      set((state) => {
+        state.isLoadingProviders = true;
+        state.errorMessage = null;
+      });
+
+      try {
+        const providers = await aiService.listProviders();
+        const previousProvider = get().activeProvider;
+        const nextProvider =
+          providers.find((provider) => provider.id === previousProvider)?.id ??
+          providers[0]?.id ??
+          null;
+
+        set((state) => {
+          state.providers = providers;
+          state.activeProvider = nextProvider;
+          state.activeModel = ensureActiveModel(
+            state.modelsByProvider,
+            nextProvider,
+            state.activeModel,
+          );
+          state.errorMessage =
+            providers.length === 0 ? "当前没有可用的 AI Provider" : null;
+        });
+
+        if (nextProvider) {
+          await get().loadModels(nextProvider);
+        }
+      } catch (error) {
+        set((state) => {
+          state.errorMessage =
+            error instanceof Error ? error.message : String(error);
+        });
+      } finally {
+        set((state) => {
+          state.isLoadingProviders = false;
+        });
+      }
+    },
+
+    loadModels: async (providerId) => {
+      if (!providerId || !aiService.isNativeAvailable()) {
+        return;
+      }
+
+      const models = await aiService.listModels(providerId);
+
+      set((state) => {
+        state.modelsByProvider[providerId] = models;
+        if (state.activeProvider === providerId) {
+          state.activeModel = ensureActiveModel(
+            state.modelsByProvider,
+            providerId,
+            state.activeModel,
+          );
+        }
+      });
+    },
+
+    selectProvider: async (providerId) => {
+      set((state) => {
+        state.activeProvider = providerId;
+        state.activeModel = ensureActiveModel(
+          state.modelsByProvider,
+          providerId,
+          state.activeModel,
+        );
+        state.errorMessage = null;
+      });
+
+      if (!(get().modelsByProvider[providerId]?.length > 0)) {
+        try {
+          await get().loadModels(providerId);
+        } catch (error) {
+          set((state) => {
+            state.errorMessage =
+              error instanceof Error ? error.message : String(error);
+          });
+        }
+      }
+    },
+
+    selectModel: (modelId) => {
+      set((state) => {
+        state.activeModel = modelId;
+      });
+    },
+
+    sendMessage: async (content) => {
+      const trimmed = content.trim();
+      if (!trimmed || get().isStreaming) {
+        return;
+      }
+
+      const providerId = get().activeProvider;
+      const modelId = get().activeModel;
+      if (!providerId || !modelId) {
+        set((state) => {
+          state.errorMessage = "请先选择可用的 Provider 和模型";
+        });
+        return;
+      }
+
+      const userMessageId = createMessageId();
+      const assistantMessageId = createMessageId();
+      const requestId = createMessageId();
+      const userMessage: AIMessage = {
+        id: userMessageId,
+        role: "user",
+        content: trimmed,
+        timestamp: Date.now(),
+      };
+      const assistantMessage: AIMessage = {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+        timestamp: Date.now(),
+      };
+      const systemPrompt = buildSystemPrompt(buildContextSnapshot());
+      const commandMessages = toCommandMessages(
+        [...get().messages, userMessage],
+        systemPrompt,
+      );
+
+      set((state) => {
+        state.messages.push(userMessage, assistantMessage);
+        state.isStreaming = true;
+        state.errorMessage = null;
+        state.activeRequestId = requestId;
+      });
+
+      try {
+        await aiService.stream({
+          messages: commandMessages,
+          providerId,
+          model: modelId,
+          onToken: (token) => {
+            if (get().activeRequestId !== requestId) {
+              return;
+            }
+
+            set((state) => {
+              state.messages = replaceMessageContent(
+                state.messages,
+                assistantMessageId,
+                (current) => current + token,
+              );
+            });
+          },
+        });
+      } catch (error) {
+        const isStillActive = get().activeRequestId === requestId;
+        if (isStillActive) {
+          set((state) => {
+            state.messages = trimTrailingEmptyAssistant(state.messages);
+            state.errorMessage =
+              error instanceof Error ? error.message : String(error);
+          });
+        }
+      } finally {
+        if (get().activeRequestId === requestId) {
+          set((state) => {
+            state.isStreaming = false;
+            state.activeRequestId = null;
+          });
+        }
+      }
+    },
+
+    cancelStream: async () => {
+      const activeRequestId = get().activeRequestId;
+      if (!activeRequestId) {
+        return;
+      }
+
+      set((state) => {
+        state.isStreaming = false;
+        state.activeRequestId = null;
+        state.messages = trimTrailingEmptyAssistant(state.messages);
+      });
+
+      try {
+        await aiService.cancelStream();
+      } catch (error) {
+        set((state) => {
+          state.errorMessage =
+            error instanceof Error ? error.message : String(error);
+        });
+      }
+    },
+
+    clearHistory: () => {
+      set((state) => {
+        state.messages = [];
+        state.errorMessage = null;
+      });
+    },
   })),
 );

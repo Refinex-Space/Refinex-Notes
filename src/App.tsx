@@ -8,13 +8,13 @@ import {
   Plus,
   RefreshCcw,
   Search as SearchIcon,
-  Wand2,
   X,
 } from "lucide-react";
 import { TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 
 import { CommandPalette } from "./components/CommandPalette";
+import { ChatPanel } from "./components/ai/ChatPanel";
 import { AccountStatus } from "./components/auth/AccountStatus";
 import { GitEmptyState } from "./components/git/GitEmptyState";
 import { GitPanel } from "./components/git/GitPanel";
@@ -321,18 +321,6 @@ function RightPanelContent({
           <GitPanel />
         )}
       </div>
-    </div>
-  );
-}
-
-function AiPanelPlaceholder() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <Wand2 className="h-8 w-8 text-muted/40" />
-      <p className="text-sm font-medium text-muted">AI 写作助手</p>
-      <p className="text-xs leading-5 text-muted/60">
-        AI 助手功能正在开发中，敬请期待。
-      </p>
     </div>
   );
 }
@@ -1030,7 +1018,7 @@ function WorkspaceShell({
             }
           />
         }
-        aiPanel={<AiPanelPlaceholder />}
+        aiPanel={<ChatPanel />}
         sidebarTitle=""
         rightPanelTitle=""
         activeTitle={currentDocument?.name ?? undefined}

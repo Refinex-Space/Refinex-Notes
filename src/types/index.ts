@@ -30,8 +30,13 @@ export type {
   GitSyncStatus,
 } from "./git";
 export type {
+  AICommandMessage,
+  AICommandMessageRole,
+  AIContext,
   AIMessage,
   AIMessageRole,
+  AIModelInfo,
+  AIProviderInfo,
   AIStore,
   AIStoreActions,
   AIStoreState,

@@ -234,3 +234,7 @@ export function parseMarkdown(content: string): ProseMirrorNode {
   }
   return doc;
 }
+
+export function renderMarkdownToHtml(content: string) {
+  return md.render(content);
+}
