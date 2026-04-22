@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [AI Chat Multi Conversations](exec-plans/active/2026-04-22-ai-chat-multi-conversations.md) — started 2026-04-22
+
 ## Completed Plans
 
 - [AI Chat Document Mentions](exec-plans/completed/2026-04-22-ai-chat-document-mentions.md) — completed 2026-04-22
