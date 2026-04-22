@@ -6,6 +6,8 @@ Active and planned work for this repository.
 
 ## Active Plans
 
+- [Phase 8 AI Chat Panel](exec-plans/active/2026-04-22-phase8-ai-chat-panel.md) — started 2026-04-22
+
 ## Completed Plans
 
 - [Phase 8 AI Model Catalog](exec-plans/completed/2026-04-22-phase8-ai-model-catalog.md) — completed 2026-04-22
