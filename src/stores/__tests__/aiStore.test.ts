@@ -322,9 +322,16 @@ describe("aiStore", () => {
     const createdConversationId = useAIStore.getState().createConversation();
     useAIStore.getState().switchConversation(createdConversationId);
 
-    const persisted = await Promise.resolve(
+    const persisted = (await Promise.resolve(
       useAIStore.persist.getOptions().storage?.getItem("refinex-ai-chat-store"),
-    );
+    )) as
+      | {
+          state?: {
+            activeConversationId?: string;
+            conversations?: Array<{ id: string; title: string }>;
+          };
+        }
+      | null;
 
     expect(persisted).toMatchObject({
       state: {

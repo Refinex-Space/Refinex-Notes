@@ -61,18 +61,18 @@ Deviations:
 **Files:** `src/components/ai/ChatPanel.tsx`, `src/components/ai/__tests__/ChatPanel.test.tsx`
 **Verification:** `npm test -- --run src/components/ai/__tests__/ChatPanel.test.tsx`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `npm test -- --run src/components/ai/__tests__/ChatPanel.test.tsx` → 1 file, 5 tests passed
+Deviations: 与 Step 3 合并为一个顶部交互原子提交，因为会话切换器、更多菜单与相关回归测试共享同一 header 结构
 
 ### Step 3: 接入重命名与删除当前会话交互
 
 **Files:** `src/components/ai/ChatPanel.tsx`, `src/stores/aiStore.ts`, `src/components/ai/__tests__/ChatPanel.test.tsx`, `src/stores/__tests__/aiStore.test.ts`
 **Verification:** `npm test -- --run src/stores/__tests__/aiStore.test.ts src/components/ai/__tests__/ChatPanel.test.tsx`
 
-Status: ⬜ Not started
-Evidence:
-Deviations:
+Status: ✅ Done
+Evidence: `npm test -- --run src/stores/__tests__/aiStore.test.ts src/components/ai/__tests__/ChatPanel.test.tsx` → 2 files, 12 tests passed
+Deviations: 与 Step 2 合并实现并共用一条 UI commit，保持会话 header 交互为一个可回滚单元
 
 ### Step 4: 运行全量验证并完成控制面归档
 
@@ -88,8 +88,8 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `npm test -- --run src/stores/__tests__/aiStore.test.ts` | 多会话状态、当前会话切换、重命名、删除与本地持久化已落到 store |
-| 2 | ⬜ |  |  |
-| 3 | ⬜ |  |  |
+| 2 | ✅ | `npm test -- --run src/components/ai/__tests__/ChatPanel.test.tsx` | 顶部会话切换、新建会话与当前会话标题展示已接入 |
+| 3 | ✅ | `npm test -- --run src/stores/__tests__/aiStore.test.ts src/components/ai/__tests__/ChatPanel.test.tsx` | 当前会话重命名、删除与删除后的回退逻辑已接入 |
 | 4 | ⬜ |  |  |
 
 ## Decision Log
@@ -97,6 +97,7 @@ Deviations:
 | Decision | Context | Alternatives Considered | Rationale |
 | -------- | ------- | ----------------------- | --------- |
 | 使用 Zustand `persist` 做本地会话持久化 | 需要在不引入原生新命令的前提下保留历史会话 | 手写 `localStorage` 副作用、改 native settings schema | `persist` 与现有 store 架构最贴合，改动最小 |
+| 将 Step 2 / Step 3 合并为同一原子 UI 变更 | 顶部会话切换器与更多菜单共享 `ChatPanel` 顶部结构和同一组交互测试 | 按文件再切碎提交 | 合并后更易回滚，也避免 header 层出现半完成状态 |
 
 ## Completion Summary
 

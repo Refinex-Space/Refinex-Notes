@@ -47,7 +47,13 @@ describe("ChatPanel", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses an icon-only send button and keeps clear history in the top bar", async () => {
+  it("renders conversation controls in the top bar and supports switching, renaming, and deleting sessions", async () => {
+    const firstConversationId = useAIStore.getState().activeConversationId!;
+    useAIStore.getState().renameConversation(firstConversationId, "技术博客写作请求");
+    const secondConversationId = useAIStore.getState().createConversation();
+    useAIStore.getState().renameConversation(secondConversationId, "工作任务子页面设计");
+    useAIStore.getState().switchConversation(firstConversationId);
+
     useAIStore.setState({
       providers: [
         {
@@ -79,7 +85,6 @@ describe("ChatPanel", () => {
       selectModel: vi.fn(),
       sendMessage: vi.fn(),
       cancelStream: vi.fn(),
-      clearHistory: vi.fn(),
     });
 
     await act(async () => {
@@ -87,12 +92,104 @@ describe("ChatPanel", () => {
       await flushFrame();
     });
 
+    const conversationListButton = container.querySelector(
+      'button[aria-label="打开会话列表"]',
+    ) as HTMLButtonElement | null;
+    const newConversationButton = container.querySelector(
+      'button[aria-label="新建会话"]',
+    ) as HTMLButtonElement | null;
+    const conversationMenuButton = container.querySelector(
+      'button[aria-label="打开会话菜单"]',
+    ) as HTMLButtonElement | null;
     const sendButton = container.querySelector('button[aria-label="发送消息"]');
 
-    expect(container.textContent).toContain("清空历史");
-    expect(container.textContent).not.toContain("当前模型");
+    expect(conversationListButton?.textContent).toContain("技术博客写作请求");
+    expect(newConversationButton).toBeTruthy();
+    expect(conversationMenuButton).toBeTruthy();
+    expect(container.textContent).not.toContain("清空历史");
     expect(sendButton).toBeTruthy();
     expect(sendButton?.textContent?.trim() ?? "").toBe("");
+
+    await act(async () => {
+      conversationListButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    expect(document.body.textContent).toContain("工作任务子页面设计");
+
+    const switchButton = document.body.querySelector(
+      'button[aria-label="切换会话 工作任务子页面设计"]',
+    );
+
+    await act(async () => {
+      switchButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    expect(conversationListButton?.textContent).toContain("工作任务子页面设计");
+
+    await act(async () => {
+      newConversationButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    expect(conversationListButton?.textContent).toContain("新会话");
+
+    await act(async () => {
+      conversationMenuButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    const renameButton = document.body.querySelector(
+      'button[aria-label="重命名当前会话"]',
+    );
+
+    await act(async () => {
+      renameButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    const renameInput = document.body.querySelector(
+      'input[aria-label="会话名称"]',
+    ) as HTMLInputElement | null;
+
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      valueSetter?.call(renameInput, "新的会话标题");
+      renameInput?.dispatchEvent(new Event("input", { bubbles: true }));
+      renameInput?.dispatchEvent(new Event("change", { bubbles: true }));
+      await flushFrame();
+    });
+
+    const saveRenameButton = Array.from(document.body.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("保存"),
+    );
+
+    await act(async () => {
+      saveRenameButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    expect(conversationListButton?.textContent).toContain("新的会话标题");
+
+    await act(async () => {
+      conversationMenuButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    const deleteButton = document.body.querySelector(
+      'button[aria-label="删除当前会话"]',
+    );
+
+    await act(async () => {
+      deleteButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushFrame();
+    });
+
+    expect(conversationListButton?.textContent).toContain("工作任务子页面设计");
   });
 
   it("renders assistant responses as full-width content and shows a thinking indicator while streaming", async () => {
@@ -142,7 +239,6 @@ describe("ChatPanel", () => {
       selectModel: vi.fn(),
       sendMessage: vi.fn(),
       cancelStream,
-      clearHistory: vi.fn(),
     });
 
     await act(async () => {
@@ -222,7 +318,6 @@ describe("ChatPanel", () => {
       selectModel: vi.fn(),
       sendMessage: vi.fn(),
       cancelStream: vi.fn(),
-      clearHistory: vi.fn(),
     });
 
     await act(async () => {
@@ -293,7 +388,6 @@ describe("ChatPanel", () => {
       selectModel: vi.fn(),
       sendMessage: vi.fn(),
       cancelStream: vi.fn(),
-      clearHistory: vi.fn(),
     });
 
     await act(async () => {
@@ -402,7 +496,6 @@ describe("ChatPanel", () => {
       selectModel: vi.fn(),
       sendMessage,
       cancelStream: vi.fn(),
-      clearHistory: vi.fn(),
     });
 
     await act(async () => {

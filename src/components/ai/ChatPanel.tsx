@@ -7,12 +7,16 @@ import {
   useState,
 } from "react";
 import {
+  Check,
+  ChevronDown,
   ChevronRight,
   FileText,
   Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
   Send,
   Square,
-  Trash2,
   Wand2,
   X,
 } from "lucide-react";
@@ -21,6 +25,15 @@ import { searchService } from "../../services/searchService";
 import { useAIStore } from "../../stores/aiStore";
 import { useNoteStore } from "../../stores/noteStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   buildDocumentMentionSections,
   buildDocumentMentionText,
@@ -156,6 +169,10 @@ function MessageBubble({
 
 export function ChatPanel() {
   const [draft, setDraft] = useState("");
+  const [conversationListOpen, setConversationListOpen] = useState(false);
+  const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameDraft, setRenameDraft] = useState("");
   const [includeCurrentDocumentContext, setIncludeCurrentDocumentContext] =
     useState(false);
   const [attachedDocumentMentions, setAttachedDocumentMentions] = useState<
@@ -169,6 +186,8 @@ export function ChatPanel() {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const {
+    conversations,
+    activeConversationId,
     providers,
     modelsByProvider,
     activeProvider,
@@ -183,7 +202,10 @@ export function ChatPanel() {
     selectModel,
     sendMessage,
     cancelStream,
-    clearHistory,
+    createConversation,
+    switchConversation,
+    renameConversation,
+    deleteConversation,
   } = useAIStore((state) => state);
   const defaultProviderId = useSettingsStore(
     (state) => state.settings.ai.defaultProviderId,
@@ -200,10 +222,33 @@ export function ChatPanel() {
   const requestedCatalogRef = useRef<Set<string>>(new Set());
 
   const deferredMessages = useDeferredValue(messages);
+  const sortedConversations = useMemo(
+    () => [...conversations].sort((left, right) => right.updatedAt - left.updatedAt),
+    [conversations],
+  );
+  const currentConversation = useMemo(
+    () =>
+      conversations.find((conversation) => conversation.id === activeConversationId) ??
+      conversations[0] ??
+      null,
+    [activeConversationId, conversations],
+  );
 
   useEffect(() => {
     void loadProviders();
   }, [loadProviders]);
+
+  useEffect(() => {
+    startTransition(() => {
+      setDraft("");
+      setCaretPosition(0);
+      setAttachedDocumentMentions([]);
+      setMentionExpanded(false);
+      setDismissedMentionKey(null);
+    });
+    setConversationListOpen(false);
+    setConversationMenuOpen(false);
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!defaultProviderId) {
@@ -468,19 +513,132 @@ export function ChatPanel() {
     });
   };
 
+  const handleCreateConversation = () => {
+    createConversation();
+  };
+
+  const handleRenameConversation = () => {
+    if (!currentConversation) {
+      return;
+    }
+
+    setRenameDraft(currentConversation.title);
+    setRenameDialogOpen(true);
+    setConversationMenuOpen(false);
+  };
+
+  const handleConfirmRenameConversation = () => {
+    if (!currentConversation) {
+      return;
+    }
+
+    renameConversation(currentConversation.id, renameDraft);
+    setRenameDialogOpen(false);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0))]">
       <div className="px-4 py-3">
-        <div className="flex items-center justify-end">
-          <button
-            type="button"
-            onClick={clearHistory}
-            className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] px-3 py-2 text-xs font-medium text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isStreaming || messages.length === 0}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            清空历史
-          </button>
+        <div className="flex items-center justify-between gap-3">
+          <Popover open={conversationListOpen} onOpenChange={setConversationListOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="打开会话列表"
+                className="inline-flex min-w-0 max-w-[min(100%,18rem)] items-center gap-2 rounded-full bg-fg/[0.06] px-3 py-2 text-left transition hover:bg-fg/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isStreaming}
+              >
+                <span className="min-w-0 truncate text-sm font-semibold text-fg">
+                  {currentConversation?.title ?? "新会话"}
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-muted" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="bottom"
+              align="start"
+              className="w-[min(24rem,calc(100vw-2rem))] p-2"
+            >
+              <div className="max-h-[18rem] overflow-y-auto">
+                {sortedConversations.map((conversation) => {
+                  const isActive = conversation.id === currentConversation?.id;
+                  return (
+                    <button
+                      key={conversation.id}
+                      type="button"
+                      aria-label={`切换会话 ${conversation.title}`}
+                      onClick={() => {
+                        switchConversation(conversation.id);
+                        setConversationListOpen(false);
+                      }}
+                      className={[
+                        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition",
+                        isActive ? "bg-fg/[0.06]" : "hover:bg-fg/[0.04]",
+                      ].join(" ")}
+                    >
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">
+                        {conversation.title}
+                      </span>
+                      {isActive ? (
+                        <Check className="h-4 w-4 shrink-0 text-accent" />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="新建会话"
+              onClick={handleCreateConversation}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isStreaming}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+
+            <Popover open={conversationMenuOpen} onOpenChange={setConversationMenuOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="打开会话菜单"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-[rgb(var(--color-bg)/0.7)] text-muted transition hover:border-border hover:bg-fg/[0.04] hover:text-fg disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isStreaming || !currentConversation}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-44 p-1.5">
+                <button
+                  type="button"
+                  aria-label="重命名当前会话"
+                  onClick={handleRenameConversation}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-fg transition hover:bg-fg/[0.04]"
+                >
+                  <Pencil className="h-4 w-4 text-muted" />
+                  <span>重命名</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="删除当前会话"
+                  onClick={() => {
+                    if (!currentConversation) {
+                      return;
+                    }
+                    deleteConversation(currentConversation.id);
+                    setConversationMenuOpen(false);
+                  }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-rose-300 transition hover:bg-rose-500/10"
+                >
+                  <X className="h-4 w-4" />
+                  <span>删除</span>
+                </button>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </div>
 
@@ -512,6 +670,51 @@ export function ChatPanel() {
       </div>
 
       <div className="px-4 py-4">
+        <Dialog
+          open={renameDialogOpen}
+          onOpenChange={(open) => {
+            setRenameDialogOpen(open);
+            if (!open) {
+              setRenameDraft("");
+            }
+          }}
+        >
+          <DialogContent className="w-[min(28rem,calc(100vw-2rem))] p-6">
+            <DialogHeader>
+              <DialogTitle>重命名会话</DialogTitle>
+              <DialogDescription>
+                更新当前 AI 会话标题，方便后续从历史会话继续聊天。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4">
+              <input
+                aria-label="会话名称"
+                value={renameDraft}
+                onChange={(event) => setRenameDraft(event.target.value)}
+                className="w-full rounded-xl border border-border/70 bg-bg px-3 py-2.5 text-sm text-fg outline-none transition focus:border-accent/60"
+                placeholder="输入会话名称"
+                maxLength={80}
+              />
+            </div>
+            <DialogFooter className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRenameDialogOpen(false)}
+                className="rounded-xl border border-border/70 px-3 py-2 text-sm text-muted transition hover:bg-fg/[0.04] hover:text-fg"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRenameConversation}
+                className="rounded-xl bg-accent px-3 py-2 text-sm font-medium text-white transition hover:brightness-110"
+              >
+                保存
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {errorMessage ? (
           <div className="mb-3 rounded-xl border border-rose-300/35 bg-rose-500/8 px-3 py-2 text-xs leading-5 text-rose-300">
             {errorMessage}
