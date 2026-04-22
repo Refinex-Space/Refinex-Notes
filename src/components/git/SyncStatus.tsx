@@ -150,7 +150,7 @@ export function SyncStatus({ onOpenHistory, onOpenSettings }: SyncStatusProps) {
           <div className="grid gap-2">
             <button
               type="button"
-              className="inline-flex items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
+              className="inline-flex items-center justify-between rounded-xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
               disabled={isRunningAction}
               onClick={() => {
                 void refreshStatus();
@@ -161,7 +161,7 @@ export function SyncStatus({ onOpenHistory, onOpenSettings }: SyncStatusProps) {
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
+              className="inline-flex items-center justify-between rounded-xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
               onClick={onOpenHistory}
             >
               <span>查看历史</span>
@@ -169,7 +169,7 @@ export function SyncStatus({ onOpenHistory, onOpenSettings }: SyncStatusProps) {
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
+              className="inline-flex items-center justify-between rounded-xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-accent/35 hover:bg-accent/10"
               onClick={onOpenSettings}
             >
               <span>设置</span>

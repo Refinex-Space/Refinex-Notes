@@ -16,7 +16,7 @@ import { StreamRenderer } from "./StreamRenderer";
 function EmptyChatState({ message }: { message: string }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/70 bg-fg/[0.04]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/70 bg-fg/[0.04]">
         <Wand2 className="h-5 w-5 text-muted" />
       </div>
       <div className="space-y-1">

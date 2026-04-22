@@ -50,7 +50,7 @@ export function SkillPicker({
       <PopoverContent
         align="start"
         side="bottom"
-        className="w-[22rem] rounded-2xl p-1.5"
+        className="w-[22rem] rounded-xl p-1.5"
       >
         <div className="mb-1 px-2 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">

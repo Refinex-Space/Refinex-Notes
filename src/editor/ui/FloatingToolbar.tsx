@@ -76,7 +76,7 @@ export function FloatingToolbar({
         side="top"
         align="center"
         sideOffset={12}
-        className="w-auto rounded-2xl p-2"
+        className="w-auto rounded-xl p-2"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
       >

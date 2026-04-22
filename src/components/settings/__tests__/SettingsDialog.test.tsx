@@ -99,6 +99,38 @@ describe("SettingsDialog", () => {
     });
 
     expect(saveSettings).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("操作失败");
+    expect(container.textContent).toContain("保存失败");
     expect(container.textContent).not.toContain("设置已保存");
+  });
+
+  it("shows settings errors in a toast instead of the header action row", async () => {
+    useSettingsStore.setState({
+      isLoaded: true,
+      isLoading: false,
+      isSaving: false,
+      errorMessage: null,
+      saveSettings: vi.fn(),
+      loadSettings: vi.fn(),
+      clearError: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<SettingsDialog onClose={vi.fn()} />);
+      await flushFrame();
+    });
+
+    await act(async () => {
+      useSettingsStore.setState({
+        errorMessage: "OpenAI 响应失败（401 Unauthorized）",
+      });
+      await flushFrame();
+    });
+
+    expect(container.textContent).toContain("操作失败");
+    expect(container.textContent).toContain("OpenAI 响应失败（401 Unauthorized）");
+    expect(
+      container.querySelector(".max-w-xs.truncate.text-sm.text-rose-500"),
+    ).toBeNull();
   });
 });

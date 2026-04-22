@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   Bot,
   CheckCircle2,
   GitBranch,
@@ -93,6 +94,9 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [section, setSection] = useState<SettingsSection>("general");
   const [saveToastOpen, setSaveToastOpen] = useState(false);
   const [saveToastKey, setSaveToastKey] = useState(0);
+  const [errorToastOpen, setErrorToastOpen] = useState(false);
+  const [errorToastKey, setErrorToastKey] = useState(0);
+  const [errorToastMessage, setErrorToastMessage] = useState("");
   const isLoaded = useSettingsStore((state) => state.isLoaded);
   const isLoading = useSettingsStore((state) => state.isLoading);
   const isSaving = useSettingsStore((state) => state.isSaving);
@@ -112,6 +116,16 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       clearError();
     };
   }, [clearError]);
+
+  useEffect(() => {
+    if (!errorMessage) {
+      return;
+    }
+
+    setErrorToastMessage(errorMessage);
+    setErrorToastKey((current) => current + 1);
+    setErrorToastOpen(true);
+  }, [errorMessage]);
 
   const handleSaveSettings = async () => {
     try {
@@ -147,7 +161,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                     key={entry.id}
                     type="button"
                     onClick={() => setSection(entry.id)}
-                    className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                    className={`flex w-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition ${
                       active
                         ? "border-accent/25 bg-accent/10 text-fg"
                         : "border-transparent bg-transparent text-muted hover:border-border/70 hover:bg-fg/[0.04] hover:text-fg"
@@ -179,11 +193,6 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                {errorMessage ? (
-                  <span className="max-w-xs truncate text-sm text-rose-500">
-                    {errorMessage}
-                  </span>
-                ) : null}
                 <button
                   type="button"
                   onClick={onClose}
@@ -234,6 +243,33 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <ToastClose />
+      </Toast>
+      <Toast
+        key={errorToastKey}
+        open={errorToastOpen}
+        onOpenChange={(open) => {
+          setErrorToastOpen(open);
+          if (!open) {
+            clearError();
+          }
+        }}
+        duration={4200}
+        className="border-rose-200/80 bg-rose-50/95 text-rose-950 shadow-[0_22px_70px_rgba(190,24,93,0.18)] dark:border-rose-500/30 dark:bg-rose-950/95 dark:text-rose-50"
+      >
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/12 text-rose-500">
+            <AlertCircle className="h-4 w-4" />
+          </span>
+          <div className="space-y-1">
+            <ToastTitle className="text-rose-900 dark:text-rose-50">
+              操作失败
+            </ToastTitle>
+            <ToastDescription className="text-rose-700 dark:text-rose-100/90">
+              {errorToastMessage}
+            </ToastDescription>
+          </div>
+        </div>
+        <ToastClose className="text-rose-400 hover:border-rose-200/70 hover:text-rose-700 dark:text-rose-200/70 dark:hover:border-rose-400/30 dark:hover:text-rose-50" />
       </Toast>
       <ToastViewport className="!left-1/2 !right-auto !top-5 !w-[min(380px,calc(100vw-2rem))] !-translate-x-1/2" />
     </ToastProvider>

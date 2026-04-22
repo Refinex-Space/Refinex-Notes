@@ -126,7 +126,7 @@ export function HistoryPanel({ currentFile }: HistoryPanelProps) {
                   key={entry.hash}
                   type="button"
                   className={[
-                    "flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition",
+                    "flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition",
                     selectedCommitHash === entry.hash
                       ? "border-accent/35 bg-accent/10"
                       : "border-border/70 bg-white/[0.03] hover:border-accent/25 hover:bg-white/[0.05]",
@@ -167,7 +167,7 @@ export function HistoryPanel({ currentFile }: HistoryPanelProps) {
             预览，因此这里展示的是该提交的只读变更内容。
           </p>
           {errorMessage ? (
-            <p className="mb-3 rounded-2xl border border-rose-300/40 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-300/15 dark:bg-rose-400/10 dark:text-rose-100">
+            <p className="mb-3 rounded-xl border border-rose-300/40 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-300/15 dark:bg-rose-400/10 dark:text-rose-100">
               {errorMessage}
             </p>
           ) : null}

@@ -56,7 +56,7 @@ interface LinkHoverTooltipProps {
 }
 ```
 
-Renders a `Popover open` with `PopoverAnchor` positioned at `anchor.bottom` / `anchor.left` (fixed). `PopoverContent` uses `side="bottom"` `align="start"` `sideOffset={6}` `className="w-auto max-w-sm rounded-2xl p-0"`. Inner row: `<Globe>` icon + truncated URL as accessible link + divider + copy button + "编辑" button.
+Renders a `Popover open` with `PopoverAnchor` positioned at `anchor.bottom` / `anchor.left` (fixed). `PopoverContent` uses `side="bottom"` `align="start"` `sideOffset={6}` `className="w-auto max-w-sm rounded-xl p-0"`. Inner row: `<Globe>` icon + truncated URL as accessible link + divider + copy button + "编辑" button.
 
 `truncateUrl(url, maxLength=40)` preserves domain, truncates path.
 

@@ -20,7 +20,7 @@ function SettingRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-bg/80 p-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-bg/80 p-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="max-w-xl space-y-1">
         <h3 className="text-sm font-semibold text-fg">{title}</h3>
         <p className="text-sm leading-6 text-muted">{description}</p>
@@ -92,7 +92,7 @@ export function GeneralSettings() {
         title="启动时打开上次工作区"
         description="关闭后，应用启动时只显示空壳层，不自动恢复最近工作区。"
       >
-        <div className="flex items-center justify-between rounded-2xl border border-border/70 px-4 py-3">
+        <div className="flex items-center justify-between rounded-xl border border-border/70 px-4 py-3">
           <div>
             <p className="text-sm font-medium text-fg">
               {settings.reopenLastWorkspaceOnStartup ? "已开启" : "已关闭"}

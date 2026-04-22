@@ -195,7 +195,7 @@ export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
                     });
                   }}
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 bg-accent/8 text-fg transition-colors group-hover:border-accent/30 group-hover:bg-accent/14 group-data-[selected=true]:border-accent/40 group-data-[selected=true]:bg-accent/20">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/70 bg-accent/8 text-fg transition-colors group-hover:border-accent/30 group-hover:bg-accent/14 group-data-[selected=true]:border-accent/40 group-data-[selected=true]:bg-accent/20">
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex min-w-0 flex-col">

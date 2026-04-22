@@ -237,7 +237,7 @@ function ProviderCard({ providerId }: { providerId: string }) {
         </button>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-border/70 p-4">
+      <div className="space-y-3 rounded-xl border border-border/70 p-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-fg">可用模型目录</h3>
@@ -264,7 +264,7 @@ function ProviderCard({ providerId }: { providerId: string }) {
             return (
               <div
                 key={`${provider.id}-${model.modelId}`}
-                className="grid gap-3 rounded-2xl border border-border/60 bg-bg/90 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
+                className="grid gap-3 rounded-xl border border-border/60 bg-bg/90 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
               >
                 <input
                   value={model.modelId}
@@ -349,7 +349,7 @@ export function AIProviderConfig() {
         <button
           type="button"
           onClick={() => addCustomProvider()}
-          className="inline-flex items-center gap-2 rounded-2xl border border-border/70 px-4 py-2 text-sm font-medium text-fg transition hover:bg-fg/[0.08]"
+          className="inline-flex items-center gap-2 rounded-xl border border-border/70 px-4 py-2 text-sm font-medium text-fg transition hover:bg-fg/[0.08]"
         >
           <Plus className="h-4 w-4" />
           添加自定义 Provider

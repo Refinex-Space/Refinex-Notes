@@ -17,7 +17,7 @@ export function GitSettings() {
         </p>
       </header>
 
-      <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-bg/80 p-4">
+      <div className="flex items-center justify-between rounded-xl border border-border/70 bg-bg/80 p-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-fg">自动同步</h3>
           <p className="text-sm leading-6 text-muted">
@@ -32,7 +32,7 @@ export function GitSettings() {
         />
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-border/70 bg-bg/80 p-4">
+      <div className="space-y-3 rounded-xl border border-border/70 bg-bg/80 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-fg">同步间隔</h3>
@@ -58,7 +58,7 @@ export function GitSettings() {
         />
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-border/70 bg-bg/80 p-4">
+      <div className="space-y-2 rounded-xl border border-border/70 bg-bg/80 p-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-fg">自动 commit message 模板</h3>
           <p className="text-sm leading-6 text-muted">

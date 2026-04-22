@@ -36,7 +36,7 @@ function SliderRow({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-border/70 bg-bg/80 p-4">
+    <div className="space-y-3 rounded-xl border border-border/70 bg-bg/80 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-fg">{title}</h3>
@@ -73,7 +73,7 @@ export function EditorSettings() {
         </p>
       </header>
 
-      <div className="space-y-4 rounded-2xl border border-border/70 bg-bg/80 p-4">
+      <div className="space-y-4 rounded-xl border border-border/70 bg-bg/80 p-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-fg">字体族</h3>
           <p className="text-sm leading-6 text-muted">
@@ -96,7 +96,7 @@ export function EditorSettings() {
           </SelectContent>
         </Select>
         <div
-          className="rounded-2xl border border-dashed border-border/70 px-4 py-3 text-sm text-fg"
+          className="rounded-xl border border-dashed border-border/70 px-4 py-3 text-sm text-fg"
           style={{ fontFamily: editor.fontFamily }}
         >
           Markdown headings, inline code, lists and prose preview.
@@ -138,7 +138,7 @@ export function EditorSettings() {
         }
       />
 
-      <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-bg/80 p-4">
+      <div className="flex items-center justify-between rounded-xl border border-border/70 bg-bg/80 p-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-fg">显示行号</h3>
           <p className="text-sm leading-6 text-muted">

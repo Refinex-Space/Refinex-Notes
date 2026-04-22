@@ -21,7 +21,7 @@ export function AccountSettings() {
             <img
               src={user.avatar_url}
               alt={user.name ?? user.login}
-              className="h-16 w-16 rounded-2xl border border-border/70 object-cover"
+              className="h-16 w-16 rounded-xl border border-border/70 object-cover"
             />
             <div className="min-w-0 space-y-1">
               <h3 className="truncate text-lg font-semibold text-fg">
@@ -39,7 +39,7 @@ export function AccountSettings() {
             onClick={() => {
               void logout();
             }}
-            className="inline-flex items-center gap-2 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-sm font-medium text-rose-500 transition hover:bg-rose-400/15"
+            className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-sm font-medium text-rose-500 transition hover:bg-rose-400/15"
           >
             <LogOut className="h-4 w-4" />
             登出 GitHub

@@ -106,7 +106,7 @@ export function AccountStatus() {
 
           <button
             type="button"
-            className="inline-flex w-full items-center justify-between rounded-2xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-rose-400/30 hover:bg-rose-400/10 hover:text-rose-500"
+            className="inline-flex w-full items-center justify-between rounded-xl border border-border/70 bg-white/[0.03] px-3 py-2 text-sm text-fg transition hover:border-rose-400/30 hover:bg-rose-400/10 hover:text-rose-500"
             onClick={() => {
               void logout();
             }}
