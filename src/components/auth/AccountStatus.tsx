@@ -1,6 +1,14 @@
 import { LogOut, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useAuthStore } from "../../stores/authStore";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Tooltip,
@@ -8,13 +16,55 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { LoginScreen } from "./LoginScreen";
 
 export function AccountStatus() {
   const user = useAuthStore((state) => state.user);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
+  useEffect(() => {
+    if (user) {
+      setLoginDialogOpen(false);
+    }
+  }, [user]);
+
   if (!user) {
-    return null;
+    return (
+      <TooltipProvider>
+        <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="连接 GitHub"
+                  className={[
+                    "inline-flex h-6 items-center gap-1.5 rounded-full border border-border/60 bg-white/[0.03] px-2.5 text-[11px] text-muted transition",
+                    "hover:border-accent/35 hover:bg-accent/10 hover:text-fg",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
+                  ].join(" ")}
+                >
+                  <UserRound className="h-3 w-3" />
+                  <span>连接 GitHub</span>
+                </button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="top">连接 GitHub</TooltipContent>
+          </Tooltip>
+
+          <DialogContent className="w-[min(32rem,calc(100vw-2rem))] overflow-hidden p-6">
+            <div className="sr-only">
+              <DialogTitle>连接 GitHub</DialogTitle>
+              <DialogDescription>
+                在应用内继续 GitHub Device Flow 授权。
+              </DialogDescription>
+            </div>
+            <LoginScreen embedded />
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>
+    );
   }
 
   return (

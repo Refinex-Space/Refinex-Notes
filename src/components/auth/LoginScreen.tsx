@@ -9,6 +9,10 @@ import { useState } from "react";
 import { authService } from "../../services/authService";
 import { useAuthStore } from "../../stores/authStore";
 
+export interface LoginScreenProps {
+  embedded?: boolean;
+}
+
 function GitHubMark() {
   return (
     <svg
@@ -29,7 +33,7 @@ async function copyText(text: string) {
   await navigator.clipboard.writeText(text);
 }
 
-export function LoginScreen() {
+export function LoginScreen({ embedded = false }: LoginScreenProps) {
   const login = useAuthStore((state) => state.login);
   const deviceCode = useAuthStore((state) => state.deviceCode);
   const authStep = useAuthStore((state) => state.authStep);
@@ -69,20 +73,28 @@ export function LoginScreen() {
     }
   };
 
-  return (
-    <main className="flex h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_38%),linear-gradient(180deg,#071120_0%,#040814_52%,#03060f_100%)] px-6 text-fg">
-      <section className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 shadow-[0_28px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+  const content = (
+    <section
+      className={[
+        "relative w-full overflow-hidden",
+        embedded
+          ? "max-w-none rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-0"
+          : "max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 shadow-[0_28px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl",
+      ].join(" ")}
+    >
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/55 to-transparent" />
-        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">
-          Phase 5.1
-        </div>
+        {!embedded ? (
+          <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">
+            Phase 5.1
+          </div>
+        ) : null}
 
-        <div className="mt-6">
+        <div className={embedded ? "" : "mt-6"}>
           <h1 className="text-[2rem] font-semibold tracking-tight text-fg">
             Refinex-Notes
           </h1>
           <p className="mt-3 max-w-sm text-sm leading-6 text-muted">
-            Markdown 笔记，Git 驱动，AI 增强。先完成 GitHub 登录，再进入本地工作区与编辑器主界面。
+            Markdown 笔记，Git 驱动，AI 增强。GitHub 登录现在是可选的，连接后即可使用账号与仓库相关能力。
           </p>
         </div>
 
@@ -188,6 +200,15 @@ export function LoginScreen() {
           ) : null}
         </div>
       </section>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <main className="flex h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_38%),linear-gradient(180deg,#071120_0%,#040814_52%,#03060f_100%)] px-6 text-fg">
+      {content}
     </main>
   );
 }

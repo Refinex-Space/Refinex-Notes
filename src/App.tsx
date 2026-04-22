@@ -2,7 +2,6 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Kbd } from "@radix-ui/themes";
 import {
-  AlertCircle,
   ChevronUp,
   FolderClosed,
   GitBranch,
@@ -19,7 +18,6 @@ import { CommandPalette } from "./components/CommandPalette";
 import { AccountStatus } from "./components/auth/AccountStatus";
 import { GitEmptyState } from "./components/git/GitEmptyState";
 import { GitPanel } from "./components/git/GitPanel";
-import { LoginScreen } from "./components/auth/LoginScreen";
 import { DocumentOutlineDock } from "./components/editor/DocumentOutlineDock";
 import { FindReplaceBar } from "./components/editor/FindReplaceBar";
 import { TabBar } from "./components/editor/TabBar";
@@ -1092,12 +1090,14 @@ function WorkspaceShell({
   );
 }
 
+export function getStartupSurface(hasResolvedAuth: boolean) {
+  return hasResolvedAuth ? "workspace" : "splash";
+}
+
 function App() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const hasResolvedAuth = useAuthStore((state) => state.hasResolvedAuth);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const errorMessage = useAuthStore((state) => state.errorMessage);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -1107,22 +1107,8 @@ function App() {
     void checkAuth();
   }, [checkAuth]);
 
-  if (!hasResolvedAuth) {
+  if (getStartupSurface(hasResolvedAuth) === "splash") {
     return <SplashScreen />;
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <>
-        <LoginScreen />
-        {errorMessage ? (
-          <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-rose-300/20 bg-rose-400/12 px-4 py-2 text-sm text-rose-100 shadow-lg backdrop-blur">
-            <AlertCircle className="h-4 w-4" />
-            <span>{errorMessage}</span>
-          </div>
-        ) : null}
-      </>
-    );
   }
 
   return <WorkspaceShell theme={theme} setTheme={setTheme} />;

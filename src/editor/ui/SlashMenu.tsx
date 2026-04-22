@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Heading1,
   Heading2,
@@ -60,9 +60,22 @@ const ICONS: Record<SlashCommandId, typeof Heading1> = {
 
 export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
   const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setSearch("");
+  }, [request]);
+
+  useEffect(() => {
+    if (!request) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [request]);
 
   const items = useMemo(
@@ -111,6 +124,7 @@ export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
       >
         <Command loop className="w-full" shouldFilter={false}>
           <CommandInput
+            ref={inputRef}
             value={search}
             onValueChange={setSearch}
             autoFocus
@@ -136,7 +150,7 @@ export function SlashMenu({ view, request, onClose }: SlashMenuProps) {
                     });
                   }}
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 bg-accent/8 text-fg">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/70 bg-accent/8 text-fg transition-colors group-hover:border-accent/30 group-hover:bg-accent/14 group-data-[selected=true]:border-accent/40 group-data-[selected=true]:bg-accent/20">
                     <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex min-w-0 flex-col">

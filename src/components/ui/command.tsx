@@ -143,20 +143,20 @@ const CommandSeparator = React.forwardRef<
 
 CommandSeparator.displayName = CommandPrimitive.Separator.displayName;
 
+export const commandItemClassName = [
+  "group relative flex cursor-default select-none items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-[13px] outline-none transition-colors",
+  "hover:border-accent/20 hover:bg-accent/10 hover:text-fg",
+  "data-[selected=true]:border-accent/35 data-[selected=true]:bg-accent/16 data-[selected=true]:text-fg",
+  "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
+].join(" ");
+
 const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Item
     ref={ref}
-    className={[
-      "relative flex cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none transition",
-      "data-[selected=true]:bg-accent/12 data-[selected=true]:text-fg",
-      "data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
-      className,
-    ]
-      .filter(Boolean)
-      .join(" ")}
+    className={[commandItemClassName, className].filter(Boolean).join(" ")}
     {...props}
   />
 ));

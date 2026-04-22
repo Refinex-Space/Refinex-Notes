@@ -8,6 +8,10 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Optional GitHub Login On Startup](exec-plans/completed/2026-04-22-optional-github-login-startup.md) — completed 2026-04-22
+
+- [Fix Slash Menu Interactions](exec-plans/completed/2026-04-22-fix-slash-menu-interactions.md) — completed 2026-04-22
+
 - [Auto-Restore Last Workspace on Startup](exec-plans/completed/2026-04-22-auto-restore-last-workspace.md) — completed 2026-04-22
 
 - [Blockquote Callout Support](exec-plans/completed/2026-04-18-blockquote-callout-support.md) — completed 2026-04-18
