@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Phase 8 AI Provider Proxy](exec-plans/active/2026-04-22-phase8-ai-provider-proxy.md) — started 2026-04-22
-
 ## Completed Plans
+
+- [Phase 8 AI Provider Proxy](exec-plans/completed/2026-04-22-phase8-ai-provider-proxy.md) — completed 2026-04-22
 
 - [Optional GitHub Login On Startup](exec-plans/completed/2026-04-22-optional-github-login-startup.md) — completed 2026-04-22
 
