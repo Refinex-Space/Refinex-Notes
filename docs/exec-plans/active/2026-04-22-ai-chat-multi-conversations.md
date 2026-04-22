@@ -30,11 +30,11 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: 顶部区域支持展示当前会话标题，并可打开历史会话列表切换到任一已有会话继续聊天。
-- [ ] AC-2: 顶部右侧提供新建会话入口；新建后生成独立会话，当前输入与后续消息只写入该会话。
-- [ ] AC-3: 顶部右侧 `...` 菜单支持重命名当前会话与删除当前会话；删除当前会话后界面稳定落到剩余会话或自动新建的空会话。
-- [ ] AC-4: 多会话列表与当前选中会话可在本地持久化，刷新/重建 store 后仍能恢复。
-- [ ] AC-5: 现有 AI 发送、流式追加、取消生成、文档 mention 上下文能力在多会话模式下继续工作。
+- [x] AC-1: 顶部区域支持展示当前会话标题，并可打开历史会话列表切换到任一已有会话继续聊天。
+- [x] AC-2: 顶部右侧提供新建会话入口；新建后生成独立会话，当前输入与后续消息只写入该会话。
+- [x] AC-3: 顶部右侧 `...` 菜单支持重命名当前会话与删除当前会话；删除当前会话后界面稳定落到剩余会话或自动新建的空会话。
+- [x] AC-4: 多会话列表与当前选中会话可在本地持久化，刷新/重建 store 后仍能恢复。
+- [x] AC-5: 现有 AI 发送、流式追加、取消生成、文档 mention 上下文能力在多会话模式下继续工作。
 
 ## Risk Notes
 
@@ -76,11 +76,11 @@ Deviations: 与 Step 2 合并实现并共用一条 UI commit，保持会话 head
 
 ### Step 4: 运行全量验证并完成控制面归档
 
-**Files:** `docs/PLANS.md`, `docs/exec-plans/active/2026-04-22-ai-chat-multi-conversations.md`
+**Files:** `docs/ARCHITECTURE.md`, `docs/OBSERVABILITY.md`, `docs/PLANS.md`, `docs/exec-plans/active/2026-04-22-ai-chat-multi-conversations.md`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml && npm test && npm run build`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` → 74 passed; `npm test` → 38 files / 188 tests passed; `npm run build` → passed
 Deviations:
 
 ## Progress Log
@@ -90,7 +90,7 @@ Deviations:
 | 1 | ✅ | `npm test -- --run src/stores/__tests__/aiStore.test.ts` | 多会话状态、当前会话切换、重命名、删除与本地持久化已落到 store |
 | 2 | ✅ | `npm test -- --run src/components/ai/__tests__/ChatPanel.test.tsx` | 顶部会话切换、新建会话与当前会话标题展示已接入 |
 | 3 | ✅ | `npm test -- --run src/stores/__tests__/aiStore.test.ts src/components/ai/__tests__/ChatPanel.test.tsx` | 当前会话重命名、删除与删除后的回退逻辑已接入 |
-| 4 | ⬜ |  |  |
+| 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml && npm test && npm run build` | 架构文档与观测文档已同步到多会话 AI 面板现实 |
 
 ## Decision Log
 
@@ -103,8 +103,8 @@ Deviations:
 
 <!-- Fill in when archiving the plan -->
 
-Completed:
-Duration: <N> steps
-All acceptance criteria: PASS / FAIL
+Completed: 2026-04-22
+Duration: 4 steps
+All acceptance criteria: PASS
 
-Summary:
+Summary: 为 AI 右侧面板引入了本地持久化的多会话系统。状态层从单一 `messages` 数组升级为 `conversations + activeConversationId`，并通过 Zustand `persist` 保存历史会话与当前选中项；界面顶部改为会话切换器、新建会话按钮和 `...` 菜单，支持重命名与删除当前会话；原有 AI 流式输出、停止生成、当前文档上下文与 `@` 引用文档能力继续工作。控制面文档也同步更新为新的运行时形态与验证基线。
