@@ -36,7 +36,7 @@ pub struct AIMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase", tag = "kind")]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "kind")]
 pub enum AIAttachment {
     Image {
         id: String,
@@ -464,10 +464,12 @@ pub fn clear_provider_api_key(provider_id: &str) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::{
         builtin_provider_configs, load_provider_api_key_with, normalize_model_catalog,
-        normalize_provider_configs, resolve_model_catalog, AIModelCatalogEntry, AIProviderConfig,
-        AIProviderKind, DEFAULT_ANTHROPIC_BASE_URL, DEFAULT_GLM_BASE_URL,
+        normalize_provider_configs, resolve_model_catalog, AIAttachment, AIModelCatalogEntry,
+        AIProviderConfig, AIProviderKind, DEFAULT_ANTHROPIC_BASE_URL, DEFAULT_GLM_BASE_URL,
         DEFAULT_OPENAI_BASE_URL,
     };
 
@@ -525,6 +527,51 @@ mod tests {
             .expect_err("blank api key should fail");
 
         assert!(error.contains("为空"));
+    }
+
+    #[test]
+    fn attachment_deserializes_camel_case_fields_from_frontend() {
+        let image_attachment: AIAttachment = serde_json::from_value(json!({
+            "kind": "image",
+            "id": "image-1",
+            "name": "diagram.png",
+            "mimeType": "image/png",
+            "base64Data": "ZmFrZQ==",
+            "size": 12
+        }))
+        .expect("image attachment should deserialize");
+
+        assert_eq!(
+            image_attachment,
+            AIAttachment::Image {
+                id: "image-1".to_string(),
+                name: "diagram.png".to_string(),
+                mime_type: "image/png".to_string(),
+                base64_data: "ZmFrZQ==".to_string(),
+                size: 12,
+            }
+        );
+
+        let text_attachment: AIAttachment = serde_json::from_value(json!({
+            "kind": "text",
+            "id": "text-1",
+            "name": "notes.md",
+            "mimeType": "text/markdown",
+            "textContent": "# Notes",
+            "size": 16
+        }))
+        .expect("text attachment should deserialize");
+
+        assert_eq!(
+            text_attachment,
+            AIAttachment::Text {
+                id: "text-1".to_string(),
+                name: "notes.md".to_string(),
+                mime_type: "text/markdown".to_string(),
+                text_content: "# Notes".to_string(),
+                size: 16,
+            }
+        );
     }
 
     #[test]

@@ -234,16 +234,24 @@ function MessageBubble({
   if (role === "user") {
     return (
       <div
-        data-testid="user-message"
-        className="ml-auto max-w-[85%] rounded-[1.2rem] rounded-br-md bg-accent px-4 py-3 text-sm leading-6 text-white shadow-sm"
+        data-testid="user-message-group"
+        className="ml-auto flex max-w-[85%] flex-col items-end gap-2"
       >
         {attachments && attachments.length > 0 ? (
-          <div className="mb-2">
+          <div
+            data-testid="user-message-attachments"
+            className="max-w-full"
+          >
             <AttachmentPreviewList attachments={attachments} />
           </div>
         ) : null}
         {content.trim().length > 0 ? (
-          <p className="whitespace-pre-wrap break-words">{content}</p>
+          <div
+            data-testid="user-message"
+            className="rounded-[1.2rem] rounded-br-md bg-accent px-4 py-3 text-sm leading-6 text-white shadow-sm"
+          >
+            <p className="whitespace-pre-wrap break-words">{content}</p>
+          </div>
         ) : null}
       </div>
     );

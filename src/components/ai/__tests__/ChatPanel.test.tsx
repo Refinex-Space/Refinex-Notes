@@ -271,6 +271,80 @@ describe("ChatPanel", () => {
     expect(cancelStream).toHaveBeenCalledOnce();
   });
 
+  it("renders user attachments above the user bubble instead of inside it", async () => {
+    useAIStore.setState({
+      providers: [
+        {
+          id: "openai",
+          name: "OpenAI",
+          providerKind: "openai",
+          baseUrl: "https://api.openai.com/v1",
+        },
+      ],
+      modelsByProvider: {
+        openai: [
+          {
+            providerId: "openai",
+            modelId: "gpt-4o",
+            label: "GPT-4o",
+            isDefault: true,
+          },
+        ],
+      },
+      activeProvider: "openai",
+      activeModel: "gpt-4o",
+      messages: [
+        {
+          id: "user-attachment-message",
+          role: "user",
+          content: "理解这张图片",
+          timestamp: Date.now(),
+          attachments: [
+            {
+              id: "image-1",
+              kind: "image",
+              name: "diagram.png",
+              mimeType: "image/png",
+              base64Data: "ZmFrZQ==",
+              size: 12,
+            },
+          ],
+        },
+      ],
+      isStreaming: false,
+      isLoadingProviders: false,
+      errorMessage: null,
+      loadProviders: vi.fn(),
+      loadModels: vi.fn(),
+      selectProvider: vi.fn(),
+      selectModel: vi.fn(),
+      sendMessage: vi.fn(),
+      cancelStream: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<ChatPanel />);
+      await flushFrame();
+    });
+
+    const messageGroup = container.querySelector(
+      '[data-testid="user-message-group"]',
+    ) as HTMLDivElement | null;
+    const attachmentBlock = container.querySelector(
+      '[data-testid="user-message-attachments"]',
+    ) as HTMLDivElement | null;
+    const bubble = container.querySelector(
+      '[data-testid="user-message"]',
+    ) as HTMLDivElement | null;
+
+    expect(messageGroup).toBeTruthy();
+    expect(attachmentBlock).toBeTruthy();
+    expect(bubble).toBeTruthy();
+    expect(messageGroup?.firstElementChild).toBe(attachmentBlock);
+    expect(attachmentBlock?.contains(bubble ?? null)).toBe(false);
+    expect(bubble?.textContent).toContain("理解这张图片");
+  });
+
   it("renders the current document chip inside the composer and allows removing it", async () => {
     useNoteStore.setState({
       currentFile: "Blog/Harness Engineering.md",
