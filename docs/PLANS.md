@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Fix AI Chat Attachment Message And Args](exec-plans/active/2026-04-23-fix-ai-chat-attachment-message-and-args.md) — started 2026-04-23
-
 ## Completed Plans
+
+- [Fix AI Chat Attachment Message And Args](exec-plans/completed/2026-04-23-fix-ai-chat-attachment-message-and-args.md) — completed 2026-04-23
 
 - [Fix AI Chat Attachment Composer Polish](exec-plans/completed/2026-04-23-fix-ai-chat-attachment-composer-polish.md) — completed 2026-04-23
 
