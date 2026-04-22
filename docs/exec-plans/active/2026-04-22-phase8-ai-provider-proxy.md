@@ -35,11 +35,11 @@ Author: agent
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `ai_list_providers` 能从 `settings` 表读取 JSON 配置列表，并返回不含 API Key 的 provider 元数据
-- [ ] AC-2: OpenAI compatible provider 能构造流式聊天请求，并从 SSE 数据流中解析增量文本后通过 `Channel<String>` 发送
-- [ ] AC-3: Anthropic provider 能构造 `v1/messages` 流式请求，并从 SSE 数据流中解析增量文本后通过 `Channel<String>` 发送
-- [ ] AC-4: `ai_chat_stream` 能按 `provider_id` 选择 provider、从 keyring 取 key、启动流式请求，并在完成时结束；`ai_cancel_stream` 能中断当前流
-- [ ] AC-5: Rust 测试覆盖设置读取、SSE 解析、provider 请求/响应解析和取消状态管理，且 `cargo test --manifest-path src-tauri/Cargo.toml` 保持通过
+- [x] AC-1: `ai_list_providers` 能从 `settings` 表读取 JSON 配置列表，并返回不含 API Key 的 provider 元数据
+- [x] AC-2: OpenAI compatible provider 能构造流式聊天请求，并从 SSE 数据流中解析增量文本后通过 `Channel<String>` 发送
+- [x] AC-3: Anthropic provider 能构造 `v1/messages` 流式请求，并从 SSE 数据流中解析增量文本后通过 `Channel<String>` 发送
+- [x] AC-4: `ai_chat_stream` 能按 `provider_id` 选择 provider、从 keyring 取 key、启动流式请求，并在完成时结束；`ai_cancel_stream` 能中断当前流
+- [x] AC-5: Rust 测试覆盖设置读取、SSE 解析、provider 请求/响应解析和取消状态管理，且 `cargo test --manifest-path src-tauri/Cargo.toml` 保持通过
 
 ## Risk Notes
 
@@ -84,8 +84,8 @@ Deviations:
 **Files:** `src-tauri/src/commands/ai.rs`, `src-tauri/src/commands/mod.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/state.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml commands::ai`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 54 passed；`npm test -- --run` 149 passed；`npm run build` 通过。`docs/ARCHITECTURE.md` 与 `docs/OBSERVABILITY.md` 已更新为 AI 代理层现状与最新测试计数。
 Deviations:
 
 ### Step 5: 更新控制面并做整体验证
@@ -105,7 +105,7 @@ Deviations:
 | 2 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml streaming` 3 passed | SSE 事件解析与可取消流循环已独立实现 |
 | 3 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml providers` 4 passed | OpenAI-compatible / Anthropic 请求体与事件提取已就位 |
 | 4 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml commands::ai` 4 passed | Tauri AI commands、provider 选择与取消状态接入完成 |
-| 5 | ⬜ |  |  |
+| 5 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml`; `npm test -- --run`; `npm run build` | 全量验证通过，控制面文档已同步 |
 
 ## Decision Log
 
@@ -118,7 +118,7 @@ Deviations:
 ## Completion Summary
 
 Completed:
-Duration: <N> steps
-All acceptance criteria: PASS / FAIL
+Duration: 5 steps
+All acceptance criteria: PASS
 
-Summary:
+Summary: 已在 `src-tauri` 内落地统一的 AI Provider 代理层，使用 SQLite `settings` 表存放 provider 元数据、系统 keyring 存放 API Key，并通过 `tauri::ipc::Channel<String>` 将流式 token 发送到前端。实现包含 OpenAI-compatible / Anthropic 两类 HTTP 客户端、可复用的 SSE 解析器、单个当前流的取消语义，以及相应的 Rust 单元测试。真实 DeepSeek / Anthropic 联网 smoke 尚未在本地执行，因为当前会话没有可用的真实 API Key。

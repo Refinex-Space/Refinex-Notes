@@ -20,7 +20,7 @@ refinex-notes/
 │   └── types/              Shared TypeScript types
 ├── src-tauri/              Tauri 2 Rust crate
 │   ├── src/commands/       IPC command layer
-│   ├── src/ai/             Planned AI provider and streaming domain
+│   ├── src/ai/             AI provider registry, HTTP clients, and SSE streaming domain
 │   ├── src/git/            Git engine, auth bridge, and sync state machine
 │   ├── src/markdown/       Planned Markdown parsing/export domain
 │   ├── src/search/         Tantivy index, fuzzy matcher, and search commands
@@ -67,6 +67,8 @@ src/main.tsx
 - `src-tauri/src/commands/files.rs` now enforces workspace-scoped file operations and recursive file-tree scanning while ignoring `.git`, `node_modules`, and `.DS_Store`.
 - `src-tauri/src/git/mod.rs` now implements `git2-rs` backed repository init/clone/status/stage/commit/fetch/push/pull/log/diff primitives, while `src-tauri/src/git/auth.rs` bridges the GitHub OAuth token in keyring to HTTPS remote credentials.
 - `src-tauri/src/git/sync.rs` now owns the auto-sync state machine and emits `git-sync-status` events through a background tokio task; `src-tauri/src/commands/git.rs` exposes the native Git commands plus auto-sync lifecycle controls to the frontend IPC boundary.
+- `src-tauri/src/ai/mod.rs` now owns provider metadata, keyring lookup conventions, and the `AIProvider` trait; `src-tauri/src/ai/streaming.rs` parses SSE frames into structured events and supports single-stream cancellation; `src-tauri/src/ai/providers.rs` implements the OpenAI-compatible and Anthropic HTTP clients used by the command layer.
+- `src-tauri/src/commands/ai.rs` now exposes `ai_chat_stream`, `ai_cancel_stream`, and `ai_list_providers`, selecting the configured provider from SQLite settings, loading the API key from the system keyring, and sending tokens to the frontend through `tauri::ipc::Channel<String>`.
 - `src-tauri/src/search/mod.rs` now owns the in-memory Tantivy workspace index, Markdown-to-plain-text extraction, and Nucleo-backed fuzzy search; `src-tauri/src/search/indexer.rs` rebuilds or incrementally updates the index when the workspace opens or files change; `src-tauri/src/commands/search.rs` exposes `search_files` and `search_fulltext` to the frontend.
 - `src-tauri/src/watcher.rs` uses `notify` to watch the active workspace and emits a debounced `files-changed` event back to the frontend.
 - `docs/design-docs/Refinex-Notes 完整技术架构文档.md` and `docs/design-docs/Refinex-Notes 自研编辑器可行性深度调研报告.md` capture the intended editor, AI, Git, auth, and search architecture for subsequent implementation phases.
