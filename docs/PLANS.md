@@ -6,9 +6,9 @@ Active and planned work for this repository.
 
 ## Active Plans
 
-- [Phase 8 AI Model Catalog](exec-plans/active/2026-04-22-phase8-ai-model-catalog.md) — started 2026-04-22
-
 ## Completed Plans
+
+- [Phase 8 AI Model Catalog](exec-plans/completed/2026-04-22-phase8-ai-model-catalog.md) — completed 2026-04-22
 
 - [Phase 8 AI Provider Proxy](exec-plans/completed/2026-04-22-phase8-ai-provider-proxy.md) — completed 2026-04-22
 
