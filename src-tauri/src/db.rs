@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use rusqlite::Connection;
 use tauri::{AppHandle, Manager, Runtime};
 
+use crate::ai::{AIProviderConfig, AI_PROVIDERS_SETTINGS_KEY};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecentWorkspaceRecord {
     pub path: String,
@@ -98,6 +100,54 @@ pub fn remove_recent_workspace(connection: &Connection, workspace_path: &str) ->
     Ok(())
 }
 
+pub fn get_setting(connection: &Connection, key: &str) -> Result<Option<String>, String> {
+    let mut statement = connection
+        .prepare("SELECT value FROM settings WHERE key = ?1")
+        .map_err(|error| format!("读取设置失败: {error}"))?;
+
+    statement
+        .query_row([key], |row| row.get::<_, String>(0))
+        .map(Some)
+        .or_else(|error| match error {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(format!("查询设置失败: {other}")),
+        })
+}
+
+pub fn set_setting(connection: &Connection, key: &str, value: &str) -> Result<(), String> {
+    connection
+        .execute(
+            r#"
+            INSERT INTO settings(key, value)
+            VALUES (?1, ?2)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            "#,
+            (key, value),
+        )
+        .map_err(|error| format!("写入设置失败: {error}"))?;
+
+    Ok(())
+}
+
+pub fn load_ai_provider_configs(connection: &Connection) -> Result<Vec<AIProviderConfig>, String> {
+    let raw_value = match get_setting(connection, AI_PROVIDERS_SETTINGS_KEY)? {
+        Some(raw_value) => raw_value,
+        None => return Ok(Vec::new()),
+    };
+
+    serde_json::from_str(&raw_value)
+        .map_err(|error| format!("解析 AI Provider 配置失败: {error}"))
+}
+
+pub fn save_ai_provider_configs(
+    connection: &Connection,
+    providers: &[AIProviderConfig],
+) -> Result<(), String> {
+    let raw_value = serde_json::to_string(providers)
+        .map_err(|error| format!("序列化 AI Provider 配置失败: {error}"))?;
+    set_setting(connection, AI_PROVIDERS_SETTINGS_KEY, &raw_value)
+}
+
 pub fn get_cached_file_content(
     connection: &Connection,
     workspace_path: &Path,
@@ -186,8 +236,11 @@ fn initialize_schema(connection: &Connection) -> Result<(), String> {
 mod tests {
     use rusqlite::Connection;
 
+    use crate::ai::{AIProviderConfig, AIProviderKind};
+
     use super::{
-        initialize_schema, list_recent_workspaces, remember_workspace, remove_recent_workspace,
+        get_setting, initialize_schema, list_recent_workspaces, load_ai_provider_configs,
+        remember_workspace, remove_recent_workspace, save_ai_provider_configs, set_setting,
     };
 
     #[test]
@@ -247,5 +300,52 @@ mod tests {
         let listed = list_recent_workspaces(&connection).unwrap();
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].path, "/tmp/workspace-a");
+    }
+
+    #[test]
+    fn settings_roundtrip_updates_existing_value() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        set_setting(&connection, "theme", "light").unwrap();
+        set_setting(&connection, "theme", "dark").unwrap();
+
+        let stored = get_setting(&connection, "theme").unwrap();
+        assert_eq!(stored.as_deref(), Some("dark"));
+    }
+
+    #[test]
+    fn load_ai_provider_configs_returns_empty_when_not_configured() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        let providers = load_ai_provider_configs(&connection).unwrap();
+        assert!(providers.is_empty());
+    }
+
+    #[test]
+    fn save_and_load_ai_provider_configs_roundtrip() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize_schema(&connection).unwrap();
+
+        let providers = vec![
+            AIProviderConfig {
+                id: "deepseek".to_string(),
+                name: "DeepSeek".to_string(),
+                provider_kind: AIProviderKind::DeepSeek,
+                base_url: None,
+            },
+            AIProviderConfig {
+                id: "anthropic".to_string(),
+                name: "Anthropic".to_string(),
+                provider_kind: AIProviderKind::Anthropic,
+                base_url: Some("https://api.anthropic.com".to_string()),
+            },
+        ];
+
+        save_ai_provider_configs(&connection, &providers).unwrap();
+
+        let stored = load_ai_provider_configs(&connection).unwrap();
+        assert_eq!(stored, providers);
     }
 }

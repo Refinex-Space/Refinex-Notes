@@ -57,8 +57,8 @@ Author: agent
 **Files:** `src-tauri/src/ai/mod.rs`, `src-tauri/src/db.rs`, `src-tauri/src/state.rs`, `src-tauri/src/lib.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml ai::tests:: db::tests::`
 
-Status: ⬜ Not started
-Evidence:
+Status: ✅ Done
+Evidence: `cargo test --manifest-path src-tauri/Cargo.toml` 通过，Rust 测试总数从 36 增至 43；新增 `ai::tests::*` 与 `db::tests::*` 覆盖 provider 配置、keyring account 约定、settings JSON round-trip。
 Deviations:
 
 ### Step 2: 实现通用 SSE 流解析与 token 下发
@@ -101,7 +101,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  |  |
+| 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` 43 passed | AI 配置骨架、settings 读取与单流取消状态已就位 |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |

@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use notify::RecommendedWatcher;
 use rusqlite::Connection;
 use tauri::AppHandle;
+use tokio::sync::watch;
 
 use crate::git::sync::GitSyncController;
 use crate::search::WorkspaceSearchIndex;
@@ -18,6 +19,7 @@ pub struct AppState {
     pub watcher: Mutex<Option<RecommendedWatcher>>,
     pub git_sync: Mutex<Option<GitSyncController>>,
     pub search_index: Mutex<Option<WorkspaceSearchIndex>>,
+    pub ai_stream_abort: Mutex<Option<watch::Sender<bool>>>,
 }
 
 impl AppState {
@@ -31,6 +33,7 @@ impl AppState {
             watcher: Mutex::new(None),
             git_sync: Mutex::new(None),
             search_index: Mutex::new(None),
+            ai_stream_abort: Mutex::new(None),
         }
     }
 }
