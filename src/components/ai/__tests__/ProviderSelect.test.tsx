@@ -11,7 +11,7 @@ describe("ProviderSelect", () => {
           {
             id: "deepseek",
             name: "DeepSeek",
-            providerKind: "openai-compatible",
+            providerKind: "deepseek",
             baseUrl: "https://api.deepseek.com/v1",
           },
         ]}

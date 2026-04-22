@@ -1,3 +1,209 @@
-export function SettingsDialog() {
-  return null;
+import { Bot, GitBranch, Keyboard, MonitorCog, SlidersHorizontal, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { useSettingsStore } from "../../stores/settingsStore";
+import type { SettingsSection } from "../../types";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import { AccountSettings } from "./AccountSettings";
+import { AIProviderConfig } from "./AIProviderConfig";
+import { EditorSettings } from "./EditorSettings";
+import { GeneralSettings } from "./GeneralSettings";
+import { GitSettings } from "./GitSettings";
+import { ShortcutSettings } from "./ShortcutSettings";
+
+const SECTIONS: Array<{
+  id: SettingsSection;
+  label: string;
+  description: string;
+  icon: typeof MonitorCog;
+}> = [
+  {
+    id: "general",
+    label: "通用",
+    description: "主题、语言和启动行为",
+    icon: MonitorCog,
+  },
+  {
+    id: "editor",
+    label: "编辑器",
+    description: "字族、字号和自动保存",
+    icon: SlidersHorizontal,
+  },
+  {
+    id: "ai",
+    label: "AI 模型",
+    description: "Provider、模型目录和测试连接",
+    icon: Bot,
+  },
+  {
+    id: "git",
+    label: "Git 同步",
+    description: "自动同步和 commit 模板",
+    icon: GitBranch,
+  },
+  {
+    id: "shortcuts",
+    label: "快捷键",
+    description: "当前默认映射与后续扩展入口",
+    icon: Keyboard,
+  },
+  {
+    id: "account",
+    label: "账户",
+    description: "GitHub 账户信息与登出",
+    icon: UserRound,
+  },
+];
+
+function renderSection(section: SettingsSection) {
+  switch (section) {
+    case "general":
+      return <GeneralSettings />;
+    case "editor":
+      return <EditorSettings />;
+    case "ai":
+      return <AIProviderConfig />;
+    case "git":
+      return <GitSettings />;
+    case "shortcuts":
+      return <ShortcutSettings />;
+    case "account":
+      return <AccountSettings />;
+    default:
+      return null;
+  }
+}
+
+export function SettingsDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [section, setSection] = useState<SettingsSection>("general");
+  const isLoaded = useSettingsStore((state) => state.isLoaded);
+  const isLoading = useSettingsStore((state) => state.isLoading);
+  const isSaving = useSettingsStore((state) => state.isSaving);
+  const errorMessage = useSettingsStore((state) => state.errorMessage);
+  const loadSettings = useSettingsStore((state) => state.loadSettings);
+  const saveSettings = useSettingsStore((state) => state.saveSettings);
+  const clearError = useSettingsStore((state) => state.clearError);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (!isLoaded) {
+      void loadSettings();
+    }
+  }, [isLoaded, loadSettings, open]);
+
+  useEffect(() => {
+    if (!open) {
+      clearError();
+    }
+  }, [clearError, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        hideClose
+        className="h-[calc(100vh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-none gap-0 overflow-hidden rounded-[2rem] p-0"
+      >
+        <div className="grid h-full min-h-0 lg:grid-cols-[18rem_minmax(0,1fr)]">
+          <aside className="border-b border-border/70 bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.08),transparent_36%),rgb(var(--color-bg)/0.96)] p-5 lg:border-b-0 lg:border-r">
+            <DialogHeader className="space-y-1">
+              <DialogTitle>应用设置</DialogTitle>
+              <DialogDescription>
+                管理外观、AI Provider、同步与账户。
+              </DialogDescription>
+            </DialogHeader>
+
+            <nav className="mt-6 space-y-1.5">
+              {SECTIONS.map((entry) => {
+                const Icon = entry.icon;
+                const active = entry.id === section;
+
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => setSection(entry.id)}
+                    className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                      active
+                        ? "border-accent/25 bg-accent/10 text-fg"
+                        : "border-transparent bg-transparent text-muted hover:border-border/70 hover:bg-fg/[0.04] hover:text-fg"
+                    }`}
+                  >
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium">{entry.label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-muted">
+                        {entry.description}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          <section className="flex min-h-0 flex-col bg-bg/95">
+            <div className="flex items-center justify-between border-b border-border/70 px-6 py-4">
+              <div>
+                <p className="text-sm font-semibold text-fg">
+                  {SECTIONS.find((entry) => entry.id === section)?.label}
+                </p>
+                <p className="text-sm text-muted">
+                  {SECTIONS.find((entry) => entry.id === section)?.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {errorMessage ? (
+                  <span className="max-w-xs truncate text-sm text-rose-500">
+                    {errorMessage}
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-border/70 px-4 text-sm font-medium text-muted transition hover:bg-fg/[0.06] hover:text-fg"
+                >
+                  关闭
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveSettings();
+                  }}
+                  disabled={isSaving || isLoading}
+                  className="inline-flex h-10 items-center justify-center rounded-xl bg-accent px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSaving ? "保存中…" : "保存设置"}
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              {isLoading && !isLoaded ? (
+                <div className="rounded-3xl border border-dashed border-border/70 bg-bg/70 p-6 text-sm text-muted">
+                  正在加载设置…
+                </div>
+              ) : (
+                renderSection(section)
+              )}
+            </div>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

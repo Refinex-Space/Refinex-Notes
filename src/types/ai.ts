@@ -1,5 +1,15 @@
 export type AIMessageRole = "user" | "assistant";
 export type AICommandMessageRole = "system" | AIMessageRole;
+export type AIProviderKind =
+  | "deepseek"
+  | "qwen"
+  | "glm"
+  | "kimi"
+  | "minimax"
+  | "openai"
+  | "anthropic"
+  | "custom-openai-compatible";
+export type AITestConnectionMode = "configOnly" | "liveRequest";
 
 export interface AIMessage {
   id: string;
@@ -16,8 +26,17 @@ export interface AICommandMessage {
 export interface AIProviderInfo {
   id: string;
   name: string;
-  providerKind: string;
+  providerKind: AIProviderKind;
   baseUrl?: string | null;
+}
+
+export interface AIProviderSettingsRecord {
+  id: string;
+  name: string;
+  providerKind: AIProviderKind;
+  enabled: boolean;
+  baseUrl?: string | null;
+  hasApiKey: boolean;
 }
 
 export interface AIModelInfo {
@@ -25,6 +44,13 @@ export interface AIModelInfo {
   modelId: string;
   label: string;
   isDefault: boolean;
+}
+
+export interface AITestConnectionResult {
+  providerId: string;
+  modelId: string;
+  ready: boolean;
+  checkMode: AITestConnectionMode;
 }
 
 export interface AIContext {

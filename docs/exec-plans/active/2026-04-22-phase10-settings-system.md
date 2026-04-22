@@ -95,18 +95,30 @@ Deviations:
 **Files:** `src/services/settingsService.ts`, `src/stores/settingsStore.ts`, `src/types/settings.ts`, `src/App.tsx`, `src/stores/aiStore.ts`
 **Verification:** `npm test -- --run`
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- `src/services/settingsService.ts` 已封装 `load_settings` / `save_settings` / `ai_list_provider_settings` / `ai_save_provider_settings` / `ai_test_connection`
+- `src/stores/settingsStore.ts` 已落地设置草稿、AI Provider 草稿、模型目录编辑、keyring draft、保存与测试连接动作
+- `src/App.tsx` 已改为由 `settingsStore` 驱动主题模式与“启动时打开上次工作区”逻辑
+- `src/components/ai/ChatPanel.tsx` 已对齐 settings 中的默认 Provider / Model
+- `npm test -- --run` 通过（35 files, 166 tests）
 Deviations:
+- AI 面板默认选择在前端 `ChatPanel` 接 settings 真源，而不是把 settings 依赖下沉到 `aiStore`，以避免 stores 之间形成循环依赖
 
 ### Step 3: 实现全屏设置面板与 AI Provider 配置 UI
 
 **Files:** `src/components/settings/SettingsDialog.tsx`, `src/components/settings/GeneralSettings.tsx`, `src/components/settings/EditorSettings.tsx`, `src/components/settings/AIProviderConfig.tsx`, `src/components/settings/GitSettings.tsx`, `src/components/settings/ShortcutSettings.tsx`, `src/components/settings/AccountSettings.tsx`, `src/components/ui/switch.tsx`, `src/components/ui/slider.tsx`
 **Verification:** `npm test -- --run`; `npm run build`
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- `src/components/settings/SettingsDialog.tsx` 已实现全屏设置模态与左侧分类导航
+- `src/components/settings/GeneralSettings.tsx`、`EditorSettings.tsx`、`GitSettings.tsx`、`ShortcutSettings.tsx`、`AccountSettings.tsx` 已接 settings/auth store
+- `src/components/settings/AIProviderConfig.tsx` 已支持 Provider 卡片、API Key 输入、模型目录编辑、自定义 Provider 和测试连接按钮
+- `src/components/ui/switch.tsx` 与 `src/components/ui/slider.tsx` 已补齐 Radix wrapper，并已安装对应依赖
+- `npm run build` 通过
 Deviations:
+- 快捷键分类当前先展示默认映射与扩展入口，完整快捷键重绑定继续保留在后续子任务范围内
 
 ### Step 4: 同步控制面并完成整体验证
 
@@ -122,8 +134,8 @@ Deviations:
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
 | 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` | 原生 settings / AI 配置协议已落地 |
-| 2 | ⬜ |  |  |
-| 3 | ⬜ |  |  |
+| 2 | ✅ | `npm test -- --run` | 前端 settings service/store 与应用壳层接通 |
+| 3 | ✅ | `npm run build` | 全屏设置面板与 AI Provider 配置 UI 已落地 |
 | 4 | ⬜ |  |  |
 
 ## Decision Log

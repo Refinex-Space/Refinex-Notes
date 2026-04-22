@@ -9,6 +9,7 @@ import {
 import { Loader2, Send, Square, Trash2, Wand2 } from "lucide-react";
 
 import { useAIStore } from "../../stores/aiStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { ProviderSelect } from "./ProviderSelect";
 import { StreamRenderer } from "./StreamRenderer";
 
@@ -73,6 +74,12 @@ export function ChatPanel() {
     cancelStream,
     clearHistory,
   } = useAIStore((state) => state);
+  const defaultProviderId = useSettingsStore(
+    (state) => state.settings.ai.defaultProviderId,
+  );
+  const defaultModelId = useSettingsStore(
+    (state) => state.settings.ai.defaultModelId,
+  );
 
   const deferredMessages = useDeferredValue(messages);
   const models = useMemo(
@@ -83,6 +90,22 @@ export function ChatPanel() {
   useEffect(() => {
     void loadProviders();
   }, [loadProviders]);
+
+  useEffect(() => {
+    if (!defaultProviderId) {
+      return;
+    }
+
+    if (!providers.some((provider) => provider.id === defaultProviderId)) {
+      return;
+    }
+
+    void selectProvider(defaultProviderId).then(() => {
+      if (defaultModelId) {
+        selectModel(defaultModelId);
+      }
+    });
+  }, [defaultModelId, defaultProviderId, providers, selectModel, selectProvider]);
 
   useEffect(() => {
     const viewport = viewportRef.current;

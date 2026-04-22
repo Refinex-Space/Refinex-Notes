@@ -1,5 +1,5 @@
-import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Kbd } from "@radix-ui/themes";
 import {
   ChevronUp,
@@ -25,6 +25,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { StatusBar } from "./components/layout/StatusBar";
 import { SetupPanel } from "./components/git/SetupPanel";
 import { SyncStatus } from "./components/git/SyncStatus";
+import { SettingsDialog } from "./components/settings/SettingsDialog";
 import { FileTree, FileTreeEmptyState } from "./components/sidebar/FileTree";
 import { SearchPanel } from "./components/sidebar/SearchPanel";
 import {
@@ -35,13 +36,6 @@ import {
   findTextPosition,
   searchResultsToCommandPaletteItems,
 } from "./components/app-shell-utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "./components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -56,6 +50,7 @@ import { useAuthStore } from "./stores/authStore";
 import { useEditorStore } from "./stores/editorStore";
 import { useGitStore } from "./stores/gitStore";
 import { useNoteStore } from "./stores/noteStore";
+import { useSettingsStore } from "./stores/settingsStore";
 import type { OutlineHeading } from "./types";
 import type { NoteDocument } from "./types/notes";
 import type { SearchResult } from "./types/search";
@@ -419,10 +414,12 @@ function SplashScreen() {
 
 function WorkspaceShell({
   theme,
-  setTheme,
+  onThemeToggle,
+  reopenLastWorkspaceOnStartup,
 }: {
   theme: "light" | "dark";
-  setTheme: Dispatch<SetStateAction<"light" | "dark">>;
+  onThemeToggle: () => void;
+  reopenLastWorkspaceOnStartup: boolean;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("history");
@@ -695,6 +692,9 @@ function WorkspaceShell({
     void hydrateRecentWorkspaces().then(() => {
       if (didAutoOpenRef.current) return;
       didAutoOpenRef.current = true;
+      if (!reopenLastWorkspaceOnStartup) {
+        return;
+      }
       const { workspacePath: current, recentWorkspaces: recents } =
         useNoteStore.getState();
       if (!current && recents.length > 0) {
@@ -703,7 +703,12 @@ function WorkspaceShell({
         });
       }
     });
-  }, [hydrateRecentWorkspaces, openWorkspace, removeRecentWorkspace]);
+  }, [
+    hydrateRecentWorkspaces,
+    openWorkspace,
+    removeRecentWorkspace,
+    reopenLastWorkspaceOnStartup,
+  ]);
 
   useEffect(() => {
     void hydrateWorkspace(workspacePath);
@@ -1023,7 +1028,7 @@ function WorkspaceShell({
         rightPanelTitle=""
         activeTitle={currentDocument?.name ?? undefined}
         theme={theme}
-        onThemeToggle={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+        onThemeToggle={onThemeToggle}
         outlineVisible={outlineVisible}
         onOutlineToggle={() => setOutlineVisible((v) => !v)}
         onSettingsClick={() => setSettingsOpen(true)}
@@ -1048,58 +1053,86 @@ function WorkspaceShell({
           void openFile(path);
         }}
         onOpenSettings={() => setSettingsOpen(true)}
-        onToggleTheme={() =>
-          setTheme((current) => (current === "dark" ? "light" : "dark"))
-        }
+        onToggleTheme={onThemeToggle}
       />
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>应用设置（占位）</DialogTitle>
-            <DialogDescription>
-              Phase 4.1
-              先把设置入口接到命令面板；完整设置面板会在后续阶段替换这里。
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-3xl border border-border/70 bg-bg/80 p-4 text-sm leading-6 text-muted">
-            当前主题：<strong className="text-fg">{theme}</strong>
-            ，当前激活标签：
-            <strong className="text-fg">
-              {activeTab
-                ? ` ${documents[activeTab]?.name ?? activeTab}`
-                : " 无"}
-            </strong>
-            。
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   );
 }
 
-export function getStartupSurface(hasResolvedAuth: boolean) {
-  return hasResolvedAuth ? "workspace" : "splash";
+export function getStartupSurface(
+  hasResolvedAuth: boolean,
+  hasResolvedSettings: boolean,
+) {
+  return hasResolvedAuth && hasResolvedSettings ? "workspace" : "splash";
 }
 
 function App() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const themeMode = useSettingsStore((state) => state.settings.themeMode);
+  const reopenLastWorkspaceOnStartup = useSettingsStore(
+    (state) => state.settings.reopenLastWorkspaceOnStartup,
+  );
+  const loadSettings = useSettingsStore((state) => state.loadSettings);
+  const hasResolvedSettings = useSettingsStore((state) => state.isLoaded);
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const hasResolvedAuth = useAuthStore((state) => state.hasResolvedAuth);
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+
+  const resolvedTheme =
+    themeMode === "system"
+      ? systemTheme
+      : (themeMode as "light" | "dark");
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () =>
+      setSystemTheme(media.matches ? "dark" : "light");
+
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+  }, [resolvedTheme]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   useEffect(() => {
     void checkAuth();
   }, [checkAuth]);
 
-  if (getStartupSurface(hasResolvedAuth) === "splash") {
+  if (getStartupSurface(hasResolvedAuth, hasResolvedSettings) === "splash") {
     return <SplashScreen />;
   }
 
-  return <WorkspaceShell theme={theme} setTheme={setTheme} />;
+  return (
+    <WorkspaceShell
+      theme={resolvedTheme}
+      onThemeToggle={() =>
+        useSettingsStore
+          .getState()
+          .setThemeMode(resolvedTheme === "dark" ? "light" : "dark")
+      }
+      reopenLastWorkspaceOnStartup={reopenLastWorkspaceOnStartup}
+    />
+  );
 }
 
 export default App;

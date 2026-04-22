@@ -36,7 +36,11 @@ export type {
   AIMessage,
   AIMessageRole,
   AIModelInfo,
+  AIProviderKind,
   AIProviderInfo,
+  AIProviderSettingsRecord,
+  AITestConnectionMode,
+  AITestConnectionResult,
   AIStore,
   AIStoreActions,
   AIStoreState,
@@ -48,10 +52,17 @@ export type {
   SkillSelectionMode,
 } from "./skill";
 export type {
-  AIProviderConfig,
+  AIProviderDraft,
+  AppLanguage,
+  AppSettings,
+  EditorSettings,
+  GitSyncSettings,
+  SettingsSection,
   SettingsStore,
   SettingsStoreActions,
   SettingsStoreState,
+  ShortcutOverride,
+  ShortcutSettings,
   ThemeMode,
 } from "./settings";
 export type {
