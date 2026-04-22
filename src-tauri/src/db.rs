@@ -5,8 +5,8 @@ use rusqlite::Connection;
 use tauri::{AppHandle, Manager, Runtime};
 
 use crate::ai::{
-    normalize_model_catalog, AIModelCatalogEntry, AIProviderConfig, AI_MODEL_CATALOG_SETTINGS_KEY,
-    AI_PROVIDERS_SETTINGS_KEY,
+    normalize_model_catalog, normalize_provider_configs, AIModelCatalogEntry, AIProviderConfig,
+    AI_MODEL_CATALOG_SETTINGS_KEY, AI_PROVIDERS_SETTINGS_KEY,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -143,14 +143,17 @@ pub fn load_ai_provider_configs(connection: &Connection) -> Result<Vec<AIProvide
         None => return Ok(Vec::new()),
     };
 
-    serde_json::from_str(&raw_value).map_err(|error| format!("解析 AI Provider 配置失败: {error}"))
+    let providers = serde_json::from_str(&raw_value)
+        .map_err(|error| format!("解析 AI Provider 配置失败: {error}"))?;
+    normalize_provider_configs(providers)
 }
 
 pub fn save_ai_provider_configs(
     connection: &Connection,
     providers: &[AIProviderConfig],
 ) -> Result<(), String> {
-    let raw_value = serde_json::to_string(providers)
+    let normalized = normalize_provider_configs(providers.to_vec())?;
+    let raw_value = serde_json::to_string(&normalized)
         .map_err(|error| format!("序列化 AI Provider 配置失败: {error}"))?;
     set_setting(connection, AI_PROVIDERS_SETTINGS_KEY, &raw_value)
 }
@@ -368,12 +371,14 @@ mod tests {
                 id: "deepseek".to_string(),
                 name: "DeepSeek".to_string(),
                 provider_kind: AIProviderKind::DeepSeek,
+                enabled: true,
                 base_url: None,
             },
             AIProviderConfig {
                 id: "anthropic".to_string(),
                 name: "Anthropic".to_string(),
                 provider_kind: AIProviderKind::Anthropic,
+                enabled: false,
                 base_url: Some("https://api.anthropic.com".to_string()),
             },
         ];

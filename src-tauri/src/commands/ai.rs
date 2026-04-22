@@ -5,8 +5,10 @@ use tokio::sync::watch;
 
 use crate::ai::providers::{AnthropicProvider, OpenAICompatibleProvider};
 use crate::ai::{
-    load_provider_api_key, resolve_model_catalog, AIMessage, AIModelCatalogEntry, AIProvider,
-    AIProviderConfig, AITestConnectionMode, AITestConnectionResult,
+    builtin_provider_configs, clear_provider_api_key, load_provider_api_key,
+    normalize_provider_configs, provider_has_api_key, resolve_model_catalog, store_provider_api_key,
+    AIMessage, AIModelCatalogEntry, AIProvider, AIProviderConfig, AIProviderSecretInput,
+    AIProviderSettingsRecord, AITestConnectionMode, AITestConnectionResult,
 };
 use crate::db;
 use crate::state::AppState;
@@ -52,7 +54,62 @@ pub fn ai_list_providers(state: State<'_, AppState>) -> Result<Vec<AIProviderCon
         .db
         .lock()
         .map_err(|_| "数据库锁获取失败".to_string())?;
-    db::load_ai_provider_configs(&connection)
+    load_runtime_provider_configs(&connection)
+}
+
+#[tauri::command]
+pub fn ai_list_provider_settings(
+    state: State<'_, AppState>,
+) -> Result<Vec<AIProviderSettingsRecord>, String> {
+    let connection = state
+        .db
+        .lock()
+        .map_err(|_| "数据库锁获取失败".to_string())?;
+    let providers = load_all_provider_configs(&connection)?;
+    providers
+        .into_iter()
+        .map(|provider| {
+            Ok(AIProviderSettingsRecord {
+                has_api_key: provider_has_api_key(&provider.id)?,
+                id: provider.id,
+                name: provider.name,
+                provider_kind: provider.provider_kind,
+                enabled: provider.enabled,
+                base_url: provider.base_url,
+            })
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn ai_save_provider_settings(
+    state: State<'_, AppState>,
+    providers: Vec<AIProviderConfig>,
+    model_catalog: Vec<AIModelCatalogEntry>,
+    api_keys: Vec<AIProviderSecretInput>,
+) -> Result<Vec<AIProviderSettingsRecord>, String> {
+    let connection = state
+        .db
+        .lock()
+        .map_err(|_| "数据库锁获取失败".to_string())?;
+    let normalized_providers = normalize_provider_configs(providers)?;
+    let normalized_models = crate::ai::normalize_model_catalog(model_catalog);
+    validate_model_catalog_entries(&normalized_providers, &normalized_models)?;
+
+    db::save_ai_provider_configs(&connection, &normalized_providers)?;
+    db::save_ai_model_catalog_entries(&connection, &normalized_models)?;
+
+    for secret in api_keys {
+        if secret.api_key.trim().is_empty() {
+            clear_provider_api_key(&secret.provider_id)?;
+        } else {
+            store_provider_api_key(&secret.provider_id, &secret.api_key)?;
+        }
+    }
+
+    drop(connection);
+
+    ai_list_provider_settings(state)
 }
 
 #[tauri::command]
@@ -64,41 +121,115 @@ pub fn ai_list_models(
         .db
         .lock()
         .map_err(|_| "数据库锁获取失败".to_string())?;
-    let providers = db::load_ai_provider_configs(&connection)?;
+    let providers = load_all_provider_configs(&connection)?;
     ensure_provider_exists(&providers, &provider_id)?;
     Ok(load_model_catalog(&connection, &providers, &provider_id)?)
 }
 
 #[tauri::command]
-pub fn ai_test_connection(
+pub async fn ai_test_connection(
     state: State<'_, AppState>,
     provider_id: String,
     model: Option<String>,
 ) -> Result<AITestConnectionResult, String> {
-    let connection = state
-        .db
-        .lock()
-        .map_err(|_| "数据库锁获取失败".to_string())?;
-    let providers = db::load_ai_provider_configs(&connection)?;
-    let provider = ensure_provider_exists(&providers, &provider_id)?;
-    let models = load_model_catalog(&connection, &providers, &provider_id)?;
+    let (provider, models) = {
+        let connection = state
+            .db
+            .lock()
+            .map_err(|_| "数据库锁获取失败".to_string())?;
+        let providers = load_all_provider_configs(&connection)?;
+        let provider = ensure_provider_exists(&providers, &provider_id)?.clone();
+        let models = load_model_catalog(&connection, &providers, &provider_id)?;
+        (provider, models)
+    };
     let model_id = resolve_model_id(&models, model)?;
 
-    load_provider_api_key(&provider.id)?;
+    let api_key = load_provider_api_key(&provider.id)?;
+    run_live_connection_test(provider.clone(), api_key, &model_id).await?;
 
     Ok(AITestConnectionResult {
         provider_id: provider.id.clone(),
         model_id,
         ready: true,
-        check_mode: AITestConnectionMode::ConfigOnly,
+        check_mode: AITestConnectionMode::LiveRequest,
     })
+}
+
+fn load_provider_config_from_list(
+    providers: &[AIProviderConfig],
+    provider_id: &str,
+) -> Result<AIProviderConfig, String> {
+    providers
+        .iter()
+        .find(|provider| provider.id == provider_id)
+        .cloned()
+        .ok_or_else(|| format!("未找到 provider `{provider_id}` 的配置"))
+}
+
+fn load_all_provider_configs(
+    connection: &rusqlite::Connection,
+) -> Result<Vec<AIProviderConfig>, String> {
+    let persisted = db::load_ai_provider_configs(connection)?;
+    let normalized = normalize_provider_configs(persisted)?;
+    if normalized.is_empty() {
+        return Ok(builtin_provider_configs());
+    }
+
+    let mut resolved = builtin_provider_configs();
+    let mut custom = Vec::new();
+
+    for provider in normalized {
+        if let Some(index) = resolved.iter().position(|entry| entry.id == provider.id) {
+            resolved[index] = provider;
+        } else {
+            custom.push(provider);
+        }
+    }
+
+    resolved.extend(custom);
+    Ok(resolved)
+}
+
+fn load_runtime_provider_configs(
+    connection: &rusqlite::Connection,
+) -> Result<Vec<AIProviderConfig>, String> {
+    let providers = load_all_provider_configs(connection)?;
+    let mut runtime_providers = Vec::new();
+
+    for provider in providers {
+        if !provider.enabled {
+            continue;
+        }
+        if provider_has_api_key(&provider.id)? {
+            runtime_providers.push(provider);
+        }
+    }
+
+    Ok(runtime_providers)
+}
+
+async fn run_live_connection_test(
+    provider: AIProviderConfig,
+    api_key: String,
+    model_id: &str,
+) -> Result<(), String> {
+    let (_, abort_rx) = watch::channel(false);
+    if provider.is_openai_compatible() {
+        OpenAICompatibleProvider::new(provider, api_key, abort_rx)?
+            .test_connection(model_id)
+            .await
+    } else {
+        AnthropicProvider::new(provider, api_key, abort_rx)?
+            .test_connection(model_id)
+            .await
+    }
 }
 
 fn load_provider_config(
     connection: &rusqlite::Connection,
     provider_id: &str,
 ) -> Result<AIProviderConfig, String> {
-    db::load_ai_provider_configs(connection)?
+    load_all_provider_configs(connection)?
         .into_iter()
         .find(|provider| provider.id == provider_id)
         .ok_or_else(|| format!("未找到 provider `{provider_id}` 的配置"))
@@ -152,6 +283,35 @@ fn resolve_model_id(
             .map(|entry| entry.model_id.clone())
             .ok_or_else(|| "当前 provider 没有默认模型".to_string()),
     }
+}
+
+fn validate_model_catalog_entries(
+    providers: &[AIProviderConfig],
+    models: &[AIModelCatalogEntry],
+) -> Result<(), String> {
+    for entry in models {
+        if !providers.iter().any(|provider| provider.id == entry.provider_id) {
+            return Err(format!(
+                "模型 `{}` 引用了未知 provider `{}`",
+                entry.model_id, entry.provider_id
+            ));
+        }
+    }
+
+    for provider in providers {
+        if matches!(
+            provider.provider_kind,
+            crate::ai::AIProviderKind::CustomOpenAICompatible
+        ) && !models.iter().any(|entry| entry.provider_id == provider.id)
+        {
+            return Err(format!(
+                "自定义 Provider `{}` 至少需要一个模型目录项",
+                provider.id
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn build_provider(
@@ -232,8 +392,9 @@ mod tests {
     use crate::db;
 
     use super::{
-        cancel_active_stream, clear_active_stream_if_current, load_model_catalog,
-        load_provider_config, replace_active_stream, resolve_model_id,
+        cancel_active_stream, clear_active_stream_if_current, load_all_provider_configs,
+        load_model_catalog, load_provider_config, load_runtime_provider_configs,
+        replace_active_stream, resolve_model_id,
     };
 
     #[test]
@@ -251,6 +412,7 @@ mod tests {
                 id: "deepseek".to_string(),
                 name: "DeepSeek".to_string(),
                 provider_kind: AIProviderKind::DeepSeek,
+                enabled: true,
                 base_url: None,
             }],
         )
@@ -308,6 +470,7 @@ mod tests {
                 id: "deepseek".to_string(),
                 name: "DeepSeek".to_string(),
                 provider_kind: AIProviderKind::DeepSeek,
+                enabled: true,
                 base_url: None,
             }],
         )
@@ -335,6 +498,7 @@ mod tests {
                 id: "openai".to_string(),
                 name: "OpenAI".to_string(),
                 provider_kind: AIProviderKind::OpenAI,
+                enabled: true,
                 base_url: None,
             }],
         )
@@ -394,5 +558,45 @@ mod tests {
         .expect_err("unknown model should fail");
 
         assert!(error.contains("不在当前 provider 目录中"));
+    }
+
+    #[test]
+    fn load_all_provider_configs_falls_back_to_builtin_presets() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute(
+                "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)",
+                [],
+            )
+            .unwrap();
+
+        let providers = load_all_provider_configs(&connection).unwrap();
+        assert_eq!(providers.len(), 7);
+        assert!(providers.iter().any(|provider| provider.id == "openai"));
+    }
+
+    #[test]
+    fn load_runtime_provider_configs_filters_disabled_and_missing_keys() {
+        let connection = Connection::open_in_memory().unwrap();
+        connection
+            .execute(
+                "CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)",
+                [],
+            )
+            .unwrap();
+        db::save_ai_provider_configs(
+            &connection,
+            &[AIProviderConfig {
+                id: "openai".to_string(),
+                name: "OpenAI".to_string(),
+                provider_kind: AIProviderKind::OpenAI,
+                enabled: false,
+                base_url: None,
+            }],
+        )
+        .unwrap();
+
+        let providers = load_runtime_provider_configs(&connection).unwrap();
+        assert!(providers.is_empty());
     }
 }

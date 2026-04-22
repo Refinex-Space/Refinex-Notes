@@ -80,9 +80,15 @@ Author: agent
 **Files:** `src-tauri/src/commands/settings.rs`, `src-tauri/src/commands/ai.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/db.rs`, `src-tauri/src/ai/mod.rs`
 **Verification:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
-Status: ⬜ Not started
+Status: ✅ Done
 Evidence:
+- `src-tauri/src/commands/settings.rs` 已落地 typed settings schema、`load_settings` / `save_settings` / `read_setting` / `write_setting`
+- `src-tauri/src/commands/ai.rs` 已新增 provider settings 读写、runtime provider 过滤、真实 `ai_test_connection` 联网探活路径
+- `src-tauri/src/ai/mod.rs` 已扩展 `enabled`、自定义 OpenAI-compatible provider、builtin provider presets 与 API key keyring helper
+- `src-tauri/src/ai/providers.rs` 已补最小探活请求体
+- `cargo test --manifest-path src-tauri/Cargo.toml` 通过（74 passed）
 Deviations:
+- `ai_test_connection` 从原计划里的配置校验语义升级为真实最小联网请求，先在原生层完成以避免设置页自己探活第三方 API
 
 ### Step 2: 接入前端 settings service/store 与应用壳层主题恢复逻辑
 
@@ -115,7 +121,7 @@ Deviations:
 
 | Step | Status | Evidence | Notes |
 | ---- | ------ | -------- | ----- |
-| 1 | ⬜ |  |  |
+| 1 | ✅ | `cargo test --manifest-path src-tauri/Cargo.toml` | 原生 settings / AI 配置协议已落地 |
 | 2 | ⬜ |  |  |
 | 3 | ⬜ |  |  |
 | 4 | ⬜ |  |  |

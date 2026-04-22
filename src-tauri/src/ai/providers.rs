@@ -10,6 +10,7 @@ use crate::ai::{
 const USER_AGENT: &str = "Refinex-Notes";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
 const DEFAULT_ANTHROPIC_MAX_TOKENS: u32 = 4096;
+const DEFAULT_TEST_MAX_TOKENS: u32 = 1;
 
 #[derive(Clone)]
 pub struct OpenAICompatibleProvider {
@@ -51,6 +52,39 @@ impl OpenAICompatibleProvider {
             }).collect::<Vec<_>>(),
             "stream": true,
         })
+    }
+
+    fn test_request_body(&self, model: &str) -> Value {
+        json!({
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "ping"
+                }
+            ],
+            "stream": false,
+            "max_tokens": DEFAULT_TEST_MAX_TOKENS,
+        })
+    }
+
+    pub async fn test_connection(&self, model: &str) -> Result<(), String> {
+        let response = self
+            .client
+            .post(self.endpoint_url())
+            .bearer_auth(&self.api_key)
+            .json(&self.test_request_body(model))
+            .send()
+            .await
+            .map_err(|error| format!("请求 `{}` 失败: {error}", self.config.name))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(format!("`{}` 响应失败（{status}）: {body}", self.config.name));
+        }
+
+        Ok(())
     }
 }
 
@@ -139,6 +173,40 @@ impl AnthropicProvider {
         }
 
         body
+    }
+
+    fn test_request_body(&self, model: &str) -> Value {
+        json!({
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "ping"
+                }
+            ],
+            "stream": false,
+            "max_tokens": DEFAULT_TEST_MAX_TOKENS,
+        })
+    }
+
+    pub async fn test_connection(&self, model: &str) -> Result<(), String> {
+        let response = self
+            .client
+            .post(self.endpoint_url())
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", ANTHROPIC_VERSION)
+            .json(&self.test_request_body(model))
+            .send()
+            .await
+            .map_err(|error| format!("请求 `{}` 失败: {error}", self.config.name))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(format!("`{}` 响应失败（{status}）: {body}", self.config.name));
+        }
+
+        Ok(())
     }
 }
 
@@ -324,6 +392,7 @@ mod tests {
             id: "deepseek".to_string(),
             name: "DeepSeek".to_string(),
             provider_kind: AIProviderKind::DeepSeek,
+            enabled: true,
             base_url: None,
         }
     }
@@ -333,6 +402,7 @@ mod tests {
             id: "anthropic".to_string(),
             name: "Anthropic".to_string(),
             provider_kind: AIProviderKind::Anthropic,
+            enabled: true,
             base_url: None,
         }
     }
@@ -362,6 +432,19 @@ mod tests {
         assert_eq!(body["stream"], true);
         assert_eq!(body["messages"][0]["role"], "system");
         assert_eq!(body["messages"][1]["content"], "你好");
+    }
+
+    #[test]
+    fn openai_provider_builds_test_request_body() {
+        let (_, cancel_rx) = watch::channel(false);
+        let provider =
+            OpenAICompatibleProvider::new(openai_config(), "sk-test".to_string(), cancel_rx)
+                .expect("provider");
+        let body = provider.test_request_body("deepseek-chat");
+
+        assert_eq!(body["stream"], false);
+        assert_eq!(body["max_tokens"], 1);
+        assert_eq!(body["messages"][0]["content"], "ping");
     }
 
     #[test]
@@ -406,6 +489,19 @@ mod tests {
         assert_eq!(body["stream"], true);
         assert_eq!(body["max_tokens"], 4096);
         assert_eq!(body["messages"][0]["role"], "user");
+    }
+
+    #[test]
+    fn anthropic_provider_builds_test_request_body() {
+        let (_, cancel_rx) = watch::channel(false);
+        let provider =
+            AnthropicProvider::new(anthropic_config(), "sk-ant".to_string(), cancel_rx)
+                .expect("provider");
+        let body = provider.test_request_body("claude-sonnet-4-20250514");
+
+        assert_eq!(body["stream"], false);
+        assert_eq!(body["max_tokens"], 1);
+        assert_eq!(body["messages"][0]["content"], "ping");
     }
 
     #[test]

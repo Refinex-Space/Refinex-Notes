@@ -39,6 +39,8 @@ pub struct AIProviderConfig {
     pub id: String,
     pub name: String,
     pub provider_kind: AIProviderKind,
+    #[serde(default = "default_provider_enabled")]
+    pub enabled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub base_url: Option<String>,
 }
@@ -58,6 +60,34 @@ impl AIProviderConfig {
     pub fn default_model_catalog(&self) -> Vec<AIModelCatalogEntry> {
         self.provider_kind.default_model_catalog(&self.id)
     }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.id.trim().is_empty() {
+            return Err("AI Provider id 不能为空".to_string());
+        }
+
+        if self.name.trim().is_empty() {
+            return Err(format!("AI Provider `{}` 名称不能为空", self.id));
+        }
+
+        if matches!(
+            self.provider_kind,
+            AIProviderKind::CustomOpenAICompatible
+        ) && self
+            .base_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .is_none()
+        {
+            return Err(format!(
+                "自定义 Provider `{}` 必须提供 API Base URL",
+                self.id
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -76,6 +106,8 @@ pub enum AIProviderKind {
     OpenAI,
     #[serde(rename = "anthropic")]
     Anthropic,
+    #[serde(rename = "custom-openai-compatible")]
+    CustomOpenAICompatible,
 }
 
 impl AIProviderKind {
@@ -88,6 +120,7 @@ impl AIProviderKind {
             Self::MiniMax => DEFAULT_MINIMAX_BASE_URL,
             Self::OpenAI => DEFAULT_OPENAI_BASE_URL,
             Self::Anthropic => DEFAULT_ANTHROPIC_BASE_URL,
+            Self::CustomOpenAICompatible => "",
         }
     }
 
@@ -126,6 +159,7 @@ impl AIProviderKind {
                 ("claude-sonnet-4-20250514", "Claude Sonnet 4", true),
                 ("claude-3-5-haiku-20241022", "Claude Haiku 3.5", false),
             ],
+            Self::CustomOpenAICompatible => Vec::new(),
         };
 
         normalize_model_catalog(
@@ -164,6 +198,112 @@ pub struct AITestConnectionResult {
 #[serde(rename_all = "camelCase")]
 pub enum AITestConnectionMode {
     ConfigOnly,
+    LiveRequest,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AIProviderSettingsRecord {
+    pub id: String,
+    pub name: String,
+    pub provider_kind: AIProviderKind,
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    pub has_api_key: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AIProviderSecretInput {
+    pub provider_id: String,
+    pub api_key: String,
+}
+
+pub fn default_provider_enabled() -> bool {
+    true
+}
+
+pub fn builtin_provider_configs() -> Vec<AIProviderConfig> {
+    vec![
+        AIProviderConfig {
+            id: "anthropic".to_string(),
+            name: "Anthropic".to_string(),
+            provider_kind: AIProviderKind::Anthropic,
+            enabled: false,
+            base_url: None,
+        },
+        AIProviderConfig {
+            id: "openai".to_string(),
+            name: "OpenAI".to_string(),
+            provider_kind: AIProviderKind::OpenAI,
+            enabled: false,
+            base_url: None,
+        },
+        AIProviderConfig {
+            id: "deepseek".to_string(),
+            name: "DeepSeek".to_string(),
+            provider_kind: AIProviderKind::DeepSeek,
+            enabled: false,
+            base_url: None,
+        },
+        AIProviderConfig {
+            id: "qwen".to_string(),
+            name: "Qwen".to_string(),
+            provider_kind: AIProviderKind::Qwen,
+            enabled: false,
+            base_url: None,
+        },
+        AIProviderConfig {
+            id: "glm".to_string(),
+            name: "GLM".to_string(),
+            provider_kind: AIProviderKind::Glm,
+            enabled: false,
+            base_url: None,
+        },
+        AIProviderConfig {
+            id: "kimi".to_string(),
+            name: "Kimi".to_string(),
+            provider_kind: AIProviderKind::Kimi,
+            enabled: false,
+            base_url: None,
+        },
+        AIProviderConfig {
+            id: "minimax".to_string(),
+            name: "MiniMax".to_string(),
+            provider_kind: AIProviderKind::MiniMax,
+            enabled: false,
+            base_url: None,
+        },
+    ]
+}
+
+pub fn normalize_provider_configs(
+    providers: Vec<AIProviderConfig>,
+) -> Result<Vec<AIProviderConfig>, String> {
+    let mut normalized = Vec::new();
+
+    for provider in providers {
+        let next = AIProviderConfig {
+            id: provider.id.trim().to_string(),
+            name: provider.name.trim().to_string(),
+            provider_kind: provider.provider_kind,
+            enabled: provider.enabled,
+            base_url: provider
+                .base_url
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty()),
+        };
+        next.validate()?;
+
+        if normalized.iter().any(|entry: &AIProviderConfig| entry.id == next.id) {
+            return Err(format!("AI Provider `{}` 重复", next.id));
+        }
+
+        normalized.push(next);
+    }
+
+    Ok(normalized)
 }
 
 pub fn resolve_model_catalog(
@@ -276,12 +416,38 @@ pub fn load_provider_api_key(provider_id: &str) -> Result<String, String> {
     })
 }
 
+pub fn provider_has_api_key(provider_id: &str) -> Result<bool, String> {
+    let entry = provider_keyring_entry(provider_id)?;
+    match entry.get_password() {
+        Ok(value) => Ok(!value.trim().is_empty()),
+        Err(KeyringError::NoEntry) => Ok(false),
+        Err(error) => Err(format!("访问系统钥匙串失败: {error}")),
+    }
+}
+
+pub fn store_provider_api_key(provider_id: &str, api_key: &str) -> Result<(), String> {
+    let value = normalize_api_key(api_key.to_string())?;
+    let entry = provider_keyring_entry(provider_id)?;
+    entry
+        .set_password(&value)
+        .map_err(|error| format!("写入系统钥匙串失败: {error}"))
+}
+
+pub fn clear_provider_api_key(provider_id: &str) -> Result<(), String> {
+    let entry = provider_keyring_entry(provider_id)?;
+    match entry.delete_credential() {
+        Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
+        Err(error) => Err(format!("删除系统钥匙串条目失败: {error}")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        load_provider_api_key_with, normalize_model_catalog, resolve_model_catalog,
-        AIModelCatalogEntry, AIProviderConfig, AIProviderKind, DEFAULT_ANTHROPIC_BASE_URL,
-        DEFAULT_GLM_BASE_URL, DEFAULT_OPENAI_BASE_URL,
+        builtin_provider_configs, load_provider_api_key_with, normalize_model_catalog,
+        normalize_provider_configs, resolve_model_catalog, AIModelCatalogEntry, AIProviderConfig,
+        AIProviderKind, DEFAULT_ANTHROPIC_BASE_URL, DEFAULT_GLM_BASE_URL,
+        DEFAULT_OPENAI_BASE_URL,
     };
 
     #[test]
@@ -290,12 +456,14 @@ mod tests {
             id: "glm".to_string(),
             name: "GLM".to_string(),
             provider_kind: AIProviderKind::Glm,
+            enabled: true,
             base_url: None,
         };
         let anthropic = AIProviderConfig {
             id: "anthropic".to_string(),
             name: "Anthropic".to_string(),
             provider_kind: AIProviderKind::Anthropic,
+            enabled: true,
             base_url: Some("   ".to_string()),
         };
 
@@ -309,6 +477,7 @@ mod tests {
             id: "openai".to_string(),
             name: "OpenAI".to_string(),
             provider_kind: AIProviderKind::OpenAI,
+            enabled: true,
             base_url: Some("https://proxy.example.com/v1".to_string()),
         };
 
@@ -343,6 +512,7 @@ mod tests {
             id: "deepseek-main".to_string(),
             name: "DeepSeek".to_string(),
             provider_kind: AIProviderKind::DeepSeek,
+            enabled: true,
             base_url: None,
         };
 
@@ -360,12 +530,14 @@ mod tests {
                 id: "openai-main".to_string(),
                 name: "OpenAI".to_string(),
                 provider_kind: AIProviderKind::OpenAI,
+                enabled: true,
                 base_url: None,
             },
             AIProviderConfig {
                 id: "anthropic-main".to_string(),
                 name: "Anthropic".to_string(),
                 provider_kind: AIProviderKind::Anthropic,
+                enabled: true,
                 base_url: None,
             },
         ];
@@ -416,5 +588,50 @@ mod tests {
         assert_eq!(normalized[0].model_id, "model-1");
         assert!(normalized[1].is_default);
         assert!(!normalized[0].is_default);
+    }
+
+    #[test]
+    fn builtin_provider_configs_ship_all_presets_disabled_by_default() {
+        let providers = builtin_provider_configs();
+        assert_eq!(providers.len(), 7);
+        assert!(providers.iter().all(|provider| !provider.enabled));
+        assert!(providers.iter().any(|provider| provider.id == "anthropic"));
+    }
+
+    #[test]
+    fn normalize_provider_configs_rejects_duplicate_ids() {
+        let error = normalize_provider_configs(vec![
+            AIProviderConfig {
+                id: " openai ".to_string(),
+                name: "OpenAI".to_string(),
+                provider_kind: AIProviderKind::OpenAI,
+                enabled: true,
+                base_url: None,
+            },
+            AIProviderConfig {
+                id: "openai".to_string(),
+                name: "Proxy".to_string(),
+                provider_kind: AIProviderKind::CustomOpenAICompatible,
+                enabled: true,
+                base_url: Some("https://proxy.example.com/v1".to_string()),
+            },
+        ])
+        .expect_err("duplicate ids should fail");
+
+        assert!(error.contains("重复"));
+    }
+
+    #[test]
+    fn normalize_provider_configs_requires_custom_base_url() {
+        let error = normalize_provider_configs(vec![AIProviderConfig {
+            id: "custom".to_string(),
+            name: "自定义".to_string(),
+            provider_kind: AIProviderKind::CustomOpenAICompatible,
+            enabled: true,
+            base_url: None,
+        }])
+        .expect_err("custom provider should require base url");
+
+        assert!(error.contains("Base URL"));
     }
 }
