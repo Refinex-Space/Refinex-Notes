@@ -230,6 +230,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         open={saveToastOpen}
         onOpenChange={setSaveToastOpen}
         duration={2200}
+        className="!w-[min(24rem,calc(100vw-2rem))] self-center"
       >
         <div className="flex items-start gap-3">
           <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-500">
@@ -254,7 +255,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           }
         }}
         duration={4200}
-        className="border-rose-200/80 bg-rose-50/95 text-rose-950 shadow-[0_22px_70px_rgba(190,24,93,0.18)] dark:border-rose-500/30 dark:bg-rose-950/95 dark:text-rose-50"
+        className="border-rose-200/80 bg-rose-50/95 text-rose-950 shadow-panel dark:border-rose-500/30 dark:bg-rose-950/95 dark:text-rose-50"
       >
         <div className="flex items-start gap-3">
           <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-500/12 text-rose-500">
@@ -264,14 +265,14 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <ToastTitle className="text-rose-900 dark:text-rose-50">
               操作失败
             </ToastTitle>
-            <ToastDescription className="text-rose-700 dark:text-rose-100/90">
+            <ToastDescription className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] pr-1 text-rose-700 dark:text-rose-100/90">
               {errorToastMessage}
             </ToastDescription>
           </div>
         </div>
         <ToastClose className="text-rose-400 hover:border-rose-200/70 hover:text-rose-700 dark:text-rose-200/70 dark:hover:border-rose-400/30 dark:hover:text-rose-50" />
       </Toast>
-      <ToastViewport className="!left-1/2 !right-auto !top-5 !w-[min(380px,calc(100vw-2rem))] !-translate-x-1/2" />
+      <ToastViewport className="!left-1/2 !right-auto !top-5 !w-[min(40rem,calc(100vw-2rem))] !-translate-x-1/2" />
     </ToastProvider>
   );
 }

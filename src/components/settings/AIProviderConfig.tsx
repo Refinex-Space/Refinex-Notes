@@ -55,7 +55,7 @@ function ProviderKindBadge({ kind }: { kind: string }) {
   const icon = PROVIDER_KIND_ICONS[kind];
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
+    <span className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
       {icon ? (
         <img
           src={icon}
@@ -117,7 +117,7 @@ function ProviderCard({ providerId }: { providerId: string }) {
     lastTestResult?.providerId === provider.id && lastTestResult.ready;
 
   return (
-    <article className="space-y-4 rounded-[1.75rem] border border-border/70 bg-bg/80 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
+    <article className="space-y-4 rounded-xl border border-border/70 bg-bg/80 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
       <header className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -356,7 +356,7 @@ export function AIProviderConfig() {
         </button>
       </header>
 
-      <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-bg/80 p-5 lg:grid-cols-2">
+      <div className="grid gap-4 rounded-xl border border-border/70 bg-bg/80 p-5 lg:grid-cols-2">
         <div className="space-y-2">
           <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
             默认 Provider

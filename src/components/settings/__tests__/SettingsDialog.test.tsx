@@ -57,6 +57,7 @@ describe("SettingsDialog", () => {
     );
 
     expect(viewport?.className).toContain("!left-1/2");
+    expect(viewport?.className).toContain("!w-[min(40rem,calc(100vw-2rem))]");
     expect(viewport?.className).toContain("!-translate-x-1/2");
     expect(saveButton).toBeTruthy();
 
@@ -129,6 +130,7 @@ describe("SettingsDialog", () => {
 
     expect(container.textContent).toContain("操作失败");
     expect(container.textContent).toContain("OpenAI 响应失败（401 Unauthorized）");
+    expect(container.innerHTML).toContain("[overflow-wrap:anywhere]");
     expect(
       container.querySelector(".max-w-xs.truncate.text-sm.text-rose-500"),
     ).toBeNull();
