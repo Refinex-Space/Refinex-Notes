@@ -192,4 +192,27 @@ describe("aiStore", () => {
       }),
     ]);
   });
+
+  it("can exclude the current document from the generated AI context", async () => {
+    seedEditorContext();
+    useAIStore.setState({
+      providers,
+      modelsByProvider: { deepseek: models },
+      activeProvider: "deepseek",
+      activeModel: "deepseek-chat",
+    });
+
+    let capturedMessages: AICommandMessage[] = [];
+    vi.mocked(aiService.stream).mockImplementation(async ({ messages }) => {
+      capturedMessages = messages;
+    });
+
+    await useAIStore.getState().sendMessage("不要参考当前文章", {
+      includeCurrentDocument: false,
+    });
+
+    expect(capturedMessages[0]?.content).toContain("路径: （当前文档上下文已移除）");
+    expect(capturedMessages[0]?.content).not.toContain("Ship AI panel.");
+    expect(capturedMessages[0]?.content).not.toContain("docs/Roadmap.md");
+  });
 });

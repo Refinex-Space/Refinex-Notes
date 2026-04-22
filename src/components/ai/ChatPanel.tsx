@@ -6,9 +6,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { Loader2, Send, Square, Trash2, Wand2 } from "lucide-react";
+import { FileText, Loader2, Send, Square, Trash2, Wand2, X } from "lucide-react";
 
 import { useAIStore } from "../../stores/aiStore";
+import { useNoteStore } from "../../stores/noteStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { ProviderSelect } from "./ProviderSelect";
 import { StreamRenderer } from "./StreamRenderer";
@@ -57,6 +58,8 @@ function MessageBubble({
 
 export function ChatPanel() {
   const [draft, setDraft] = useState("");
+  const [includeCurrentDocumentContext, setIncludeCurrentDocumentContext] =
+    useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const {
     providers,
@@ -80,6 +83,9 @@ export function ChatPanel() {
   );
   const defaultModelId = useSettingsStore(
     (state) => state.settings.ai.defaultModelId,
+  );
+  const currentDocument = useNoteStore((state) =>
+    state.currentFile ? state.documents[state.currentFile] ?? null : null,
   );
   const requestedCatalogRef = useRef<Set<string>>(new Set());
 
@@ -127,6 +133,10 @@ export function ChatPanel() {
     });
   }, [loadModels, modelsByProvider, providers]);
 
+  useEffect(() => {
+    setIncludeCurrentDocumentContext(Boolean(currentDocument));
+  }, [currentDocument?.path]);
+
   const canSend =
     draft.trim().length > 0 &&
     !isStreaming &&
@@ -154,7 +164,9 @@ export function ChatPanel() {
     startTransition(() => {
       setDraft("");
     });
-    await sendMessage(content);
+    await sendMessage(content, {
+      includeCurrentDocument: includeCurrentDocumentContext,
+    });
   };
 
   const handleModelSelect = async (providerId: string, modelId: string) => {
@@ -215,6 +227,25 @@ export function ChatPanel() {
         ) : null}
 
         <div className="rounded-[1.25rem] border border-border/70 bg-[rgb(var(--color-bg)/0.92)] p-3 shadow-sm">
+          {currentDocument && includeCurrentDocumentContext ? (
+            <div className="mb-2 flex">
+              <div className="group inline-flex min-w-0 max-w-[min(100%,28rem)] items-center gap-2 rounded-full border border-border/70 bg-bg/90 px-3 py-1.5 text-sm text-muted transition hover:border-border hover:bg-bg">
+                <FileText className="h-4 w-4 shrink-0 text-muted" />
+                <span className="min-w-0 truncate font-medium text-fg/80">
+                  {currentDocument.name.replace(/\.md$/i, "")}
+                </span>
+                <button
+                  type="button"
+                  aria-label="移除当前文档上下文"
+                  onClick={() => setIncludeCurrentDocumentContext(false)}
+                  className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted opacity-0 transition hover:text-fg group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}

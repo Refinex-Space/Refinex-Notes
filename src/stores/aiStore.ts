@@ -25,19 +25,39 @@ function pickDefaultModel(models: readonly AIModelInfo[]) {
   return models.find((model) => model.isDefault) ?? models[0] ?? null;
 }
 
-function buildContextSnapshot(selectedText?: string) {
+const REMOVED_CURRENT_DOCUMENT_LABEL = "（当前文档上下文已移除）";
+
+function excludeCurrentDocumentPath(paths: readonly string[], currentPath?: string) {
+  if (!currentPath) {
+    return [...paths];
+  }
+
+  return paths.filter((path) => path !== currentPath);
+}
+
+function buildContextSnapshot(args?: {
+  selectedText?: string;
+  includeCurrentDocument?: boolean;
+}) {
   const currentDocument = getCurrentDocument();
   const noteState = useNoteStore.getState();
   const editorState = useEditorStore.getState();
+  const includeCurrentDocument = args?.includeCurrentDocument ?? true;
 
   return buildAIContext({
-    content: currentDocument?.content ?? "",
-    filePath: currentDocument?.path ?? "（当前没有打开文档）",
+    content: includeCurrentDocument ? currentDocument?.content ?? "" : "",
+    filePath: includeCurrentDocument
+      ? currentDocument?.path ?? "（当前没有打开文档）"
+      : REMOVED_CURRENT_DOCUMENT_LABEL,
     cursorPosition: editorState.cursorPosition,
-    selectedText,
+    selectedText: includeCurrentDocument ? args?.selectedText : undefined,
     directoryTree: buildDirectoryTreeSummary(noteState.files),
-    openFiles: noteState.openFiles,
-    recentFiles: noteState.recentFiles,
+    openFiles: includeCurrentDocument
+      ? noteState.openFiles
+      : excludeCurrentDocumentPath(noteState.openFiles, currentDocument?.path),
+    recentFiles: includeCurrentDocument
+      ? noteState.recentFiles
+      : excludeCurrentDocumentPath(noteState.recentFiles, currentDocument?.path),
   });
 }
 
@@ -217,7 +237,12 @@ export const useAIStore = create<AIStore>()(
       });
     },
 
-    streamPrompt: async ({ userMessage, promptContent, selectedText }) => {
+    streamPrompt: async ({
+      userMessage,
+      promptContent,
+      selectedText,
+      includeCurrentDocument = true,
+    }) => {
       const trimmedUserMessage = userMessage.trim();
       const trimmedPrompt = promptContent.trim();
       if (!trimmedUserMessage || !trimmedPrompt || get().isStreaming) {
@@ -248,7 +273,9 @@ export const useAIStore = create<AIStore>()(
         content: "",
         timestamp: Date.now(),
       };
-      const systemPrompt = buildSystemPrompt(buildContextSnapshot(selectedText));
+      const systemPrompt = buildSystemPrompt(
+        buildContextSnapshot({ selectedText, includeCurrentDocument }),
+      );
       const commandMessages = toCommandMessages(
         [
           ...get().messages,
@@ -307,10 +334,11 @@ export const useAIStore = create<AIStore>()(
       }
     },
 
-    sendMessage: async (content) => {
+    sendMessage: async (content, options) => {
       await get().streamPrompt({
         userMessage: content,
         promptContent: content,
+        includeCurrentDocument: options?.includeCurrentDocument,
       });
     },
 

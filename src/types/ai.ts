@@ -88,8 +88,12 @@ export interface AIStoreActions {
     userMessage: string;
     promptContent: string;
     selectedText?: string;
+    includeCurrentDocument?: boolean;
   }) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (
+    content: string,
+    options?: { includeCurrentDocument?: boolean },
+  ) => Promise<void>;
   cancelStream: () => Promise<void>;
   clearHistory: () => void;
 }
