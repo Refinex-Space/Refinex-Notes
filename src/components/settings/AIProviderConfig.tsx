@@ -1,6 +1,13 @@
 import { Eye, EyeOff, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import anthropicIcon from "../../assets/provider-icons/claude.svg";
+import deepseekIcon from "../../assets/provider-icons/deepseek.svg";
+import kimiIcon from "../../assets/provider-icons/kimi.svg";
+import minimaxIcon from "../../assets/provider-icons/minimax.svg";
+import openaiIcon from "../../assets/provider-icons/openai.svg";
+import qwenIcon from "../../assets/provider-icons/qwen.svg";
+import glmIcon from "../../assets/provider-icons/zdotai.svg";
 import {
   Select,
   SelectContent,
@@ -10,6 +17,16 @@ import {
 } from "../ui/select";
 import { Switch } from "../ui/switch";
 import { useSettingsStore } from "../../stores/settingsStore";
+
+const PROVIDER_KIND_ICONS: Record<string, string> = {
+  anthropic: anthropicIcon,
+  openai: openaiIcon,
+  deepseek: deepseekIcon,
+  qwen: qwenIcon,
+  glm: glmIcon,
+  kimi: kimiIcon,
+  minimax: minimaxIcon,
+};
 
 function providerKindLabel(kind: string) {
   switch (kind) {
@@ -32,6 +49,24 @@ function providerKindLabel(kind: string) {
     default:
       return kind;
   }
+}
+
+function ProviderKindBadge({ kind }: { kind: string }) {
+  const icon = PROVIDER_KIND_ICONS[kind];
+
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
+      {icon ? (
+        <img
+          src={icon}
+          alt=""
+          aria-hidden="true"
+          className="h-3.5 w-3.5 shrink-0 object-contain"
+        />
+      ) : null}
+      <span>{providerKindLabel(kind)}</span>
+    </span>
+  );
 }
 
 function ProviderCard({ providerId }: { providerId: string }) {
@@ -86,9 +121,7 @@ function ProviderCard({ providerId }: { providerId: string }) {
       <header className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted">
-              {providerKindLabel(provider.providerKind)}
-            </span>
+            <ProviderKindBadge kind={provider.providerKind} />
             {isDefaultProvider ? (
               <span className="rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-medium text-accent">
                 默认 Provider
