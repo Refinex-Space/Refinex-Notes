@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronRight,
   FileText,
@@ -27,7 +28,6 @@ import {
   ContextMenuTrigger,
 } from "../ui/context-menu";
 import {
-  getDefaultCreateFilePath,
   getDefaultCreateFolderPath,
   getNodeDirectoryPath,
   isMarkdownPath,
@@ -80,6 +80,11 @@ function shouldRenderGitStatus(status: FileNode["gitStatus"]) {
   return status !== undefined && status !== "clean";
 }
 
+type DraftFileState = {
+  directoryPath: string;
+  value: string;
+} | null;
+
 export function FileTreeEmptyState({
   workspacePath,
   isLoading = false,
@@ -117,20 +122,30 @@ function FileRow({
   node,
   depth,
   currentFile,
+  draftFile,
+  onStartCreateFile,
+  onDraftFileChange,
+  onCommitDraftFile,
+  onCancelDraftFile,
 }: {
   node: FileNode;
   depth: number;
   currentFile: string | null;
+  draftFile: DraftFileState;
+  onStartCreateFile: (directoryPath: string) => void;
+  onDraftFileChange: (value: string) => void;
+  onCommitDraftFile: () => void;
+  onCancelDraftFile: () => void;
 }) {
   const openFile = useNoteStore((state) => state.openFile);
   const prefetchFile = useNoteStore((state) => state.prefetchFile);
   const loadDirectory = useNoteStore((state) => state.loadDirectory);
-  const createFile = useNoteStore((state) => state.createFile);
   const createFolder = useNoteStore((state) => state.createFolder);
   const renameFile = useNoteStore((state) => state.renameFile);
   const deleteFile = useNoteStore((state) => state.deleteFile);
   const loadingDirectories = useNoteStore((state) => state.loadingDirectories);
   const statusByPath = useGitStore((state) => state.statusByPath);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const indentation = { paddingLeft: `${0.55 + depth * 0.9}rem` };
   const isCurrent = currentFile === node.path;
@@ -139,14 +154,36 @@ function FileRow({
   const isDirectoryLoading =
     node.isDir && loadingDirectories.includes(node.path);
   const canLoadDirectory = node.isDir && node.hasChildren && !node.isLoaded;
+  const shouldShowDraftInDirectory =
+    node.isDir && draftFile?.directoryPath === node.path;
+
+  useEffect(() => {
+    if (!shouldShowDraftInDirectory) {
+      return;
+    }
+
+    setIsExpanded(true);
+    if (canLoadDirectory && !isDirectoryLoading) {
+      void loadDirectory(node.path);
+    }
+  }, [
+    canLoadDirectory,
+    isDirectoryLoading,
+    loadDirectory,
+    node.path,
+    shouldShowDraftInDirectory,
+  ]);
 
   const row = node.isDir ? (
     <div>
       <Accordion
         type="multiple"
+        value={isExpanded ? [node.path] : []}
         onValueChange={(values) => {
+          const nextExpanded = values.includes(node.path);
+          setIsExpanded(nextExpanded);
           if (
-            values.includes(node.path) &&
+            nextExpanded &&
             canLoadDirectory &&
             !isDirectoryLoading
           ) {
@@ -193,8 +230,23 @@ function FileRow({
                   node={child}
                   depth={depth + 1}
                   currentFile={currentFile}
+                  draftFile={draftFile}
+                  onStartCreateFile={onStartCreateFile}
+                  onDraftFileChange={onDraftFileChange}
+                  onCommitDraftFile={onCommitDraftFile}
+                  onCancelDraftFile={onCancelDraftFile}
                 />
               ))}
+              {shouldShowDraftInDirectory ? (
+                <DraftFileRow
+                  key={`${node.path}:draft`}
+                  depth={depth + 1}
+                  value={draftFile?.value ?? ""}
+                  onChange={onDraftFileChange}
+                  onCommit={onCommitDraftFile}
+                  onCancel={onCancelDraftFile}
+                />
+              ) : null}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -251,14 +303,7 @@ function FileRow({
       <ContextMenuContent className="w-56">
         <ContextMenuItem
           onSelect={() => {
-            const nextPath = window.prompt(
-              "新建文件路径",
-              getDefaultCreateFilePath(node),
-            );
-            if (!nextPath) {
-              return;
-            }
-            void createFile(nextPath);
+            onStartCreateFile(directoryPath);
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -318,11 +363,81 @@ function FileRow({
   );
 }
 
+function DraftFileRow({
+  depth,
+  value,
+  onChange,
+  onCommit,
+  onCancel,
+}: {
+  depth: number;
+  value: string;
+  onChange: (value: string) => void;
+  onCommit: () => void;
+  onCancel: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const indentation = { paddingLeft: `${0.55 + depth * 0.9}rem` };
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  return (
+    <div
+      className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-[13px] leading-[1.1rem] text-fg"
+      style={indentation}
+    >
+      <span className="w-[11px] shrink-0" />
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        <FileText className="h-3.5 w-3.5 text-fg/55" />
+      </span>
+      <input
+        ref={inputRef}
+        value={value}
+        placeholder="输入文件名"
+        className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted"
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onCancel}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            onCommit();
+            return;
+          }
+
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onCancel();
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 export function FileTree() {
   const files = useNoteStore((state) => state.files);
   const workspacePath = useNoteStore((state) => state.workspacePath);
   const isWorkspaceLoading = useNoteStore((state) => state.isWorkspaceLoading);
   const currentFile = useNoteStore((state) => state.currentFile);
+  const createFileInDirectory = useNoteStore((state) => state.createFileInDirectory);
+  const [draftFile, setDraftFile] = useState<DraftFileState>(null);
+
+  const handleCommitDraftFile = async () => {
+    if (!draftFile) {
+      return;
+    }
+
+    const nextDraft = draftFile;
+    if (!nextDraft.value.trim()) {
+      setDraftFile(null);
+      return;
+    }
+
+    setDraftFile(null);
+    await createFileInDirectory(nextDraft.directoryPath, nextDraft.value);
+  };
 
   if (files.length === 0) {
     return (
@@ -335,7 +450,25 @@ export function FileTree() {
 
   return (
     <div className="h-full overflow-auto bg-[rgb(var(--color-bg)/0.9)]">
-      <FileTreeNodes files={files} currentFile={currentFile} />
+      <FileTreeNodes
+        files={files}
+        currentFile={currentFile}
+        draftFile={draftFile}
+        onStartCreateFile={(directoryPath) => {
+          setDraftFile({ directoryPath, value: "" });
+        }}
+        onDraftFileChange={(value) => {
+          setDraftFile((previous) =>
+            previous ? { ...previous, value } : previous,
+          );
+        }}
+        onCommitDraftFile={() => {
+          void handleCommitDraftFile();
+        }}
+        onCancelDraftFile={() => {
+          setDraftFile(null);
+        }}
+      />
     </div>
   );
 }
@@ -343,9 +476,19 @@ export function FileTree() {
 export function FileTreeNodes({
   files,
   currentFile,
+  draftFile,
+  onStartCreateFile,
+  onDraftFileChange,
+  onCommitDraftFile,
+  onCancelDraftFile,
 }: {
   files: readonly FileNode[];
   currentFile: string | null;
+  draftFile: DraftFileState;
+  onStartCreateFile: (directoryPath: string) => void;
+  onDraftFileChange: (value: string) => void;
+  onCommitDraftFile: () => void;
+  onCancelDraftFile: () => void;
 }) {
   return (
     <div className="space-y-0.5 px-2 py-2">
@@ -355,8 +498,23 @@ export function FileTreeNodes({
           node={node}
           depth={0}
           currentFile={currentFile}
+          draftFile={draftFile}
+          onStartCreateFile={onStartCreateFile}
+          onDraftFileChange={onDraftFileChange}
+          onCommitDraftFile={onCommitDraftFile}
+          onCancelDraftFile={onCancelDraftFile}
         />
       ))}
+      {draftFile?.directoryPath === "" ? (
+        <DraftFileRow
+          key="root:draft"
+          depth={0}
+          value={draftFile.value}
+          onChange={onDraftFileChange}
+          onCommit={onCommitDraftFile}
+          onCancel={onCancelDraftFile}
+        />
+      ) : null}
     </div>
   );
 }

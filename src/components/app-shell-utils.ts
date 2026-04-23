@@ -4,6 +4,8 @@ import type { CommandPaletteItem, OutlineHeading } from "../types";
 import type { NoteDocument } from "../types/notes";
 import type { SearchResult } from "../types/search";
 
+export const DEFAULT_NEW_DOCUMENT_BASENAME = "Undefined";
+
 export function countWords(content: string): number {
   // Strip common markdown syntax that should not contribute to the word count.
   const stripped = content
@@ -41,6 +43,43 @@ export function createNextNotePath(existingPaths: readonly string[]) {
     const suffix = index === 1 ? "" : ` ${index}`;
     const candidate = `${baseDirectory}/${baseName}${suffix}.md`;
     if (!existingPaths.includes(candidate)) {
+      return candidate;
+    }
+    index += 1;
+  }
+}
+
+function joinPath(parentPath: string, leafName: string) {
+  return parentPath.length > 0 ? `${parentPath}/${leafName}` : leafName;
+}
+
+export function sanitizeFileStem(value: string) {
+  return value
+    .replace(/[\\/:*?"<>|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function normalizeMarkdownBaseName(value: string) {
+  const trimmed = value.trim().replace(/\.md$/i, "");
+  return sanitizeFileStem(trimmed) || DEFAULT_NEW_DOCUMENT_BASENAME;
+}
+
+export function createUniqueMarkdownPath(
+  directoryPath: string,
+  baseName: string,
+  existingPaths: readonly string[],
+  currentPath?: string,
+) {
+  const existing = new Set(existingPaths.filter((path) => path !== currentPath));
+  const sanitizedBaseName =
+    normalizeMarkdownBaseName(baseName) || DEFAULT_NEW_DOCUMENT_BASENAME;
+  let index = 1;
+
+  while (true) {
+    const suffix = index === 1 ? "" : ` ${index}`;
+    const candidate = joinPath(directoryPath, `${sanitizedBaseName}${suffix}.md`);
+    if (!existing.has(candidate)) {
       return candidate;
     }
     index += 1;

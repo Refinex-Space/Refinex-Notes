@@ -63,6 +63,7 @@ export interface NoteStoreActions {
   closeFilesToRight: (path: string) => Promise<void>;
   reorderOpenFiles: (fromPath: string, toIndex: number) => void;
   createFile: (path: string) => Promise<void>;
+  createFileInDirectory: (directoryPath: string, baseName?: string) => Promise<string>;
   createFolder: (path: string) => Promise<void>;
   deleteFile: (path: string) => Promise<void>;
   renameFile: (oldPath: string, newPath: string) => Promise<void>;

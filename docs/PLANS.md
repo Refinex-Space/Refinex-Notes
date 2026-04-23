@@ -8,6 +8,12 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Fix New File Flow With Typora-Style Tree Rename](exec-plans/completed/2026-04-23-fix-typora-style-new-file-flow.md) — completed 2026-04-23
+
+- [Fix Title Sync Flicker During New File Naming](exec-plans/completed/2026-04-23-fix-title-sync-flicker.md) — completed 2026-04-23
+
+- [Fix Sidebar New File Flow](exec-plans/completed/2026-04-23-fix-sidebar-new-file-flow.md) — completed 2026-04-23
+
 - [Notion-Style Selection Toolbar](exec-plans/completed/2026-04-23-notion-selection-toolbar.md) — completed 2026-04-23
 
 - [Fix AI Chat Attachment Message And Args](exec-plans/completed/2026-04-23-fix-ai-chat-attachment-message-and-args.md) — completed 2026-04-23

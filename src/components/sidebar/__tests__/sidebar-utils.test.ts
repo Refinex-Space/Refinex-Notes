@@ -30,7 +30,7 @@ describe("sidebar helpers", () => {
 
     expect(getNodeDirectoryPath(fileNode)).toBe("Projects/Refinex");
     expect(getNodeDirectoryPath(folderNode)).toBe("Projects/Refinex");
-    expect(getDefaultCreateFilePath(fileNode)).toBe("Projects/Refinex/Untitled.md");
+    expect(getDefaultCreateFilePath(fileNode)).toBe("Projects/Refinex/Undefined.md");
     expect(getDefaultCreateFolderPath(folderNode)).toBe("Projects/Refinex/New Folder");
   });
 

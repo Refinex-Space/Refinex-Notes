@@ -32,6 +32,16 @@ export const useEditorStore = create<EditorStore>()((set) => ({
       ),
     }));
   },
+  renameTrackedPath: (oldPath, newPath) => {
+    set((state) => ({
+      activeTab: state.activeTab === oldPath ? newPath : state.activeTab,
+      unsavedChanges: new Set(
+        [...state.unsavedChanges].map((entry) =>
+          entry === oldPath ? newPath : entry,
+        ),
+      ),
+    }));
+  },
   setCursorPosition: (cursorPosition) => {
     set(() => ({ cursorPosition }));
   },

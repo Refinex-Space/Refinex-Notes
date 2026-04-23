@@ -265,6 +265,9 @@ describe("workspace state stores", () => {
 
     expect(useNoteStore.getState().documents["Projects/Archive/Notes.md"]).toBeDefined();
     expect(useNoteStore.getState().folders).toContain("Projects/Archive");
+    expect(useNoteStore.getState().documents["Projects/Archive/Notes.md"]?.content).toBe(
+      "# Notes\n\n",
+    );
 
     await useNoteStore
       .getState()
@@ -278,6 +281,39 @@ describe("workspace state stores", () => {
 
     expect(useNoteStore.getState().documents["Projects/History/Notes.md"]).toBeUndefined();
     expect(useNoteStore.getState().folders).not.toContain("Projects/History");
+  });
+
+  it("creates markdown files from directory drafts and normalizes optional extensions", async () => {
+    await useNoteStore.getState().createFolder("Projects/Archive");
+
+    const firstPath = await useNoteStore
+      .getState()
+      .createFileInDirectory("Projects/Archive", "Product Vision");
+    const secondPath = await useNoteStore
+      .getState()
+      .createFileInDirectory("Projects/Archive", "Product Vision.md");
+
+    expect(firstPath).toBe("Projects/Archive/Product Vision.md");
+    expect(secondPath).toBe("Projects/Archive/Product Vision 2.md");
+    expect(useNoteStore.getState().currentFile).toBe(secondPath);
+    expect(useNoteStore.getState().documents[firstPath]?.content).toBe(
+      "# Product Vision\n\n",
+    );
+    expect(flattenTree([], useNoteStore.getState().files)).toContain(secondPath);
+  });
+
+  it("renames editor-tracked paths together with documents", async () => {
+    useEditorStore.getState().setActiveTab("Inbox/Welcome.md");
+    useEditorStore.getState().markDirty("Inbox/Welcome.md");
+
+    await useNoteStore
+      .getState()
+      .renameFile("Inbox/Welcome.md", "Inbox/Overview.md");
+
+    expect(useEditorStore.getState().activeTab).toBe("Inbox/Overview.md");
+    expect(useEditorStore.getState().unsavedChanges.has("Inbox/Overview.md")).toBe(
+      true,
+    );
   });
 
   it("updates file content and exposes the active document", () => {

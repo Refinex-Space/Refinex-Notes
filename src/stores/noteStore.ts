@@ -9,6 +9,11 @@ import type {
   RecentWorkspace,
 } from "../types/notes";
 import {
+  createUniqueMarkdownPath,
+  DEFAULT_NEW_DOCUMENT_BASENAME,
+  normalizeMarkdownBaseName,
+} from "../components/app-shell-utils";
+import {
   beginDocumentPerfTrace,
   consumeDocumentPerfSourceHint,
   createDocumentPerfRequestId,
@@ -66,6 +71,16 @@ function sortTree(nodes: TreeNode[]): FileNode[] {
       if (left.isDir !== right.isDir) {
         return left.isDir ? -1 : 1;
       }
+
+      const leftIsPlaceholderDraft =
+        !left.isDir && /^Undefined(?: \d+)?\.md$/i.test(left.name);
+      const rightIsPlaceholderDraft =
+        !right.isDir && /^Undefined(?: \d+)?\.md$/i.test(right.name);
+
+      if (leftIsPlaceholderDraft !== rightIsPlaceholderDraft) {
+        return leftIsPlaceholderDraft ? 1 : -1;
+      }
+
       return left.name.localeCompare(right.name, "en");
     })
     .map((node) => ({
@@ -348,6 +363,10 @@ function clamp(value: number, min: number, max: number) {
 function createMarkdownTemplate(path: string) {
   const title = getFileName(path).replace(/\.md$/i, "");
   return `# ${title}\n\n`;
+}
+
+function syncEditorRenamedPath(oldPath: string, newPath: string) {
+  useEditorStore.getState().renameTrackedPath(oldPath, newPath);
 }
 
 function getPendingDocumentReadKey(workspacePath: string, path: string) {
@@ -762,19 +781,20 @@ export const useNoteStore = create<NoteStore>()(
       });
     },
     createFile: async (path) => {
+      const initialContent = createMarkdownTemplate(path);
       const { workspacePath } = get();
       if (workspacePath) {
-        await fileService.createFile(path);
+        await fileService.writeFile(path, initialContent);
         const files = await fileService.readFileTree(workspacePath);
 
         set((state) => {
           applyWorkspaceTree(state, workspacePath, files);
-        state.documents[path] = createDocumentFromDisk(path, "");
-        state.currentFile = path;
-        state.openFiles = ensureUniquePaths([...state.openFiles, path]);
-        state.recentFiles = withRecentFile(state.recentFiles, path);
-        state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
-      });
+          state.documents[path] = createDocumentFromDisk(path, initialContent);
+          state.currentFile = path;
+          state.openFiles = ensureUniquePaths([...state.openFiles, path]);
+          state.recentFiles = withRecentFile(state.recentFiles, path);
+          state.openingFiles = state.openingFiles.filter((entry) => entry !== path);
+        });
         useEditorStore.getState().markClean(path);
         return;
       }
@@ -807,6 +827,37 @@ export const useNoteStore = create<NoteStore>()(
         state.recentFiles = withRecentFile(state.recentFiles, path);
         syncFileTree(state);
       });
+    },
+    createFileInDirectory: async (
+      directoryPath,
+      baseName = DEFAULT_NEW_DOCUMENT_BASENAME,
+    ) => {
+      const state = get();
+      let existingPaths = collectWorkspaceState(state.files).files;
+
+      if (state.workspacePath) {
+        try {
+          const siblingNodes = await fileService.readFileTree(
+            directoryPath || state.workspacePath,
+          );
+          existingPaths = [
+            ...new Set([
+              ...existingPaths,
+              ...collectWorkspaceState(siblingNodes).files,
+            ]),
+          ];
+        } catch {
+          // 退回到当前缓存树，避免创建流程被目录读取失败阻断
+        }
+      }
+
+      const nextPath = createUniqueMarkdownPath(
+        directoryPath,
+        normalizeMarkdownBaseName(baseName),
+        existingPaths,
+      );
+      await get().createFile(nextPath);
+      return nextPath;
     },
     createFolder: async (path) => {
       const { workspacePath } = get();
@@ -922,6 +973,7 @@ export const useNoteStore = create<NoteStore>()(
             : null;
           applyWorkspaceTree(state, workspacePath, files);
         });
+        syncEditorRenamedPath(oldPath, newPath);
         return;
       }
 
@@ -955,6 +1007,7 @@ export const useNoteStore = create<NoteStore>()(
           : null;
         syncFileTree(state);
       });
+      syncEditorRenamedPath(oldPath, newPath);
     },
     refreshFileTree: async () => {
       const { workspacePath } = get();

@@ -4,8 +4,10 @@ import { parseMarkdown } from "../../editor";
 import {
   buildCommandPaletteItems,
   countWords,
+  createUniqueMarkdownPath,
   createNextNotePath,
   findHeadingPosition,
+  normalizeMarkdownBaseName,
   searchResultsToCommandPaletteItems,
 } from "../app-shell-utils";
 
@@ -58,6 +60,23 @@ describe("app shell helpers", () => {
     expect(
       createNextNotePath(["Inbox/Quick Note.md", "Inbox/Quick Note 2.md"]),
     ).toBe("Inbox/Quick Note 3.md");
+  });
+
+  it("creates unique markdown paths and keeps collisions out of the same directory", () => {
+    expect(
+      createUniqueMarkdownPath("Projects", "Undefined", [
+        "Projects/Undefined.md",
+        "Projects/Undefined 2.md",
+      ]),
+    ).toBe("Projects/Undefined 3.md");
+  });
+
+  it("normalizes markdown basenames and strips optional extensions", () => {
+    expect(normalizeMarkdownBaseName("Product Vision")).toBe("Product Vision");
+    expect(normalizeMarkdownBaseName("Product Vision.md")).toBe(
+      "Product Vision",
+    );
+    expect(normalizeMarkdownBaseName("  ")).toBe("Undefined");
   });
 
   it("finds the heading position inside the editor document", () => {

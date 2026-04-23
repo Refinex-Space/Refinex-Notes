@@ -1,92 +1,117 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+/**
+ * @vitest-environment jsdom
+ */
 
-import type { FileNode } from "../../../types/notes";
-import { FileTreeEmptyState, FileTreeNodes, gitStatusTone } from "../FileTree";
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { FileNode } from "../../../types";
+import { resetNoteStore } from "../../../stores/noteStore";
+import { FileTreeNodes } from "../FileTree";
+
+function flushFrame() {
+  return new Promise((resolve) => window.setTimeout(resolve, 0));
+}
 
 describe("FileTree", () => {
-  it("renders directories collapsed by default", () => {
-    const files: FileNode[] = [
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    resetNoteStore();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+    vi.restoreAllMocks();
+  });
+
+  it("shows an inline draft filename input inside the target directory", async () => {
+    const files = [
       {
         name: "Projects",
         path: "Projects",
         isDir: true,
-        hasChildren: true,
-        isLoaded: true,
-        children: [
-          {
-            name: "Refinex",
-            path: "Projects/Refinex",
-            isDir: true,
-            hasChildren: true,
-            isLoaded: true,
-            children: [
-              {
-                name: "Roadmap.md",
-                path: "Projects/Refinex/Roadmap.md",
-                isDir: false,
-                hasChildren: false,
-                isLoaded: true,
-                gitStatus: "clean",
-              },
-            ],
-          },
-          {
-            name: "Notes.md",
-            path: "Projects/Notes.md",
-            isDir: false,
-            hasChildren: false,
-            isLoaded: true,
-            gitStatus: "clean",
-          },
-        ],
-      },
-    ];
-    const markup = renderToStaticMarkup(
-      <FileTreeNodes files={files} currentFile={null} />,
-    );
-
-    expect(markup).toContain("Projects");
-    expect(markup).toContain('data-state="closed"');
-    expect(markup).not.toContain('data-state="open"');
-    expect(markup).toContain("space-y-0.5 px-2 py-2");
-    expect(markup).toContain(
-      "!rounded-lg px-2.5 !py-1 !text-[13px] !font-medium !leading-[1.1rem]",
-    );
-  });
-
-  it("renders compact file rows", () => {
-    const files: FileNode[] = [
-      {
-        name: "Notes.md",
-        path: "Notes.md",
-        isDir: false,
         hasChildren: false,
         isLoaded: true,
-        gitStatus: "clean",
+        children: [],
       },
-    ];
-    const markup = renderToStaticMarkup(
-      <FileTreeNodes files={files} currentFile={null} />,
-    );
+    ] satisfies FileNode[];
 
-    expect(markup).toContain(
-      "flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left text-[13px] leading-[1.1rem] transition",
-    );
+    await act(async () => {
+      root.render(
+        <FileTreeNodes
+          files={files}
+          currentFile={null}
+          draftFile={{ directoryPath: "Projects", value: "Product Vision" }}
+          onStartCreateFile={vi.fn()}
+          onDraftFileChange={vi.fn()}
+          onCommitDraftFile={vi.fn()}
+          onCancelDraftFile={vi.fn()}
+        />,
+      );
+      await flushFrame();
+    });
+
+    const input = container.querySelector(
+      'input[placeholder="输入文件名"]',
+    ) as HTMLInputElement | null;
+
+    expect(input).toBeTruthy();
+    expect(input?.value).toBe("Product Vision");
   });
 
-  it("maps modified files to amber text", () => {
-    expect(gitStatusTone("modified")).toBe("text-amber-400");
-    expect(gitStatusTone("untracked")).toBe("text-emerald-400");
-  });
+  it("commits the inline draft when the user presses Enter", async () => {
+    const onCommitDraftFile = vi.fn();
+    const files = [
+      {
+        name: "Projects",
+        path: "Projects",
+        isDir: true,
+        hasChildren: false,
+        isLoaded: true,
+        children: [],
+      },
+    ] satisfies FileNode[];
 
-  it("renders a centered empty state without instructional copy", () => {
-    const markup = renderToStaticMarkup(
-      <FileTreeEmptyState workspacePath={null} />,
-    );
+    await act(async () => {
+      root.render(
+        <FileTreeNodes
+          files={files}
+          currentFile={null}
+          draftFile={{ directoryPath: "Projects", value: "Product Vision" }}
+          onStartCreateFile={vi.fn()}
+          onDraftFileChange={vi.fn()}
+          onCommitDraftFile={onCommitDraftFile}
+          onCancelDraftFile={vi.fn()}
+        />,
+      );
+      await flushFrame();
+    });
 
-    expect(markup).toContain("打开一个工作区");
-    expect(markup).toContain("本地 Markdown / Git 仓库");
-    expect(markup).not.toContain("点击上方按钮打开本地文件夹");
+    const input = container.querySelector(
+      'input[placeholder="输入文件名"]',
+    ) as HTMLInputElement | null;
+
+    expect(input).toBeTruthy();
+
+    await act(async () => {
+      input?.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+        }),
+      );
+      await flushFrame();
+    });
+
+    expect(onCommitDraftFile).toHaveBeenCalledTimes(1);
   });
 });

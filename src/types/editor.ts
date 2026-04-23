@@ -15,6 +15,7 @@ export interface EditorStoreActions {
   setActiveTab: (path: string | null) => void;
   markDirty: (path: string) => void;
   markClean: (path: string) => void;
+  renameTrackedPath: (oldPath: string, newPath: string) => void;
   setCursorPosition: (cursorPosition: CursorPosition) => void;
   setSourceMode: (enabled: boolean) => void;
   toggleSourceMode: () => void;

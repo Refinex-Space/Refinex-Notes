@@ -1,5 +1,6 @@
 import type { OutlineHeading } from "../../types";
 import type { FileNode } from "../../types/notes";
+import { DEFAULT_NEW_DOCUMENT_BASENAME } from "../app-shell-utils";
 
 function getParentPath(path: string) {
   const segments = path.split("/").filter(Boolean);
@@ -19,7 +20,10 @@ export function getNodeDirectoryPath(node: Pick<FileNode, "path" | "isDir">) {
 }
 
 export function getDefaultCreateFilePath(node: Pick<FileNode, "path" | "isDir">) {
-  return withJoinedPath(getNodeDirectoryPath(node), "Untitled.md");
+  return withJoinedPath(
+    getNodeDirectoryPath(node),
+    `${DEFAULT_NEW_DOCUMENT_BASENAME}.md`,
+  );
 }
 
 export function getDefaultCreateFolderPath(

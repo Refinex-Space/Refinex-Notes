@@ -69,7 +69,6 @@ const sidebarActionButtonClassName = [
 ].join(" ");
 
 const AUTO_EDITOR_HYDRATION_DELAY_MS = 900;
-
 function getWorkspaceName(path: string) {
   return path.split(/[\\/]/).findLast(Boolean) ?? path;
 }
@@ -950,10 +949,9 @@ function WorkspaceShell({
 
                             if (markdown === document.savedContent) {
                               markClean(document.path);
-                              return;
+                            } else {
+                              markDirty(document.path);
                             }
-
-                            markDirty(document.path);
                           }}
                           onCursorChange={(cursor) => {
                             if (activeEditorPath === document.path) {
