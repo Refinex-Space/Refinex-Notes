@@ -449,59 +449,77 @@ export function handleImageFileDrop(view: EditorView, event: DragEvent) {
 
 export async function executeSlashCommand(options: {
   view: EditorView;
-  trigger: SlashTriggerMatch;
+  trigger?: SlashTriggerMatch | null;
   commandId: SlashCommandId;
 }): Promise<boolean> {
   const { view, trigger, commandId } = options;
 
   switch (commandId) {
     case "heading-1":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(
         view,
         setBlockType(refinexSchema.nodes.heading, { level: 1 }),
       );
     case "heading-2":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(
         view,
         setBlockType(refinexSchema.nodes.heading, { level: 2 }),
       );
     case "heading-3":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(
         view,
         setBlockType(refinexSchema.nodes.heading, { level: 3 }),
       );
     case "bullet-list":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(
         view,
         wrapInList(refinexSchema.nodes.bullet_list),
       );
     case "ordered-list":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(
         view,
         wrapInList(refinexSchema.nodes.ordered_list),
       );
     case "blockquote":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(view, wrapIn(refinexSchema.nodes.blockquote));
     case "code-block":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       return runEditorCommand(
         view,
         setBlockType(refinexSchema.nodes.code_block),
       );
     case "task-list":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       view.dispatch(
         replaceCurrentBlockWithNodes(view.state, [createTaskListNode()]),
       );
       return true;
     case "divider":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       view.dispatch(
         replaceCurrentBlockWithNodes(view.state, [
           refinexSchema.nodes.horizontal_rule.create(),
@@ -510,7 +528,9 @@ export async function executeSlashCommand(options: {
       );
       return true;
     case "table":
-      removeSlashTrigger(view, trigger);
+      if (trigger) {
+        removeSlashTrigger(view, trigger);
+      }
       view.dispatch(
         replaceCurrentBlockWithNodes(view.state, [createDefaultTableNode()]),
       );
@@ -523,7 +543,9 @@ export async function executeSlashCommand(options: {
 
       try {
         const src = await readImageFileAsDataUrl(file);
-        removeSlashTrigger(view, trigger);
+        if (trigger) {
+          removeSlashTrigger(view, trigger);
+        }
         view.dispatch(
           replaceCurrentBlockWithNodes(view.state, [
             createImageParagraphNode({

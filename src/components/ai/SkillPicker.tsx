@@ -25,11 +25,17 @@ export function SkillPicker({
   disabled = false,
   onSelect,
   label = "AI",
+  triggerClassName,
+  contentClassName,
+  menuLabel = "AI Skills",
 }: {
   skills: readonly SkillDefinition[];
   disabled?: boolean;
   onSelect: (skill: SkillDefinition) => void;
   label?: string;
+  triggerClassName?: string;
+  contentClassName?: string;
+  menuLabel?: string;
 }) {
   return (
     <Popover>
@@ -41,6 +47,7 @@ export function SkillPicker({
             "inline-flex items-center gap-2 rounded-xl border border-border/70 bg-[rgb(var(--color-bg)/0.92)] px-3 py-2 text-sm text-fg shadow-sm transition",
             "hover:border-accent/45 hover:bg-accent/8",
             "disabled:cursor-not-allowed disabled:opacity-50",
+            triggerClassName,
           ].join(" ")}
         >
           <Sparkles className="h-4 w-4 text-accent" />
@@ -50,11 +57,13 @@ export function SkillPicker({
       <PopoverContent
         align="start"
         side="bottom"
-        className="w-[22rem] rounded-xl p-1.5"
+        className={["w-[22rem] rounded-xl p-1.5", contentClassName]
+          .filter(Boolean)
+          .join(" ")}
       >
         <div className="mb-1 px-2 py-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">
-            AI Skills
+            {menuLabel}
           </p>
         </div>
         <div className="space-y-1">

@@ -8,6 +8,8 @@ Active and planned work for this repository.
 
 ## Completed Plans
 
+- [Notion-Style Selection Toolbar](exec-plans/completed/2026-04-23-notion-selection-toolbar.md) — completed 2026-04-23
+
 - [Fix AI Chat Attachment Message And Args](exec-plans/completed/2026-04-23-fix-ai-chat-attachment-message-and-args.md) — completed 2026-04-23
 
 - [Fix AI Chat Attachment Composer Polish](exec-plans/completed/2026-04-23-fix-ai-chat-attachment-composer-polish.md) — completed 2026-04-23
